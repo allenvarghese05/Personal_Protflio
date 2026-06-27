@@ -1,26 +1,180 @@
 @import "tailwindcss";
 
+/* ============================================================
+   MISSION ALLEN — Space Odyssey Design System
+   ============================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core space palette — "Mission Amber" (NASA warm) */
+  --void: #060913;
+  --deep-navy: #0b1322;
+  --amber: #ff8a3d;
+  --amber-bright: #ffa75c;
+  --gold: #f5b544;
+  --steel: #4a90d9;
+  --steel-bright: #6fb0ee;
+
+  /* Text — warm off-white for readability */
+  --text-primary: #f2ecdd;
+  --text-secondary: #c9c2b2;
+  --text-dim: #8a8475;
+
+  /* Surfaces */
+  --bg-primary: var(--void);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--void);
+  color: var(--text-primary);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--void);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(245, 181, 68, 0.4);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 181, 68, 0.7);
+}
+
+::selection {
+  background-color: var(--amber);
+  color: var(--void);
+}
+
+/* ============================================================
+   Utility classes
+   ============================================================ */
+
+/* Glassmorphism panel — darker tint so light text stays readable on top */
+.glass {
+  background: rgba(11, 19, 34, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(245, 181, 68, 0.18);
+  border-radius: 1rem;
+}
+
+.glass-glow {
+  box-shadow: 0 0 40px rgba(255, 138, 61, 0.22),
+    inset 0 0 30px rgba(74, 144, 217, 0.06);
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(120deg, var(--gold), var(--amber-bright));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Legibility helpers for text over the bright 3D scene */
+.text-shadow-soft {
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7), 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Radial dark scrim placed behind hero content */
+.hero-scrim {
+  background: radial-gradient(
+    ellipse 60% 50% at 50% 50%,
+    rgba(6, 9, 19, 0.78) 0%,
+    rgba(6, 9, 19, 0.45) 45%,
+    rgba(6, 9, 19, 0) 75%
+  );
+}
+
+.font-display {
+  font-family: var(--font-space-grotesk), sans-serif;
+}
+.font-mono {
+  font-family: var(--font-jetbrains-mono), monospace;
+}
+
+/* Subtle pulse for status dots / blinking cursor */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Gentle float */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.float-y {
+  animation: float-y 4s ease-in-out infinite;
+}
+
+/* Scroll prompt bounce */
+@keyframes scroll-bob {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(6px); opacity: 1; }
+}
+.scroll-bob {
+  animation: scroll-bob 1.8s ease-in-out infinite;
+}
+
+/* ============================================================
+   Lenis smooth scroll
+   ============================================================ */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* ============================================================
+   Reduced-motion guard — kill all motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
