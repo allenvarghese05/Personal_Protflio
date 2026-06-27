@@ -4,7 +4,10 @@ import { useStore } from '@/lib/store';
 import { chapters } from '@/data/timeline';
 
 const EASE = [0.22, 1, 0.36, 1];
-const allMemories = chapters.flatMap((c) => c.memories || []);
+// Carry each fragment's chapter index so the card can show the right ghost number.
+const allMemories = chapters.flatMap((c) =>
+  (c.memories || []).map((m) => ({ ...m, chapterIndex: c.index }))
+);
 
 /** Concentric arcs that draw themselves in — the "graph" moment. */
 function ArcGauge({ value = 0.7 }) {
@@ -40,8 +43,10 @@ function ArcGauge({ value = 0.7 }) {
 }
 
 function MetricBars({ metrics }) {
+  // Many metrics (e.g. the IET build) lay out 2-up so the card never scrolls.
+  const grid = metrics.length > 3;
   return (
-    <div className="space-y-4">
+    <div className={grid ? 'grid grid-cols-2 gap-x-6 gap-y-4' : 'space-y-4'}>
       {metrics.map((m, i) => (
         <div key={i}>
           <div className="flex items-baseline justify-between font-mono text-[11px] tracking-wider">
@@ -60,6 +65,30 @@ function MetricBars({ metrics }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/** Tech-stack chips — monospace, distinct from the soft topic tags. */
+function TechStack({ tech }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.42 }}
+      className="flex flex-wrap items-center gap-2"
+    >
+      <span className="font-mono text-[10px] tracking-[0.3em] text-[var(--text-dim)]">
+        STACK
+      </span>
+      {tech.map((t) => (
+        <span
+          key={t}
+          className="rounded-md border border-[var(--steel)]/30 bg-[var(--steel)]/10 px-2.5 py-1 font-mono text-[11px] tracking-wider text-[var(--steel-bright)]"
+        >
+          {t}
+        </span>
+      ))}
+    </motion.div>
   );
 }
 
@@ -164,18 +193,31 @@ export default function MemoryCard() {
                 aria-hidden
                 className="font-display pointer-events-none absolute -bottom-12 -right-3 select-none text-[15rem] font-bold leading-none text-white/[0.035]"
               >
-                02
+                {String(mem.chapterIndex ?? 2).padStart(2, '0')}
               </div>
 
-              {/* Row 1: eyebrow + close */}
-              <div className="relative flex items-start justify-between">
+              {/* Row 1: eyebrow (+ status pill) + close */}
+              <div className="relative flex items-start justify-between gap-4">
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="font-mono text-[11px] tracking-[0.3em] text-[var(--steel-bright)]"
+                  className="flex flex-wrap items-center gap-3"
                 >
-                  {mem.eyebrow}
+                  {mem.signature && (
+                    <span className="rounded-full border border-[var(--gold)]/50 bg-[var(--gold)]/10 px-2.5 py-0.5 font-mono text-[10px] tracking-[0.2em] text-[var(--gold)]">
+                      ★ SIGNATURE
+                    </span>
+                  )}
+                  {mem.current && (
+                    <span className="flex items-center gap-1.5 rounded-full border border-[#5affa0]/40 bg-[#5affa0]/10 px-2.5 py-0.5 font-mono text-[10px] tracking-[0.2em] text-[#7dffb8]">
+                      <span className="pulse-soft h-1.5 w-1.5 rounded-full bg-[#5affa0]" />
+                      CURRENT
+                    </span>
+                  )}
+                  <span className="font-mono text-[11px] tracking-[0.3em] text-[var(--steel-bright)]">
+                    {mem.eyebrow}
+                  </span>
                 </motion.div>
                 <button
                   onClick={() => setSelected(null)}
@@ -234,6 +276,13 @@ export default function MemoryCard() {
               {mem.tags && (
                 <div className="relative mt-5">
                   <Tags tags={mem.tags} />
+                </div>
+              )}
+
+              {/* Tech stack */}
+              {mem.tech && (
+                <div className="relative mt-4">
+                  <TechStack tech={mem.tech} />
                 </div>
               )}
 

@@ -17,6 +17,12 @@ import { chapterFor } from '@/lib/journey';
 export default function ScrollManager() {
   useEffect(() => {
     const lenis = new Lenis({ duration: 1.4, smoothWheel: true, syncTouch: true });
+    // Debug hook — lets tooling drive the journey deterministically (e.g.
+    // window.lenis.scrollTo(y, { immediate: true })). Harmless in production.
+    if (typeof window !== 'undefined') {
+      window.lenis = lenis;
+      window.__scroll = scrollState;
+    }
     let stopped = true;
     lenis.stop();
 

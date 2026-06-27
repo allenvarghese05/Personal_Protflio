@@ -17,11 +17,11 @@ import StarField from './StarField';
 import Planet from './Planet';
 import Rocket from './Rocket';
 import LaunchSmoke from './LaunchSmoke';
+import EngineeringStation from './EngineeringStation';
 import AsteroidBelt from './AsteroidBelt';
 import Nebula from './Nebula';
 import { useStore } from '@/lib/store';
 import { scrollState } from '@/lib/scrollState';
-import { HERO_END } from '@/lib/journey';
 
 const smooth = (a, b, t) => {
   const x = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1);
@@ -35,19 +35,25 @@ const toKeys = (arr) =>
     tgt: new THREE.Vector3(...k.tgt),
   }));
 
-/** Hero: launch → arc in → planet fills frame (sampled by hero-local 0→1). */
-const HERO_CAM = [
-  { p: 0.0, pos: [0, 0.8, 5.2], tgt: [0, -0.4, 0] },
-  { p: 0.35, pos: [2.2, 0.9, 1.5], tgt: [0, 0.3, -4] },
-  { p: 0.7, pos: [3.2, 1.4, -1.5], tgt: [0, 0.5, -8] },
-  { p: 1.0, pos: [1.6, 1.0, -3.5], tgt: [0, 0.5, -9] },
-];
-
-/** Chapters: fly on from the planet into the journey (sampled by 0→1 past hero). */
-const CHAPTER_CAM = [
-  { p: 0.0, pos: [1.6, 1.0, -3.5], tgt: [0, 0.5, -9] }, // continuity with hero end
-  { p: 0.5, pos: [-3.0, 4.0, -16], tgt: [0, 4.5, -24] }, // transit toward the belt
-  { p: 1.0, pos: [0, 5.5, -24], tgt: [0, 5.5, -33] }, // into the asteroid field
+/**
+ * One continuous flight path, sampled by GLOBAL scroll progress (0→1):
+ *   0.00–0.40  launch pad → ascent → orbit (planet fills frame, name card)
+ *   0.40–0.55  bank away from the planet, the Engineering Station swings in
+ *   0.55–0.74  approach & dock at the station (work modules)
+ *   0.74–1.00  drift out to the asteroid field (Origins)
+ * Corridor anchors: planet (0,0.5,-11) · station (6,3,-20) · belt (0,5.5,-43)
+ */
+const FLIGHT_CAM = [
+  { p: 0.0, pos: [0, 0.8, 5.2], tgt: [0, -0.4, 0] }, // on the pad, looking up
+  { p: 0.14, pos: [1.8, 1.0, 1.6], tgt: [0, 0.6, -5] }, // ascent, drifting right
+  { p: 0.28, pos: [2.7, 1.5, -3.2], tgt: [0, 0.6, -9] }, // approaching the planet
+  { p: 0.4, pos: [1.2, 0.9, -3.8], tgt: [0, 0.5, -11] }, // orbit — planet framed with its edge, name card
+  { p: 0.5, pos: [7.5, 3.0, -8.5], tgt: [5, 3, -16] }, // swing right, past the planet's limb
+  { p: 0.6, pos: [6, 3.8, -16], tgt: [4, 3.8, -23] }, // planet now behind — station ahead
+  { p: 0.7, pos: [5, 4.2, -20], tgt: [4, 3.9, -26] }, // hero shot — modules ring the station
+  { p: 0.8, pos: [3.5, 4.6, -25], tgt: [1.5, 5, -36] }, // depart toward the belt
+  { p: 0.9, pos: [2, 5.2, -34], tgt: [0, 5.4, -46] }, // transit
+  { p: 1.0, pos: [0, 5.5, -41], tgt: [0, 5.5, -52] }, // into the asteroid field
 ];
 
 function CameraRig() {
@@ -59,8 +65,7 @@ function CameraRig() {
   const tmpPos = useMemo(() => new THREE.Vector3(), []);
   const tmpTgt = useMemo(() => new THREE.Vector3(), []);
 
-  const heroKeys = useMemo(() => toKeys(HERO_CAM), []);
-  const chapterKeys = useMemo(() => toKeys(CHAPTER_CAM), []);
+  const flightKeys = useMemo(() => toKeys(FLIGHT_CAM), []);
 
   const sample = (keys, t) => {
     let i = 0;
@@ -74,13 +79,19 @@ function CameraRig() {
 
   useFrame(() => {
     const flying = phase === 'flight';
+    if (typeof window !== 'undefined') {
+      window.__cam = camera;
+      window.__phase = phase;
+    }
 
     if (flying) {
-      const p = scrollState.progress;
-      if (p <= HERO_END) sample(heroKeys, p / HERO_END);
-      else sample(chapterKeys, (p - HERO_END) / (1 - HERO_END));
-      camera.position.lerp(tmpPos, 0.1);
-      curTarget.current.lerp(tmpTgt, 0.1);
+      sample(flightKeys, scrollState.progress);
+      // Production lerp is a soft 0.1 (cinematic trailing). Tooling can set
+      // window.__fastcam to snap for deterministic screenshots.
+      const L =
+        typeof window !== 'undefined' && window.__fastcam ? 0.6 : 0.1;
+      camera.position.lerp(tmpPos, L);
+      curTarget.current.lerp(tmpTgt, L);
       camera.lookAt(curTarget.current);
       // Speed-reactive FOV widen
       const fov = 50 + scrollState.velocity * 16;
@@ -191,6 +202,7 @@ export default function SpaceExperience({ tier = 'full' }) {
         <Planet />
         <Rocket />
         <LaunchSmoke />
+        <EngineeringStation />
         <AsteroidBelt />
       </Suspense>
 

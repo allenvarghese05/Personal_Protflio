@@ -148,12 +148,16 @@ function ChapterCard({ data }) {
 
 export default function ChapterPanels() {
   const active = useStore((s) => s.activeChapter);
-  const origins = chapters.find((c) => c.index === 2);
+  const engineering = chapters.find((c) => c.index === 2);
+  const origins = chapters.find((c) => c.index === 3);
 
   return (
     <AnimatePresence mode="wait">
       {active === 1 && <NameCard key="name" />}
-      {active === 2 && origins && <ChapterCard key="origins" data={origins} />}
+      {active === 2 && engineering && (
+        <ChapterCard key="engineering" data={engineering} />
+      )}
+      {active === 3 && origins && <ChapterCard key="origins" data={origins} />}
     </AnimatePresence>
   );
 }

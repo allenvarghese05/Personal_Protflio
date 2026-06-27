@@ -7,7 +7,7 @@ import { scrollState } from '@/lib/scrollState';
 import { HERO_END } from '@/lib/journey';
 
 const PAD = new THREE.Vector3(0, -1.9, 1.5); // low on the launch pad (bottom of frame)
-const ROCKET_END = new THREE.Vector3(0, 0.5, -7); // leads ahead, in front of the planet
+const ROCKET_END = new THREE.Vector3(1.7, 3.3, -9); // climbs up-and-right into orbit, clear of the name card
 
 const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
@@ -101,6 +101,8 @@ export default function Rocket() {
 
   const prevPhase = useRef(phase);
   const phaseEntry = useRef(0);
+  const lean = useRef(0); // smoothed bank, springs back when scrolling stops
+  const pitch = useRef(0);
 
   useFrame((state) => {
     const g = groupRef.current;
@@ -155,8 +157,9 @@ export default function Rocket() {
       );
       g.rotation.z = Math.sin(t * 2) * 0.01;
     } else {
-      // flight — rocket leads toward the planet within the hero portion,
-      // then parks (the camera flies on through the chapters)
+      // flight — rocket arcs up-and-right into orbit within the hero portion,
+      // then parks there (the camera flies on through the chapters). It banks
+      // and pitches into the climb, reacting live to scroll speed.
       const p = Math.min(1, scrollState.progress / HERO_END);
       const k = easeOutCubic(Math.min(1, p / 0.7));
       const hover = p > 0.7 ? Math.sin(t * 0.8) * 0.08 : 0;
@@ -165,9 +168,20 @@ export default function Rocket() {
         THREE.MathUtils.lerp(PAD.y, ROCKET_END.y, k) + hover,
         THREE.MathUtils.lerp(PAD.z, ROCKET_END.z, k)
       );
-      g.rotation.z = Math.sin(t * 0.4) * 0.03;
-      // Full burn on the way, engine eases as it arrives
-      thrust = p < 0.7 ? 1.0 : THREE.MathUtils.lerp(1.0, 0.4, (p - 0.7) / 0.3);
+
+      // Bank/pitch: lean into the rightward climb, and lean harder the faster
+      // you scroll. Smoothed so it springs back to an idle drift when you stop.
+      const v = scrollState.velocity;
+      const targetLean = -0.26 * k - v * 0.5; // roll right into the arc
+      const targetPitch = 0.12 * k + v * 0.45; // nose pitches forward under thrust
+      lean.current += (targetLean - lean.current) * 0.08;
+      pitch.current += (targetPitch - pitch.current) * 0.08;
+      g.rotation.z = lean.current + Math.sin(t * 0.5) * 0.02;
+      g.rotation.x = pitch.current + Math.sin(t * 0.4) * 0.015;
+
+      // Full burn on the climb, eased as it arrives — and a kick from scroll speed
+      const cruise = p < 0.7 ? 1.0 : THREE.MathUtils.lerp(1.0, 0.45, (p - 0.7) / 0.3);
+      thrust = Math.min(1.3, cruise + v * 0.5);
     }
 
     thrustRef.current = thrust;

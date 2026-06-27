@@ -99,10 +99,10 @@ body {
 /* Radial dark scrim placed behind hero content */
 .hero-scrim {
   background: radial-gradient(
-    ellipse 60% 50% at 50% 50%,
-    rgba(6, 9, 19, 0.78) 0%,
-    rgba(6, 9, 19, 0.45) 45%,
-    rgba(6, 9, 19, 0) 75%
+    ellipse 68% 56% at 50% 50%,
+    rgba(6, 9, 19, 0.92) 0%,
+    rgba(6, 9, 19, 0.68) 42%,
+    rgba(6, 9, 19, 0) 78%
   );
 }
 

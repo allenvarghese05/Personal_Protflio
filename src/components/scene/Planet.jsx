@@ -134,7 +134,7 @@ const PlanetSurfaceMaterial = shaderMaterial(
 const AtmosphereMaterial = shaderMaterial(
   {
     uColor: new THREE.Color('#4a90d9'),
-    uColor2: new THREE.Color('#ff8a3d'),
+    uColor2: new THREE.Color('#c9763f'),
     uIntensity: 1.0,
     uBrightness: 1.0,
   },
@@ -197,7 +197,7 @@ export default function Planet({ position = [0, 0.5, -11], radius = 4.0 }) {
           depthWrite={false}
           blending={THREE.AdditiveBlending}
           side={THREE.FrontSide}
-          uIntensity={1.0}
+          uIntensity={0.7}
           uBrightness={1}
         />
       </mesh>
@@ -211,7 +211,7 @@ export default function Planet({ position = [0, 0.5, -11], radius = 4.0 }) {
           depthWrite={false}
           blending={THREE.AdditiveBlending}
           side={THREE.BackSide}
-          uIntensity={0.45}
+          uIntensity={0.28}
           uBrightness={1}
         />
       </mesh>
