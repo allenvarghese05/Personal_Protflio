@@ -102,6 +102,21 @@ export default function ExploreController({ astronautRef, moving }) {
     const p = worldState.pos;
     const dt = Math.min(delta, 0.05);
 
+    // Keep the target out of every district's proximity sphere — the astronaut
+    // halts at the edge (stopRadius) instead of walking through the buildings.
+    if (worldState.hasTarget) {
+      for (const z of zones) {
+        const r = z.stopRadius || z.enterRadius;
+        const dx = worldState.target.x - z.position[0];
+        const dz = worldState.target.z - z.position[2];
+        const d = Math.hypot(dx, dz);
+        if (d < r && d > 0.0001) {
+          worldState.target.x = z.position[0] + (dx / d) * r;
+          worldState.target.z = z.position[2] + (dz / d) * r;
+        }
+      }
+    }
+
     // Move toward target
     if (worldState.hasTarget) {
       const dx = worldState.target.x - p.x;
@@ -122,8 +137,33 @@ export default function ExploreController({ astronautRef, moving }) {
     }
     if (moving) moving.current = worldState.moving;
 
-    // Damp the camera orbit toward its drag target (smooth, not jumpy)
-    worldState.azimuth += (worldState.azimuthTarget - worldState.azimuth) * 0.12;
+    // On approach to a district, gently swing the camera around so the buildings
+    // sit in frame beyond the astronaut (camera ends up on the far side).
+    let nearZ = null;
+    let nearD = Infinity;
+    for (const z of zones) {
+      const d = Math.hypot(p.x - z.position[0], p.z - z.position[2]);
+      if (d < z.enterRadius && d < nearD) {
+        nearD = d;
+        nearZ = z;
+      }
+    }
+    if (nearZ && !useStore.getState().enteredZone) {
+      const dirX = nearZ.position[0] - p.x;
+      const dirZ = nearZ.position[2] - p.z;
+      // azimuth places the camera at (sin,cos)*dist from the astronaut; we want
+      // it opposite the buildings so they're framed in front.
+      worldState.azimuthTarget = Math.atan2(-dirX, -dirZ);
+    }
+
+    // __fastcam snaps the rig for deterministic screenshots (SwiftShader is slow
+    // enough that the slow lerps never converge in the capture window).
+    const fast = typeof window !== 'undefined' && window.__fastcam;
+    const camK = fast ? 0.6 : 0.08;
+    const azK = fast ? 0.6 : 0.12;
+
+    // Damp the camera orbit toward its drag target (smooth, not jumpy; wrap-safe)
+    worldState.azimuth = lerpAngle(worldState.azimuth, worldState.azimuthTarget, azK);
 
     // Apply to astronaut (smooth heading)
     const a = astronautRef.current;
@@ -136,9 +176,9 @@ export default function ExploreController({ astronautRef, moving }) {
     const az = worldState.azimuth;
     const desiredX = p.x + Math.sin(az) * CAM_DIST;
     const desiredZ = p.z + Math.cos(az) * CAM_DIST;
-    camera.position.x += (desiredX - camera.position.x) * 0.08;
-    camera.position.y += (CAM_HEIGHT - camera.position.y) * 0.08;
-    camera.position.z += (desiredZ - camera.position.z) * 0.08;
+    camera.position.x += (desiredX - camera.position.x) * camK;
+    camera.position.y += (CAM_HEIGHT - camera.position.y) * camK;
+    camera.position.z += (desiredZ - camera.position.z) * camK;
     camera.lookAt(p.x, p.y + 1.3, p.z);
 
     // Zone proximity → drives the ENTER prompt

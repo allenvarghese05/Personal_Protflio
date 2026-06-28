@@ -41,6 +41,36 @@ export const chapters = [
         period: 'Dec 2025 – Mar 2026 · Hybrid, Delhi',
         tags: ['Architecture', 'Security', 'GIS', 'Full-stack'],
         tech: ['Next.js 14', 'TypeScript', 'Prisma', 'Supabase', 'PostgreSQL'],
+        // Hierarchy: primary = the calls that defined the build, the rest support.
+        techStack: [
+          { name: 'Next.js 14', primary: true },
+          { name: 'TypeScript', primary: true },
+          { name: 'Supabase', primary: true },
+          { name: 'Haversine', primary: true },
+          { name: 'Prisma ORM' },
+          { name: 'PostgreSQL' },
+          { name: 'RBAC' },
+          { name: 'OTP Auth' },
+          { name: 'GIS' },
+          { name: 'REST API' },
+        ],
+        keyDecisions: [
+          {
+            title: 'RBAC on every route',
+            detail:
+              'Not just page-level — route middleware enforces role checks server-side before any data is fetched.',
+          },
+          {
+            title: 'Haversine over PostGIS',
+            detail:
+              'Lightweight formula sufficient for 8km radius enforcement without standing up a full spatial extension.',
+          },
+          {
+            title: 'Supabase Realtime for approvals',
+            detail:
+              'No polling — status changes push live to every role tier the moment an approval moves.',
+          },
+        ],
         stat: '18',
         statLabel: 'application lifecycle statuses, designed end-to-end',
         story:
@@ -63,6 +93,31 @@ export const chapters = [
         role: 'Software Engineer Intern',
         period: 'Mar 2026 – Present',
         tags: ['Next.js', 'Full-stack', 'Internal tooling'],
+        techStack: [
+          { name: 'Next.js', primary: true },
+          { name: 'React', primary: true },
+          { name: 'TypeScript', primary: true },
+          { name: 'Node.js' },
+          { name: 'REST APIs' },
+          { name: 'Internal tooling' },
+        ],
+        keyDecisions: [
+          {
+            title: 'Own the slice end to end',
+            detail:
+              'Spec → build → ship in one pair of hands — fewer handoffs, tighter feedback loops at startup pace.',
+          },
+          {
+            title: 'Purpose-built over off-the-shelf',
+            detail:
+              'Internal tools beat generic SaaS for the edge cases a 150-person team actually hits daily.',
+          },
+          {
+            title: 'Ship small, ship often',
+            detail:
+              'Incremental delivery keeps each change reviewable and reversible instead of big-bang releases.',
+          },
+        ],
         stat: '$30M+',
         statLabel: 'funded startup · 150 people',
         story:
@@ -83,6 +138,31 @@ export const chapters = [
         role: 'Creative Content Manager',
         period: 'Oct 2023 – Sep 2025',
         tags: ['Photography', 'Video', 'Web'],
+        techStack: [
+          { name: 'Photography', primary: true },
+          { name: 'Video', primary: true },
+          { name: 'Web', primary: true },
+          { name: 'Lightroom' },
+          { name: 'Premiere' },
+          { name: 'CMS' },
+        ],
+        keyDecisions: [
+          {
+            title: 'One look across two years',
+            detail:
+              'A consistent grade and framing so a season of shoots reads as a single brand, not a folder of photos.',
+          },
+          {
+            title: 'Web-first delivery',
+            detail:
+              'Assets shipped to the site where sponsors and recruits actually saw them, not just a drive.',
+          },
+          {
+            title: 'Capture for reuse',
+            detail:
+              'Shot wide and long so one session feeds stills, reels, and the website at once.',
+          },
+        ],
         stat: '2 yrs',
         statLabel: 'capturing a student race team',
         story:
@@ -103,6 +183,30 @@ export const chapters = [
         role: 'Sound Technician · Drexel University',
         period: 'Jan 2024 – Feb 2026',
         tags: ['Live sound', 'Lighting', 'Streaming'],
+        techStack: [
+          { name: 'Live sound', primary: true },
+          { name: 'Lighting', primary: true },
+          { name: 'Streaming', primary: true },
+          { name: 'Mixing' },
+          { name: 'Signal flow' },
+        ],
+        keyDecisions: [
+          {
+            title: 'Gain-stage before the show',
+            detail:
+              'Set clean levels up front so a live mix has headroom instead of fighting feedback mid-event.',
+          },
+          {
+            title: 'Redundant signal paths',
+            detail:
+              'A backup feed on critical channels — live has no second take, so failure can’t be single-point.',
+          },
+          {
+            title: 'Stream as a first-class output',
+            detail:
+              'Mixed for the room and the broadcast separately so the online audience wasn’t an afterthought.',
+          },
+        ],
         stat: 'Live',
         statLabel: 'sound, lights & streaming for campus events',
         story:
@@ -123,6 +227,30 @@ export const chapters = [
         role: 'Live Sound Engineer / Production Intern',
         period: 'Jun – Jul 2024 · Texas',
         tags: ['Live sound', 'Software', 'Film'],
+        techStack: [
+          { name: 'Live sound', primary: true },
+          { name: 'Film', primary: true },
+          { name: 'Bug fixing', primary: true },
+          { name: 'Church app' },
+          { name: 'Production' },
+        ],
+        keyDecisions: [
+          {
+            title: 'Fix the app where it hurt',
+            detail:
+              'Triaged the church app to the bugs users hit most, not the longest backlog ticket.',
+          },
+          {
+            title: 'Shoot on location',
+            detail:
+              'Filmed the promo in Mexico for real texture a studio set-up couldn’t fake.',
+          },
+          {
+            title: 'Serve the service first',
+            detail:
+              'Live sound choices favoured reliability for the congregation over engineer-pleasing complexity.',
+          },
+        ],
         stat: 'MX',
         statLabel: 'filmed a promo on location in Mexico',
         story:

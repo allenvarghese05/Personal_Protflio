@@ -50,16 +50,32 @@ function SkyDome() {
 /* ----------------------------------------------------------------------------
    Ground — large warm toon disc with a few rolling hills poking through.
 ---------------------------------------------------------------------------- */
+// Keep scenery clear of every district so a hill/boulder never buries the
+// buildings. `margin` should cover the prop's own radius plus the zone glow.
+function clearOfZones(x, z, margin) {
+  for (const zo of zones) {
+    if (Math.hypot(x - zo.position[0], z - zo.position[2]) < (zo.enterRadius || 6) + margin) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function Ground() {
   const grad = useMemo(toonGradient, []);
   const hills = useMemo(() => {
     const arr = [];
-    for (let i = 0; i < 14; i++) {
+    let guard = 0;
+    while (arr.length < 14 && guard++ < 400) {
       const a = Math.random() * Math.PI * 2;
       const r = 14 + Math.random() * 40;
+      const x = Math.cos(a) * r;
+      const z = Math.sin(a) * r;
+      const s = 4 + Math.random() * 9;
+      if (!clearOfZones(x, z, s)) continue;
       arr.push({
-        pos: [Math.cos(a) * r, -1.4 - Math.random() * 1.5, Math.sin(a) * r],
-        s: 4 + Math.random() * 9,
+        pos: [x, -1.4 - Math.random() * 1.5, z],
+        s,
         c: Math.random() < 0.5 ? '#caa15e' : '#b98a4a',
       });
     }
@@ -114,15 +130,19 @@ function Scenery() {
   const grad = useMemo(toonGradient, []);
   const items = useMemo(() => {
     const arr = [];
-    for (let i = 0; i < 30; i++) {
+    let guard = 0;
+    while (arr.length < 30 && guard++ < 600) {
       const a = Math.random() * Math.PI * 2;
       const r = 7 + Math.random() * 38;
+      const x = Math.cos(a) * r;
+      const z = Math.sin(a) * r;
+      if (!clearOfZones(x, z, 4)) continue;
       const spire = Math.random() < 0.22;
       const tone = ['#8a7350', '#9c7e4e', '#76603f', '#a98a55'][
         Math.floor(Math.random() * 4)
       ];
       arr.push({
-        pos: [Math.cos(a) * r, 0, Math.sin(a) * r],
+        pos: [x, 0, z],
         s: spire
           ? [0.5 + Math.random() * 0.5, 1.6 + Math.random() * 2.4, 0.5 + Math.random() * 0.5]
           : (() => {
@@ -170,14 +190,51 @@ const BUILDINGS = [
   { p: [0.7, 0, 2.5], s: [1.5, 1.9, 1.5], c: '#3a526e' },
 ];
 
+/* Build a glowing canvas texture for the floating district name. Rendered on a
+   Sprite so it always faces the camera (a real 3D billboard, not a CSS overlay). */
+function makeLabelTexture(text, accent) {
+  const spaced = text.split('').join(' '); // letter-spacing emulation
+  const font = '600 72px "JetBrains Mono", ui-monospace, monospace';
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = font;
+  const pad = 80;
+  const w = Math.ceil(meas.measureText(spaced).width) + pad * 2;
+  const h = 200;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+  ctx.font = font;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // soft outer glow
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = 26;
+  ctx.fillStyle = accent;
+  ctx.fillText(spaced, w / 2, h / 2);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#fff4e2';
+  ctx.fillText(spaced, w / 2, h / 2);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  tex.needsUpdate = true;
+  tex.userData = { aspect: w / h };
+  return tex;
+}
+
 export function District({ id, position = [10, 0, 0], color = '#ff8a3d', label = 'ENGINEERING DISTRICT', accent = '#ffd27a', enterRadius = 6 }) {
   const grad = useMemo(toonGradient, []);
   const beacon = useRef();
   const glow = useRef();
+  const labelRef = useRef();
   const near = useRef(0); // 0→1 proximity factor
   const windows = useRef([]);
   const [inRange, setInRange] = useState(false);
   const setEnteredZone = useStore((s) => s.setEnteredZone);
+
+  const labelTex = useMemo(() => makeLabelTexture(label, accent), [label, accent]);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -186,7 +243,8 @@ export function District({ id, position = [10, 0, 0], color = '#ff8a3d', label =
       worldState.pos.z - position[2]
     );
     const target = THREE.MathUtils.clamp(1 - (d - enterRadius) / 8, 0, 1);
-    near.current += (target - near.current) * 0.1;
+    const nearK = typeof window !== 'undefined' && window.__fastcam ? 0.5 : 0.1;
+    near.current += (target - near.current) * nearK;
     const n = near.current;
 
     if (beacon.current)
@@ -194,6 +252,10 @@ export function District({ id, position = [10, 0, 0], color = '#ff8a3d', label =
         0.6 + Math.abs(Math.sin(t * 2)) * 0.8 + n * 0.8;
     if (glow.current)
       glow.current.material.opacity = 0.12 + Math.sin(t * 1.5) * 0.04 + n * 0.5;
+    // Floating name: subtle glow pulse, dips slightly as the ENTER prompt rises
+    if (labelRef.current)
+      labelRef.current.material.opacity =
+        (0.72 + Math.sin(t * 1.6) * 0.12) * (1 - n * 0.55);
     // Windows pulse + brighten on approach
     windows.current.forEach((w, idx) => {
       if (w) w.emissiveIntensity = 0.9 + n * 1.4 + Math.sin(t * 3 + idx) * 0.15 * n;
@@ -257,19 +319,22 @@ export function District({ id, position = [10, 0, 0], color = '#ff8a3d', label =
         </mesh>
       </group>
 
-      {/* District name — recedes as the ENTER prompt takes over */}
-      <Html center position={[0, 6.4, 0]} distanceFactor={18} style={{ pointerEvents: 'none' }}>
-        <div
-          className="whitespace-nowrap font-mono text-[11px] tracking-[0.4em] transition-opacity duration-500"
-          style={{ color: accent, opacity: inRange ? 0.35 : 0.9, textShadow: '0 0 12px rgba(255,170,80,0.5)' }}
-        >
-          {label}
-        </div>
-      </Html>
+      {/* District name — a real 3D billboard Sprite floating above the cluster,
+          always facing the camera, softly glowing. Recedes as ENTER takes over. */}
+      <sprite ref={labelRef} position={[0, 5.9, 0]} scale={[1.7 * (labelTex.userData?.aspect || 4), 1.7, 1]}>
+        <spriteMaterial
+          map={labelTex}
+          transparent
+          opacity={0.8}
+          depthWrite={false}
+          depthTest={false}
+          toneMapped={false}
+        />
+      </sprite>
 
       {/* In-world holographic ENTER prompt (no bottom bar) */}
       {inRange && (
-        <Html center position={[0, 5.2, 0]} distanceFactor={14} zIndexRange={[20, 0]}>
+        <Html center position={[0, 4.2, 0]} distanceFactor={14} zIndexRange={[20, 0]}>
           <button
             onClick={() => id && setEnteredZone(id)}
             className="enter-holo group flex select-none flex-col items-center gap-1"
