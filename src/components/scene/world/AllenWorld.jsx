@@ -4,6 +4,8 @@ import { useFrame, extend } from '@react-three/fiber';
 import { Outlines, Html, shaderMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 import { toonGradient } from '@/lib/toon';
+import { worldState } from '@/lib/worldState';
+import { zones } from '@/data/world';
 
 /* ----------------------------------------------------------------------------
    Sky dome — vertical gradient: deep indigo overhead → warm amber at horizon.
@@ -132,16 +134,29 @@ function Scenery() {
    District landmark — a cluster of low-poly buildings + antenna the visitor
    walks up to. Glows + shows a label. (Engineering District for the slice.)
 ---------------------------------------------------------------------------- */
-export function District({ position = [10, 0, 0], color = '#ff8a3d', label = 'ENGINEERING DISTRICT', accent = '#ffd27a' }) {
+export function District({ position = [10, 0, 0], color = '#ff8a3d', label = 'ENGINEERING DISTRICT', accent = '#ffd27a', enterRadius = 6 }) {
   const grad = useMemo(toonGradient, []);
   const beacon = useRef();
   const glow = useRef();
+  const near = useRef(0); // 0→1 proximity factor
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
+    // Proximity: brighten as the astronaut approaches
+    const d = Math.hypot(
+      worldState.pos.x - position[0],
+      worldState.pos.z - position[2]
+    );
+    const target = THREE.MathUtils.clamp(1 - (d - enterRadius) / 8, 0, 1);
+    near.current += (target - near.current) * 0.1;
+    const n = near.current;
+
     if (beacon.current)
-      beacon.current.material.emissiveIntensity = 0.6 + Math.abs(Math.sin(t * 2)) * 0.8;
-    if (glow.current) glow.current.material.opacity = 0.18 + Math.sin(t * 1.5) * 0.06;
+      beacon.current.material.emissiveIntensity =
+        0.6 + Math.abs(Math.sin(t * 2)) * 0.8 + n * 0.8;
+    if (glow.current)
+      glow.current.material.opacity =
+        0.16 + Math.sin(t * 1.5) * 0.05 + n * 0.45;
   });
 
   const buildings = [
@@ -227,7 +242,16 @@ export default function AllenWorld() {
       <WorldLighting />
       <Ground />
       <Scenery />
-      <District position={[10, 0, -2]} />
+      {zones.map((z) => (
+        <District
+          key={z.id}
+          position={z.position}
+          color={z.color}
+          accent={z.accent}
+          label={z.label}
+          enterRadius={z.enterRadius}
+        />
+      ))}
     </group>
   );
 }

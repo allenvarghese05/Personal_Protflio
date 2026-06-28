@@ -8,6 +8,7 @@ import StaticHero from '@/components/fallback/StaticHero';
 import ScrollManager from '@/components/scene/ScrollManager';
 import SpaceExperience from '@/components/scene/SpaceExperience';
 import WorldExperience from '@/components/scene/world/WorldExperience';
+import ZonePrompt from '@/components/ui/ZonePrompt';
 
 // NOTE: SpaceExperience is imported statically (not next/dynamic) so it
 // shares the SAME store + scrollState module instances as ScrollManager
@@ -67,6 +68,8 @@ export default function Home() {
     return (
       <main className="relative bg-[var(--void)]">
         <WorldExperience />
+        <ZonePrompt />
+        <MemoryCard />
       </main>
     );
   }

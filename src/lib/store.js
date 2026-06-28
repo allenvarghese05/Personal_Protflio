@@ -40,4 +40,10 @@ export const useStore = create((set) => ({
   memoryOrigin: null, // { x, y } in viewport px
   setSelectedMemory: (selectedMemory, memoryOrigin = null) =>
     set({ selectedMemory, memoryOrigin }),
+
+  // Surface exploration: which zone the astronaut is currently in range of
+  // (null = none). Set only when it changes, not every frame.
+  nearZone: null,
+  setNearZone: (nearZone) =>
+    set((s) => (s.nearZone === nearZone ? s : { nearZone })),
 }));
