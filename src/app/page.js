@@ -7,6 +7,7 @@ import MemoryCard from '@/components/ui/MemoryCard';
 import StaticHero from '@/components/fallback/StaticHero';
 import ScrollManager from '@/components/scene/ScrollManager';
 import SpaceExperience from '@/components/scene/SpaceExperience';
+import WorldExperience from '@/components/scene/world/WorldExperience';
 
 // NOTE: SpaceExperience is imported statically (not next/dynamic) so it
 // shares the SAME store + scrollState module instances as ScrollManager
@@ -56,6 +57,18 @@ export default function Home() {
   // Base tier: static HTML hero, no canvas, no animation
   if (tier === 'base') {
     return <StaticHero />;
+  }
+
+  // Dev preview of Allen's World (Act 4) in isolation: /?world=1
+  if (
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).has('world')
+  ) {
+    return (
+      <main className="relative bg-[var(--void)]">
+        <WorldExperience />
+      </main>
+    );
   }
 
   // Enhanced / full: scroll-driven launch → orbital reveal
