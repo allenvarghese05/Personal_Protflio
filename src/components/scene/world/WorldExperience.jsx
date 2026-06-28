@@ -5,6 +5,7 @@ import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import AllenWorld from './AllenWorld';
 import Astronaut from './Astronaut';
 import ExploreController from './ExploreController';
+import { useStore } from '@/lib/store';
 
 /**
  * Allen's World (Act 4) — the walkable surface. Click the ground to move,
@@ -14,8 +15,15 @@ import ExploreController from './ExploreController';
 export default function WorldExperience() {
   const astronautRef = useRef();
   const moving = useRef(false);
+  const entered = useStore((s) => s.enteredZone);
   return (
-    <div className="fixed inset-0 z-0">
+    <div
+      className="fixed inset-0 z-0 transition-[filter,transform] duration-700 ease-out"
+      style={{
+        filter: entered ? 'blur(10px) brightness(0.5)' : 'none',
+        transform: entered ? 'scale(1.04)' : 'none',
+      }}
+    >
       <Canvas
         shadows
         dpr={[1, 2]}

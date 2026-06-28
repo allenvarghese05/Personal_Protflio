@@ -43,12 +43,14 @@ export default function ExploreController({ astronautRef, moving }) {
     };
     const onMove = (e) => {
       if (!down) return;
-      const dx = e.clientX - down.x;
       down.drag += Math.abs(e.movementX) + Math.abs(e.movementY);
-      if (down.drag > 6) worldState.azimuth -= dx * 0.0008;
+      // Incremental (not cumulative) so it doesn't compound; damped in useFrame
+      if (down.drag > 6) worldState.azimuthTarget -= e.movementX * 0.004;
     };
     const onUp = (e) => {
       if (!down) return;
+      // Ignore world clicks while inside the Mission Control room
+      if (useStore.getState().enteredZone) { down = null; return; }
       const isClick = down.drag < 6 && performance.now() - down.t < 450;
       if (isClick) {
         const r = el.getBoundingClientRect();
@@ -67,9 +69,17 @@ export default function ExploreController({ astronautRef, moving }) {
       down = null;
     };
 
+    // Press E to enter the district you're standing in
+    const onKey = (e) => {
+      if (e.key !== 'e' && e.key !== 'E') return;
+      const s = useStore.getState();
+      if (s.nearZone && !s.enteredZone) s.setEnteredZone(s.nearZone);
+    };
+
     el.addEventListener('pointerdown', onDown);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+    window.addEventListener('keydown', onKey);
     // Test hooks — deterministic positioning for screenshots
     window.__walkTo = (x, z) => {
       worldState.target.set(x, 0, z);
@@ -84,6 +94,7 @@ export default function ExploreController({ astronautRef, moving }) {
       el.removeEventListener('pointerdown', onDown);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('keydown', onKey);
     };
   }, [camera, gl]);
 
@@ -110,6 +121,9 @@ export default function ExploreController({ astronautRef, moving }) {
       worldState.moving = false;
     }
     if (moving) moving.current = worldState.moving;
+
+    // Damp the camera orbit toward its drag target (smooth, not jumpy)
+    worldState.azimuth += (worldState.azimuthTarget - worldState.azimuth) * 0.12;
 
     // Apply to astronaut (smooth heading)
     const a = astronautRef.current;

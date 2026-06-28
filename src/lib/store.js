@@ -46,4 +46,9 @@ export const useStore = create((set) => ({
   nearZone: null,
   setNearZone: (nearZone) =>
     set((s) => (s.nearZone === nearZone ? s : { nearZone })),
+
+  // Which district the visitor has ENTERED — opens the Mission Control room
+  // and dims/blurs the world behind it (null = out in the world).
+  enteredZone: null,
+  setEnteredZone: (enteredZone) => set({ enteredZone }),
 }));

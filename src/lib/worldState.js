@@ -13,5 +13,6 @@ export const worldState = {
   hasTarget: false,
   moving: false,
   heading: 0, // facing angle (radians)
-  azimuth: 0, // camera orbit angle around the astronaut
+  azimuth: 0, // smoothed camera orbit angle around the astronaut
+  azimuthTarget: 0, // drag updates this; azimuth damps toward it
 };
