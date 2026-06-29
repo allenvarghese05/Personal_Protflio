@@ -2,182 +2,238 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/lib/store';
-import { chapters } from '@/data/timeline';
 import { zoneById } from '@/data/world';
-import {
-  FlowPanel,
-  ConstraintPanel,
-  TechStackPanel,
-  KeyDecisionsPanel,
-} from './ArchitectureDiagram';
+import { ENGINEERING_PROJECTS, projectById } from '@/data/projects';
+import { ACCENTS, DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
+import ArchitectureGraph from './ArchitectureGraph';
 
-const EASE = [0.22, 1, 0.36, 1];
-const engineering = chapters.find((c) => c.index === 2);
+const accentFor = (kind) => ACCENTS[kind] || ACCENTS.project;
+const badgeWord = (kind) =>
+  ({ signature: 'SIGNATURE', current: 'CURRENT', project: 'PROJECT', classified: 'CLASSIFIED' }[kind] || 'PROJECT');
 
-// One accent colour per project.
-const ACCENT = {
-  iet: '#ff8a3d',
-  overflow: '#5affa0',
-  racing: '#ff9a5a',
-  soundtech: '#6fb0ee',
-  treeoflife: '#c9a0ff',
+/* ───────────────────────────── PROJECT WALL ───────────────────────────── */
+
+const wallContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: DUR.cardStagger } },
 };
-const accentFor = (id) => ACCENT[id] || '#ff8a3d';
+const cardVariant = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: DUR.cardFade, ease: EASE_STD } },
+};
 
-/** Stats as a compact 2×2 grid of bold numbers — no gauges, no bars. */
-function StatGrid({ project, accent }) {
-  const stats = project.metrics
-    ? project.metrics.map((m) => ({ value: m.display, label: m.label }))
-    : (project.highlights || []).map((h) => ({ value: '', label: h }));
-  if (!stats.length) return null;
+function ProjectCard({ project, onSelect }) {
+  const accent = accentFor(project.kind);
+  const locked = project.locked;
   return (
-    <div className="mt-7 grid grid-cols-2 gap-x-8 gap-y-6 border-t border-white/[0.08] pt-6">
-      {stats.map((s, i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 + i * 0.07, duration: 0.5, ease: EASE }}
-        >
-          {s.value && (
-            <div className="font-display text-3xl font-bold leading-none text-[var(--text-primary)] sm:text-[2.4rem]">
-              {s.value}
-            </div>
-          )}
-          <div className="mt-1.5 font-mono text-[10px] uppercase leading-snug tracking-[0.18em] text-[var(--text-dim)]">
-            {s.label}
-          </div>
-        </motion.div>
-      ))}
-    </div>
+    <motion.button
+      variants={cardVariant}
+      onClick={() => !locked && onSelect(project.id)}
+      className={`group relative flex flex-col gap-3 bg-[#090c12] px-5 py-5 text-left transition-colors ${
+        locked ? 'cursor-not-allowed' : 'hover:bg-[#0c1018]'
+      }`}
+    >
+      {/* 2px gradient top border */}
+      <span
+        className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
+        style={{ background: `linear-gradient(90deg, ${accent}, transparent)` }}
+      />
+      <span
+        className="w-fit rounded-md border px-2 py-0.5 font-mono text-[8px] uppercase tracking-[0.2em]"
+        style={{ color: accent, borderColor: `${accent}66`, background: `${accent}14` }}
+      >
+        {badgeWord(project.kind)}
+      </span>
+      <div
+        className={`font-mono text-[14px] font-bold leading-snug text-[#c8d4e0] ${locked ? 'select-none blur-[5px]' : ''}`}
+      >
+        {project.label}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {(project.tags || []).map((t) => (
+          <span
+            key={t}
+            className="rounded border border-[#1c2535] px-1.5 py-0.5 font-mono text-[8px] tracking-wider text-[#304050]"
+          >
+            {t}
+          </span>
+        ))}
+      </div>
+      <span
+        className={`mt-1 font-mono text-[9px] tracking-[0.22em] ${
+          locked ? 'text-[#2a3340]' : 'text-[#46566a] transition-colors group-hover:text-[#e8a040]'
+        }`}
+      >
+        {locked ? 'LOCKED ◍' : 'OPEN BRIEF →'}
+      </span>
+    </motion.button>
   );
 }
 
-/* The wall — every project as a backlit briefing screen. */
 function Wall({ projects, onSelect }) {
   return (
     <motion.div
       key="wall"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.25 } }}
-      transition={{ duration: 0.45, ease: EASE }}
-      className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-5 px-8 sm:grid-cols-2 lg:grid-cols-3"
+      exit={{ opacity: 0, transition: { duration: 0.2 } }}
+      className="mx-auto w-full max-w-6xl px-6"
     >
-      {projects.map((p, i) => {
-        const accent = accentFor(p.id);
-        const badge = p.signature ? 'SIGNATURE' : p.current ? 'CURRENT' : 'PROJECT';
-        return (
-          <motion.button
-            key={p.id}
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.06 + i * 0.06, duration: 0.55, ease: EASE }}
-            onClick={() => onSelect(p.id)}
-            className="group relative flex h-56 flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.08] p-5 text-left transition-colors hover:border-white/20"
-            style={{ background: 'linear-gradient(180deg, rgba(18,24,38,0.55), rgba(8,11,18,0.96))' }}
-          >
-            {/* top accent rail */}
-            <div
-              className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
-              style={{ background: accent, boxShadow: `0 0 14px ${accent}` }}
-            />
-            <div
-              className="pointer-events-none absolute inset-0 opacity-30 transition-opacity group-hover:opacity-60"
-              style={{ background: `radial-gradient(120% 80% at 85% 0%, ${accent}2e, transparent 60%)` }}
-            />
-            <div className="relative">
-              <span
-                className="inline-block rounded-md border px-2 py-0.5 font-mono text-[9px] tracking-[0.22em]"
-                style={{ color: accent, borderColor: `${accent}55`, background: `${accent}12` }}
-              >
-                {badge}
-              </span>
-              <div className="mt-3 font-display text-xl font-bold leading-tight text-[var(--text-primary)]">
-                {p.label}
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {(p.tech || p.tags || []).slice(0, 4).map((t) => (
-                  <span
-                    key={t}
-                    className="rounded border border-white/10 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-[var(--text-dim)]"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <span className="relative font-mono text-[10px] tracking-[0.25em] text-[var(--text-dim)] transition-colors group-hover:text-[var(--gold)]">
-              OPEN BRIEF →
-            </span>
-          </motion.button>
-        );
-      })}
+      <motion.div
+        variants={wallContainer}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 gap-px bg-[#151c28] sm:grid-cols-2 lg:grid-cols-3"
+      >
+        {projects.map((p) => (
+          <ProjectCard key={p.id} project={p} onSelect={onSelect} />
+        ))}
+      </motion.div>
     </motion.div>
   );
 }
 
-/* The deep dive — brief column on the left, 2×2 architecture bento on the right. */
-function DeepDive({ project, onBack }) {
-  const accent = accentFor(project.id);
+/* ──────────────────────────── PROJECT BRIEF ───────────────────────────── */
+
+function MetricStrip({ metrics }) {
+  if (!metrics?.length) return null;
+  return (
+    <div className="mx-auto mt-7 flex w-fit items-start">
+      {metrics.map((m, i) => (
+        <div
+          key={m.label}
+          className={`flex w-[120px] flex-col items-center px-3 ${i > 0 ? 'border-l border-white/10' : ''}`}
+        >
+          <div className="font-mono text-[28px] font-extrabold leading-none text-[#e8a040]">
+            {m.value}
+          </div>
+          <div className="mt-2 text-center font-mono text-[8px] uppercase leading-tight tracking-[0.16em] text-[#5a6b7a]">
+            {m.label}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TechChips({ stack, accent }) {
+  if (!stack?.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {stack.map((c) => (
+        <span
+          key={c.name}
+          className="rounded-md border px-2 py-1 font-mono text-[10px] tracking-wider"
+          style={
+            c.primary
+              ? { color: '#ffe7c2', borderColor: `${accent}99`, background: `${accent}1f` }
+              : { color: '#5a6b7a', borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)' }
+          }
+        >
+          {c.name}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function DecisionList({ decisions, accent }) {
+  if (!decisions?.length) return null;
+  return (
+    <div>
+      {decisions.map((d, i) => (
+        <div
+          key={d.title}
+          className={`py-3 ${i > 0 ? 'border-t border-white/[0.06]' : ''}`}
+        >
+          <div className="font-mono text-[12px] font-semibold tracking-wide" style={{ color: accent }}>
+            {d.title}
+          </div>
+          <div className="mt-1 text-[12px] leading-snug text-[#5a6b7a]">{d.detail}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div className="mb-3 font-mono text-[7px] uppercase tracking-[0.32em] text-[#46566a]">
+      {children}
+    </div>
+  );
+}
+
+function Brief({ project }) {
+  const accent = accentFor(project.kind);
   return (
     <motion.div
-      key="deep"
-      initial={{ opacity: 0, scale: 0.92 }}
-      animate={{ opacity: 1, scale: 1, transition: { duration: 0.5, ease: EASE } }}
-      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.25 } }}
-      className="mx-auto flex w-full max-w-6xl flex-col px-8"
+      key="brief"
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1, transition: { duration: DUR.briefFade, ease: EASE_STD } }}
+      exit={{ opacity: 0, transition: { duration: 0.2 } }}
+      className="mx-auto flex w-full max-w-6xl flex-col px-6"
     >
-      <div className="grid flex-1 grid-cols-1 gap-8 lg:grid-cols-[0.8fr_1.2fr]">
-        {/* Left — the brief */}
+      {/* Hero header */}
+      <div className="flex flex-col items-center text-center">
+        <span
+          className="rounded-full border px-3 py-0.5 font-mono text-[8px] uppercase tracking-[0.2em]"
+          style={{ color: accent, borderColor: `${accent}66`, background: `${accent}14` }}
+        >
+          {project.badge}
+        </span>
+        <h2
+          className="mt-4 max-w-3xl font-display text-[36px] font-extrabold leading-[1.05] text-[#dde6f0] sm:text-[40px]"
+          style={{ letterSpacing: '-0.02em' }}
+        >
+          {project.label}
+        </h2>
+        <div className="mt-3 font-mono text-[10px] tracking-wider text-[#5a6b7a]">
+          {[project.role, project.company, project.period, project.location].filter(Boolean).join('  ·  ')}
+        </div>
+        <MetricStrip metrics={project.metrics} />
+      </div>
+
+      {/* Two-column body */}
+      <div className="mt-9 grid grid-cols-1 gap-7 lg:grid-cols-[38fr_62fr]">
+        {/* LEFT */}
         <div className="flex flex-col">
-          <span
-            className="mb-4 w-fit rounded-md border px-3 py-0.5 font-mono text-[10px] tracking-[0.2em]"
-            style={{ color: accent, borderColor: `${accent}55`, background: `${accent}12` }}
-          >
-            {project.eyebrow ||
-              (project.signature ? 'SIGNATURE BUILD' : project.current ? 'CURRENT ROLE' : 'PROJECT')}
-          </span>
-          <h2 className="font-display text-3xl font-bold leading-[1.05] text-[var(--text-primary)] sm:text-4xl">
-            {project.label}
-          </h2>
-          <div className="mt-3 font-mono text-[11px] leading-relaxed tracking-wider" style={{ color: accent }}>
-            {project.role}
+          <SectionLabel>Context</SectionLabel>
+          <p className="text-[12px] leading-[1.75] text-[#4a6070]">{project.context}</p>
+
+          <div className="mt-6">
+            <SectionLabel>Stack</SectionLabel>
+            <TechChips stack={project.techStack} accent={accent} />
           </div>
-          {project.period && (
-            <div className="mt-1 font-mono text-[10px] tracking-wider text-[var(--text-dim)]">
-              {project.period}
-            </div>
-          )}
-          <p className="mt-5 max-w-md text-[14.5px] leading-relaxed text-[var(--text-secondary)]">
-            {project.story}
-          </p>
-          {(project.tech || project.tags) && (
-            <div className="mt-5 flex flex-wrap gap-1.5">
-              {(project.tech || project.tags).map((t) => (
-                <span
-                  key={t}
-                  className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 font-mono text-[10px] tracking-wider text-[var(--text-secondary)]"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          )}
-          <StatGrid project={project} accent={accent} />
+
+          <div className="mt-6">
+            <SectionLabel>Key Decisions</SectionLabel>
+            <DecisionList decisions={project.keyDecisions} accent={accent} />
+          </div>
         </div>
 
-        {/* Right — the architecture bento */}
-        <div className="grid min-h-[440px] grid-cols-1 gap-4 sm:grid-cols-2">
-          <FlowPanel project={project} accent={accent} />
-          <ConstraintPanel project={project} accent={accent} />
-          <TechStackPanel project={project} accent={accent} />
-          <KeyDecisionsPanel project={project} accent={accent} />
+        {/* RIGHT — signature force graph */}
+        <div className="flex min-h-[480px] flex-col">
+          <SectionLabel>System Architecture</SectionLabel>
+          <div className="flex-1 rounded-lg border border-white/[0.07]">
+            {project.architectureGraph ? (
+              <ArchitectureGraph
+                nodes={project.architectureGraph.nodes}
+                edges={project.architectureGraph.edges}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center font-mono text-[11px] text-[#46566a]">
+                NO DIAGRAM
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </motion.div>
   );
 }
+
+/* ──────────────────────────── MISSION CONTROL ─────────────────────────── */
 
 export default function MissionControl() {
   const enteredZone = useStore((s) => s.enteredZone);
@@ -186,8 +242,8 @@ export default function MissionControl() {
 
   const open = !!enteredZone;
   const zone = enteredZone ? zoneById(enteredZone) : null;
-  const projects = engineering?.memories || [];
-  const project = projects.find((p) => p.id === selected);
+  const projects = ENGINEERING_PROJECTS;
+  const project = selected ? projectById(selected) : null;
 
   useEffect(() => {
     if (!open) setSelected(null);
@@ -208,62 +264,66 @@ export default function MissionControl() {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-40 flex flex-col"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.45 }}
-          style={{ background: 'radial-gradient(120% 90% at 50% -10%, #11131f 0%, #05060c 70%)' }}
+          className="fixed inset-0 z-40 flex flex-col bg-[#06080c]"
+          initial={{ y: '100%' }}
+          animate={{ y: 0, transition: { duration: DUR.slideIn, ease: EASE_OUT } }}
+          exit={{ y: '100%', transition: { duration: DUR.slideOut, ease: EASE_OUT } }}
         >
-          {/* Faint operations-room screen grid */}
+          {/* Dotted-grid backdrop */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-[0.18]"
+            className="pointer-events-none absolute inset-0 opacity-[0.5]"
             style={{
-              backgroundImage:
-                'linear-gradient(rgba(120,150,220,0.25) 1px, transparent 1px), linear-gradient(90deg, rgba(120,150,220,0.25) 1px, transparent 1px)',
-              backgroundSize: '64px 64px',
-              maskImage: 'radial-gradient(80% 70% at 50% 40%, #000 30%, transparent 80%)',
+              backgroundImage: 'radial-gradient(rgba(120,150,220,0.10) 1px, transparent 1px)',
+              backgroundSize: '26px 26px',
+              maskImage: 'radial-gradient(90% 80% at 50% 35%, #000 30%, transparent 85%)',
             }}
           />
 
-          {/* Header — breadcrumb + back/exit */}
-          <div className="relative flex items-center justify-between px-8 py-6">
+          {/* Top bar — breadcrumb + project count + exit */}
+          <div className="relative flex items-center justify-between px-7 py-5">
             <div className="flex items-center gap-5">
               {project && (
                 <button
                   onClick={() => setSelected(null)}
-                  className="font-mono text-[11px] tracking-[0.2em] text-[var(--text-dim)] transition-colors hover:text-[var(--gold)]"
+                  className="font-mono text-[11px] tracking-[0.2em] text-[#46566a] transition-colors hover:text-[#e8a040]"
                 >
-                  ← BACK TO WALL
+                  ← BACK
                 </button>
               )}
-              <div className="font-mono text-[11px] tracking-[0.32em] text-[var(--steel-bright)]">
+              <div className="font-mono text-[11px] tracking-[0.28em] text-[#7a8a9a]">
                 MISSION CONTROL{' '}
-                <span className="text-[var(--text-dim)]">// {zone?.label || 'DISTRICT'}</span>
+                <span className="text-[#46566a]">// {zone?.label || 'ENGINEERING DISTRICT'}</span>
                 {project && (
-                  <span className="text-[var(--text-dim)]">
-                    {' '}
-                    // <span style={{ color: accentFor(project.id) }}>{project.label}</span>
+                  <span className="text-[#46566a]">
+                    {' // '}
+                    <span style={{ color: accentFor(project.kind) }}>{project.label}</span>
                   </span>
                 )}
               </div>
             </div>
-            <button
-              onClick={() => setEnteredZone(null)}
-              className="font-mono text-[11px] tracking-[0.25em] text-[var(--text-dim)] transition-colors hover:text-[var(--gold)]"
-            >
-              EXIT ✕ <span className="opacity-50">ESC</span>
-            </button>
+            <div className="flex items-center gap-5">
+              {!project && (
+                <span className="font-mono text-[11px] tracking-[0.2em] text-[#46566a]">
+                  {projects.length} PROJECTS
+                </span>
+              )}
+              <button
+                onClick={() => setEnteredZone(null)}
+                className="font-mono text-[11px] tracking-[0.2em] text-[#46566a] transition-colors hover:text-[#e8a040]"
+              >
+                EXIT ✕ <span className="opacity-50">ESC</span>
+              </button>
+            </div>
           </div>
 
-          {/* Stage — wall ⇄ deep dive */}
-          <div className="relative flex flex-1 flex-col items-center justify-center overflow-y-auto py-6">
+          {/* Stage */}
+          <div className="relative flex flex-1 flex-col items-center justify-center overflow-y-auto px-2 py-6">
             <AnimatePresence mode="wait" initial={false}>
               {!project ? (
                 <Wall key="wall" projects={projects} onSelect={setSelected} />
               ) : (
-                <DeepDive key="deep" project={project} onBack={() => setSelected(null)} />
+                <Brief key="brief" project={project} />
               )}
             </AnimatePresence>
           </div>

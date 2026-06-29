@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useRef, useState } from 'react';
 import { useFrame, extend } from '@react-three/fiber';
-import { Outlines, Html, shaderMaterial } from '@react-three/drei';
+import { Outlines, shaderMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 import { toonGradient } from '@/lib/toon';
 import { worldState } from '@/lib/worldState';
@@ -224,17 +224,65 @@ function makeLabelTexture(text, accent) {
   return tex;
 }
 
-export function District({ id, position = [10, 0, 0], color = '#ff8a3d', label = 'ENGINEERING DISTRICT', accent = '#ffd27a', enterRadius = 6 }) {
+/* Glowing world-space "[ E ] ENTER" prompt, drawn on a canvas for a Sprite. */
+function makeEnterTexture(accent) {
+  const text = '[ E ]  ENTER';
+  const font = '700 64px "JetBrains Mono", ui-monospace, monospace';
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = font;
+  const pad = 48;
+  const w = Math.ceil(meas.measureText(text).width) + pad * 2;
+  const h = 150;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+  // rounded glow plate
+  const r = 26;
+  ctx.beginPath();
+  ctx.moveTo(pad / 2 + r, 30);
+  ctx.arcTo(w - pad / 2, 30, w - pad / 2, h - 30, r);
+  ctx.arcTo(w - pad / 2, h - 30, pad / 2, h - 30, r);
+  ctx.arcTo(pad / 2, h - 30, pad / 2, 30, r);
+  ctx.arcTo(pad / 2, 30, w - pad / 2, 30, r);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(20,12,6,0.45)';
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = accent;
+  ctx.shadowColor = accent;
+  ctx.shadowBlur = 22;
+  ctx.stroke();
+  // text
+  ctx.font = font;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = '#ffe7c2';
+  ctx.fillText(text, w / 2, h / 2);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  tex.needsUpdate = true;
+  tex.userData = { aspect: w / h };
+  return tex;
+}
+
+export function District({ id, position = [10, 0, 0], color = '#ff8a3d', label = 'ENGINEERING DISTRICT', accent = '#ffd27a', enterRadius = 5, labelRadius = 30 }) {
   const grad = useMemo(toonGradient, []);
   const beacon = useRef();
   const glow = useRef();
   const labelRef = useRef();
+  const enterRef = useRef();
   const near = useRef(0); // 0→1 proximity factor
   const windows = useRef([]);
   const [inRange, setInRange] = useState(false);
   const setEnteredZone = useStore((s) => s.setEnteredZone);
 
-  const labelTex = useMemo(() => makeLabelTexture(label, accent), [label, accent]);
+  // Label uses the spec amber; ENTER plate uses the zone accent.
+  const labelTex = useMemo(() => makeLabelTexture(label, '#e8a040'), [label]);
+  const enterTex = useMemo(() => makeEnterTexture(accent), [accent]);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -242,6 +290,7 @@ export function District({ id, position = [10, 0, 0], color = '#ff8a3d', label =
       worldState.pos.x - position[0],
       worldState.pos.z - position[2]
     );
+    // proximity factor ramps over the 8 units approaching the trigger sphere
     const target = THREE.MathUtils.clamp(1 - (d - enterRadius) / 8, 0, 1);
     const nearK = typeof window !== 'undefined' && window.__fastcam ? 0.5 : 0.1;
     near.current += (target - near.current) * nearK;
@@ -252,10 +301,16 @@ export function District({ id, position = [10, 0, 0], color = '#ff8a3d', label =
         0.6 + Math.abs(Math.sin(t * 2)) * 0.8 + n * 0.8;
     if (glow.current)
       glow.current.material.opacity = 0.12 + Math.sin(t * 1.5) * 0.04 + n * 0.5;
-    // Floating name: subtle glow pulse, dips slightly as the ENTER prompt rises
-    if (labelRef.current)
-      labelRef.current.material.opacity =
-        (0.72 + Math.sin(t * 1.6) * 0.12) * (1 - n * 0.55);
+    // Floating name: visible within labelRadius, pulses 0.6 → 1.0 → 0.6 over 2s.
+    if (labelRef.current) {
+      const vis = THREE.MathUtils.clamp((labelRadius - d) / 4, 0, 1);
+      labelRef.current.material.opacity = (0.8 + Math.sin(t * Math.PI) * 0.2) * vis;
+    }
+    // ENTER prompt: rises in as the astronaut crosses into the trigger sphere.
+    if (enterRef.current) {
+      const show = THREE.MathUtils.clamp((n - 0.5) / 0.4, 0, 1);
+      enterRef.current.material.opacity = show * (0.78 + Math.sin(t * 3) * 0.22);
+    }
     // Windows pulse + brighten on approach
     windows.current.forEach((w, idx) => {
       if (w) w.emissiveIntensity = 0.9 + n * 1.4 + Math.sin(t * 3 + idx) * 0.15 * n;
@@ -319,46 +374,26 @@ export function District({ id, position = [10, 0, 0], color = '#ff8a3d', label =
         </mesh>
       </group>
 
-      {/* District name — a real 3D billboard Sprite floating above the cluster,
-          always facing the camera, softly glowing. Recedes as ENTER takes over. */}
-      <sprite ref={labelRef} position={[0, 5.9, 0]} scale={[1.7 * (labelTex.userData?.aspect || 4), 1.7, 1]}>
-        <spriteMaterial
-          map={labelTex}
-          transparent
-          opacity={0.8}
-          depthWrite={false}
-          depthTest={false}
-          toneMapped={false}
-        />
+      {/* District name — a 3D billboard Sprite 8 units above the cluster,
+          always facing the camera, pulsing, visible within labelRadius. */}
+      <sprite ref={labelRef} position={[0, 8, 0]} scale={[1.7 * (labelTex.userData?.aspect || 4), 1.7, 1]}>
+        <spriteMaterial map={labelTex} transparent opacity={0} depthWrite={false} depthTest={false} toneMapped={false} />
       </sprite>
 
-      {/* In-world holographic ENTER prompt (no bottom bar) */}
-      {inRange && (
-        <Html center position={[0, 4.2, 0]} distanceFactor={14} zIndexRange={[20, 0]}>
-          <button
-            onClick={() => id && setEnteredZone(id)}
-            className="enter-holo group flex select-none flex-col items-center gap-1"
-            style={{ pointerEvents: 'auto' }}
-          >
-            <span
-              className="rounded-md border px-5 py-2 font-mono text-sm font-semibold tracking-[0.35em] transition-transform group-hover:scale-105"
-              style={{
-                color: '#ffe7c2',
-                borderColor: 'rgba(255,210,122,0.8)',
-                background: 'rgba(20,12,6,0.35)',
-                boxShadow: '0 0 18px rgba(255,180,90,0.55), inset 0 0 14px rgba(255,180,90,0.25)',
-                backdropFilter: 'blur(2px)',
-                textShadow: '0 0 12px rgba(255,200,120,0.9)',
-              }}
-            >
-              [ ENTER ]
-            </span>
-            <span className="font-mono text-[9px] tracking-[0.3em] text-[#ffd27a]/70">
-              CLICK · OR PRESS E
-            </span>
-          </button>
-        </Html>
-      )}
+      {/* World-space "[ E ] ENTER" prompt — a glowing billboard above the
+          buildings. Click it or press E to open Mission Control. */}
+      <sprite
+        ref={enterRef}
+        position={[0, 4.6, 0]}
+        scale={[1.4 * (enterTex.userData?.aspect || 3), 1.4, 1]}
+        onClick={(e) => {
+          if (!inRange) return;
+          e.stopPropagation();
+          if (id) setEnteredZone(id);
+        }}
+      >
+        <spriteMaterial map={enterTex} transparent opacity={0} depthWrite={false} depthTest={false} toneMapped={false} />
+      </sprite>
     </group>
   );
 }
@@ -395,6 +430,7 @@ export default function AllenWorld() {
           accent={z.accent}
           label={z.label}
           enterRadius={z.enterRadius}
+          labelRadius={z.labelRadius}
         />
       ))}
     </group>

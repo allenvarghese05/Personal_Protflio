@@ -18,7 +18,7 @@ export default function WorldExperience() {
   const entered = useStore((s) => s.enteredZone);
   return (
     <div
-      className="fixed inset-0 z-0 transition-[filter,transform] duration-700 ease-out"
+      className="fixed inset-0 z-0 transition-[filter,transform] duration-[400ms] ease-out"
       style={{
         filter: entered ? 'blur(10px) brightness(0.5)' : 'none',
         transform: entered ? 'scale(1.04)' : 'none',

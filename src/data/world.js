@@ -12,11 +12,12 @@ export const zones = [
     position: [10, 0, -2],
     color: '#ff8a3d',
     accent: '#ffd27a',
-    // Proximity sphere ~4–5× the building cluster: the prompt appears when the
-    // astronaut crosses enterRadius, and movement halts at stopRadius (the edge
-    // of the zone) so you never walk through the buildings.
-    enterRadius: 12,
-    stopRadius: 9,
+    // Invisible trigger sphere: the astronaut halts and the ENTER prompt /
+    // camera pivot fire when it crosses enterRadius. The floating name label is
+    // visible from much further out (labelRadius).
+    enterRadius: 5,
+    stopRadius: 4.5,
+    labelRadius: 30,
     feature: 'iet', // signature module opened on entry
   },
 ];

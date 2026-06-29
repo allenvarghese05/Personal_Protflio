@@ -2,14 +2,19 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import gsap from 'gsap';
 import { worldState } from '@/lib/worldState';
 import { useStore } from '@/lib/store';
 import { zones } from '@/data/world';
+import { CAMERA_PIVOT_S } from '@/lib/motion';
 
 const SPEED = 7; // units / second
 const CAM_DIST = 9;
 const CAM_HEIGHT = 5.2;
 const WORLD_R = 70;
+// Mouse-look sensitivity — slow + cinematic (≈60% slower than the old 0.004).
+const LOOK_SENS = 0.0016;
+const DAMP = 0.05; // rotation damping factor (cinematic)
 
 const lerpAngle = (a, b, t) => {
   let d = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI;
@@ -28,6 +33,11 @@ export default function ExploreController({ astronautRef, moving }) {
   const { camera, gl } = useThree();
   const setNearZone = useStore((s) => s.setNearZone);
 
+  const insideZone = useRef(null); // id of the trigger sphere we're inside
+  const insidePos = useRef(null); // [x,z] of that zone (for camera framing)
+  const pivoting = useRef(false); // true while the GSAP camera pivot runs
+  const lookAt = useRef(new THREE.Vector3());
+  const lookInit = useRef(false);
   const ray = useRef(new THREE.Raycaster());
   const ndc = useRef(new THREE.Vector2());
   const plane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
@@ -45,7 +55,7 @@ export default function ExploreController({ astronautRef, moving }) {
       if (!down) return;
       down.drag += Math.abs(e.movementX) + Math.abs(e.movementY);
       // Incremental (not cumulative) so it doesn't compound; damped in useFrame
-      if (down.drag > 6) worldState.azimuthTarget -= e.movementX * 0.004;
+      if (down.drag > 6) worldState.azimuthTarget -= e.movementX * LOOK_SENS;
     };
     const onUp = (e) => {
       if (!down) return;
@@ -102,32 +112,39 @@ export default function ExploreController({ astronautRef, moving }) {
     const p = worldState.pos;
     const dt = Math.min(delta, 0.05);
 
-    // Keep the target out of every district's proximity sphere — the astronaut
-    // halts at the edge (stopRadius) instead of walking through the buildings.
-    if (worldState.hasTarget) {
-      for (const z of zones) {
-        const r = z.stopRadius || z.enterRadius;
-        const dx = worldState.target.x - z.position[0];
-        const dz = worldState.target.z - z.position[2];
-        const d = Math.hypot(dx, dz);
-        if (d < r && d > 0.0001) {
-          worldState.target.x = z.position[0] + (dx / d) * r;
-          worldState.target.z = z.position[2] + (dz / d) * r;
-        }
-      }
-    }
-
-    // Move toward target
+    // Move toward target, halting at the edge of any trigger sphere so the
+    // astronaut never walks through the buildings.
     if (worldState.hasTarget) {
       const dx = worldState.target.x - p.x;
       const dz = worldState.target.z - p.z;
       const dist = Math.hypot(dx, dz);
       if (dist > 0.18) {
         const step = Math.min(dist, SPEED * dt);
-        p.x += (dx / dist) * step;
-        p.z += (dz / dist) * step;
+        let nx = p.x + (dx / dist) * step;
+        let nz = p.z + (dz / dist) * step;
+        let blocked = false;
+        for (const z of zones) {
+          const r = z.stopRadius || z.enterRadius;
+          let ex = nx - z.position[0];
+          let ez = nz - z.position[2];
+          let ed = Math.hypot(ex, ez);
+          if (ed < r) {
+            // walking into the sphere — clamp to its edge along the approach
+            if (ed < 0.0001) {
+              ex = p.x - z.position[0];
+              ez = p.z - z.position[2];
+              ed = Math.hypot(ex, ez) || 1;
+            }
+            nx = z.position[0] + (ex / ed) * r;
+            nz = z.position[2] + (ez / ed) * r;
+            blocked = true;
+          }
+        }
+        p.x = nx;
+        p.z = nz;
         worldState.heading = Math.atan2(dx, dz);
-        worldState.moving = true;
+        worldState.moving = !blocked;
+        if (blocked) worldState.hasTarget = false;
       } else {
         worldState.moving = false;
         worldState.hasTarget = false;
@@ -137,8 +154,7 @@ export default function ExploreController({ astronautRef, moving }) {
     }
     if (moving) moving.current = worldState.moving;
 
-    // On approach to a district, gently swing the camera around so the buildings
-    // sit in frame beyond the astronaut (camera ends up on the far side).
+    // Trigger sphere: detect the moment we cross inside a district's radius.
     let nearZ = null;
     let nearD = Infinity;
     for (const z of zones) {
@@ -148,22 +164,46 @@ export default function ExploreController({ astronautRef, moving }) {
         nearZ = z;
       }
     }
-    if (nearZ && !useStore.getState().enteredZone) {
-      const dirX = nearZ.position[0] - p.x;
-      const dirZ = nearZ.position[2] - p.z;
-      // azimuth places the camera at (sin,cos)*dist from the astronaut; we want
-      // it opposite the buildings so they're framed in front.
-      worldState.azimuthTarget = Math.atan2(-dirX, -dirZ);
+    const insideId = nearZ ? nearZ.id : null;
+    insidePos.current = nearZ ? nearZ.position : null;
+    if (insideId !== insideZone.current) {
+      insideZone.current = insideId;
+      // Entering a sphere → GSAP-pivot the camera to frame the buildings (0.8s).
+      if (nearZ && !useStore.getState().enteredZone) {
+        const dirX = nearZ.position[0] - p.x;
+        const dirZ = nearZ.position[2] - p.z;
+        const face = Math.atan2(-dirX, -dirZ); // camera ends up opposite buildings
+        let dd = ((face - worldState.azimuth + Math.PI) % (Math.PI * 2)) - Math.PI;
+        if (dd < -Math.PI) dd += Math.PI * 2;
+        const targetA = worldState.azimuth + dd;
+        const proxy = { a: worldState.azimuth };
+        pivoting.current = true;
+        gsap.to(proxy, {
+          a: targetA,
+          duration: CAMERA_PIVOT_S,
+          ease: 'power2.inOut',
+          overwrite: true,
+          onUpdate() {
+            worldState.azimuth = proxy.a;
+            worldState.azimuthTarget = proxy.a;
+          },
+          onComplete() {
+            pivoting.current = false;
+          },
+        });
+      }
     }
 
     // __fastcam snaps the rig for deterministic screenshots (SwiftShader is slow
     // enough that the slow lerps never converge in the capture window).
     const fast = typeof window !== 'undefined' && window.__fastcam;
     const camK = fast ? 0.6 : 0.08;
-    const azK = fast ? 0.6 : 0.12;
+    const azK = fast ? 0.6 : DAMP;
 
-    // Damp the camera orbit toward its drag target (smooth, not jumpy; wrap-safe)
-    worldState.azimuth = lerpAngle(worldState.azimuth, worldState.azimuthTarget, azK);
+    // Damp the camera orbit toward its drag target (skipped while GSAP owns the
+    // azimuth during a pivot). Wrap-safe.
+    if (!pivoting.current)
+      worldState.azimuth = lerpAngle(worldState.azimuth, worldState.azimuthTarget, azK);
 
     // Apply to astronaut (smooth heading)
     const a = astronautRef.current;
@@ -179,7 +219,25 @@ export default function ExploreController({ astronautRef, moving }) {
     camera.position.x += (desiredX - camera.position.x) * camK;
     camera.position.y += (CAM_HEIGHT - camera.position.y) * camK;
     camera.position.z += (desiredZ - camera.position.z) * camK;
-    camera.lookAt(p.x, p.y + 1.3, p.z);
+
+    // Look target: the astronaut normally; biased toward the district (and up
+    // toward the prompt) once inside the trigger so the cluster is framed.
+    let lx = p.x;
+    let ly = p.y + 1.3;
+    let lz = p.z;
+    if (insidePos.current) {
+      lx = THREE.MathUtils.lerp(p.x, insidePos.current[0], 0.45);
+      ly = THREE.MathUtils.lerp(p.y + 1.3, 3.2, 0.55);
+      lz = THREE.MathUtils.lerp(p.z, insidePos.current[2], 0.45);
+    }
+    if (!lookInit.current) {
+      lookAt.current.set(lx, ly, lz);
+      lookInit.current = true;
+    }
+    lookAt.current.x += (lx - lookAt.current.x) * camK;
+    lookAt.current.y += (ly - lookAt.current.y) * camK;
+    lookAt.current.z += (lz - lookAt.current.z) * camK;
+    camera.lookAt(lookAt.current);
 
     // Zone proximity → drives the ENTER prompt
     let near = null;
