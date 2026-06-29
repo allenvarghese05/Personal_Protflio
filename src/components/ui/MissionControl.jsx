@@ -6,17 +6,66 @@ import { zoneById } from '@/data/world';
 import { ENGINEERING_PROJECTS, projectById } from '@/data/projects';
 import { ACCENTS, DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
 import ArchitectureGraph from './ArchitectureGraph';
+import BentoPanels from './BentoPanels';
 
 const accentFor = (kind) => ACCENTS[kind] || ACCENTS.project;
 const badgeWord = (kind) =>
   ({ signature: 'SIGNATURE', current: 'CURRENT', project: 'PROJECT', classified: 'CLASSIFIED' }[kind] || 'PROJECT');
+const railGradient = (kind) => `linear-gradient(90deg, ${accentFor(kind)} 0%, transparent 70%)`;
+
+/* ───────────────────────────── TOP NAV BAR ────────────────────────────── */
+
+function NavBar({ zone, project, onBack, onExit }) {
+  const segSep = <span style={{ color: '#1c2535' }}> · </span>;
+  return (
+    <div
+      className="relative flex shrink-0 items-center"
+      style={{ height: '48px', background: '#040609', borderBottom: '0.5px solid #151c28' }}
+    >
+      {/* LEFT — back */}
+      <button
+        onClick={onBack}
+        className="absolute left-6 font-mono transition-colors"
+        style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#304050' }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = '#6080a0')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = '#304050')}
+      >
+        ← BACK
+      </button>
+
+      {/* CENTER — absolutely-centered breadcrumb */}
+      <div
+        className="absolute font-mono whitespace-nowrap"
+        style={{ left: '50%', transform: 'translateX(-50%)', fontSize: '11px', letterSpacing: '0.14em' }}
+      >
+        <span style={{ color: '#304050' }}>MISSION CONTROL</span>
+        {segSep}
+        <span style={{ color: '#304050' }}>{(zone?.label || 'ENGINEERING DISTRICT').toUpperCase()}</span>
+        {project && (
+          <>
+            {segSep}
+            <span style={{ color: '#e8a040' }}>{project.label}</span>
+          </>
+        )}
+      </div>
+
+      {/* RIGHT — exit */}
+      <button
+        onClick={onExit}
+        className="absolute right-6 font-mono transition-colors"
+        style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#304050' }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = '#6080a0')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = '#304050')}
+      >
+        EXIT × ESC
+      </button>
+    </div>
+  );
+}
 
 /* ───────────────────────────── PROJECT WALL ───────────────────────────── */
 
-const wallContainer = {
-  hidden: {},
-  show: { transition: { staggerChildren: DUR.cardStagger } },
-};
+const wallContainer = { hidden: {}, show: { transition: { staggerChildren: DUR.cardStagger } } };
 const cardVariant = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { duration: DUR.cardFade, ease: EASE_STD } },
@@ -29,40 +78,55 @@ function ProjectCard({ project, onSelect }) {
     <motion.button
       variants={cardVariant}
       onClick={() => !locked && onSelect(project.id)}
-      className={`group relative flex flex-col gap-3 bg-[#090c12] px-5 py-5 text-left transition-colors ${
-        locked ? 'cursor-not-allowed' : 'hover:bg-[#0c1018]'
+      className={`group relative flex flex-col text-left transition-colors duration-200 ${
+        locked ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-[#0d1218]'
       }`}
+      style={{ background: '#090c12', padding: '24px' }}
     >
-      {/* 2px gradient top border */}
+      {/* 3px gradient top accent */}
+      <span className="pointer-events-none absolute inset-x-0 top-0" style={{ height: '3px', background: railGradient(project.kind) }} />
+
+      {/* Badge */}
       <span
-        className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
-        style={{ background: `linear-gradient(90deg, ${accent}, transparent)` }}
-      />
-      <span
-        className="w-fit rounded-md border px-2 py-0.5 font-mono text-[8px] uppercase tracking-[0.2em]"
-        style={{ color: accent, borderColor: `${accent}66`, background: `${accent}14` }}
+        className="w-fit rounded-[3px] uppercase"
+        style={{ fontSize: '8px', fontWeight: 500, letterSpacing: '0.2em', color: accent, border: `0.5px solid ${accent}40`, background: `${accent}14`, padding: '4px 8px' }}
       >
         {badgeWord(project.kind)}
       </span>
+
+      {/* Name */}
       <div
-        className={`font-mono text-[14px] font-bold leading-snug text-[#c8d4e0] ${locked ? 'select-none blur-[5px]' : ''}`}
+        className={locked ? 'select-none blur-[5px]' : ''}
+        style={{ marginTop: '16px', fontSize: '18px', fontWeight: 700, color: '#c8d4e0', lineHeight: 1.3 }}
       >
         {project.label}
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        {(project.tags || []).map((t) => (
+
+      {/* Subtitle */}
+      <div
+        className="line-clamp-2"
+        style={{ marginTop: '8px', fontSize: '12px', color: '#4a6070', lineHeight: 1.6 }}
+      >
+        {project.subtitle}
+      </div>
+
+      {/* Tags */}
+      <div className="flex flex-wrap" style={{ marginTop: '16px', gap: '6px' }}>
+        {(project.tags || project.secondaryStack || []).slice(0, 5).map((t) => (
           <span
             key={t}
-            className="rounded border border-[#1c2535] px-1.5 py-0.5 font-mono text-[8px] tracking-wider text-[#304050]"
+            className="rounded-[3px]"
+            style={{ fontSize: '9px', fontWeight: 500, color: '#304050', background: '#0c1018', border: '0.5px solid #1a2530', padding: '4px 8px' }}
           >
             {t}
           </span>
         ))}
       </div>
+
+      {/* CTA */}
       <span
-        className={`mt-1 font-mono text-[9px] tracking-[0.22em] ${
-          locked ? 'text-[#2a3340]' : 'text-[#46566a] transition-colors group-hover:text-[#e8a040]'
-        }`}
+        className={`font-mono uppercase transition-colors duration-200 ${locked ? '' : 'group-hover:text-[#e8a040]'}`}
+        style={{ marginTop: '20px', fontSize: '10px', letterSpacing: '0.14em', color: '#304050' }}
       >
         {locked ? 'LOCKED ◍' : 'OPEN BRIEF →'}
       </span>
@@ -77,13 +141,15 @@ function Wall({ projects, onSelect }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.2 } }}
-      className="mx-auto w-full max-w-6xl px-6"
+      className="w-full"
+      style={{ maxWidth: '1200px' }}
     >
       <motion.div
         variants={wallContainer}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 gap-px bg-[#151c28] sm:grid-cols-2 lg:grid-cols-3"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+        style={{ gap: '1px', background: '#111820', border: '1px solid #111820' }}
       >
         {projects.map((p) => (
           <ProjectCard key={p.id} project={p} onSelect={onSelect} />
@@ -93,139 +159,138 @@ function Wall({ projects, onSelect }) {
   );
 }
 
-/* ──────────────────────────── PROJECT BRIEF ───────────────────────────── */
+/* ───────────────────────────── PROJECT BRIEF ──────────────────────────── */
 
 function MetricStrip({ metrics }) {
   if (!metrics?.length) return null;
   return (
-    <div className="mx-auto mt-7 flex w-fit items-start">
+    <div className="flex flex-wrap justify-center">
       {metrics.map((m, i) => (
         <div
           key={m.label}
-          className={`flex w-[120px] flex-col items-center px-3 ${i > 0 ? 'border-l border-white/10' : ''}`}
+          className="flex flex-col items-center"
+          style={{ padding: '0 40px', borderLeft: i > 0 ? '1px solid #151c28' : 'none' }}
         >
-          <div className="font-mono text-[28px] font-extrabold leading-none text-[#e8a040]">
+          <span style={{ fontSize: '32px', fontWeight: 800, color: '#e8a040', letterSpacing: '-0.02em', lineHeight: 1 }}>
             {m.value}
-          </div>
-          <div className="mt-2 text-center font-mono text-[8px] uppercase leading-tight tracking-[0.16em] text-[#5a6b7a]">
+          </span>
+          <span className="uppercase text-center" style={{ marginTop: '6px', fontSize: '8px', fontWeight: 500, letterSpacing: '0.16em', color: '#304050', lineHeight: 1.4 }}>
             {m.label}
-          </div>
+          </span>
         </div>
       ))}
     </div>
   );
 }
 
-function TechChips({ stack, accent }) {
-  if (!stack?.length) return null;
+function MicroLabel({ children, mb = 12 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {stack.map((c) => (
-        <span
-          key={c.name}
-          className="rounded-md border px-2 py-1 font-mono text-[10px] tracking-wider"
-          style={
-            c.primary
-              ? { color: '#ffe7c2', borderColor: `${accent}99`, background: `${accent}1f` }
-              : { color: '#5a6b7a', borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)' }
-          }
-        >
-          {c.name}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function DecisionList({ decisions, accent }) {
-  if (!decisions?.length) return null;
-  return (
-    <div>
-      {decisions.map((d, i) => (
-        <div
-          key={d.title}
-          className={`py-3 ${i > 0 ? 'border-t border-white/[0.06]' : ''}`}
-        >
-          <div className="font-mono text-[12px] font-semibold tracking-wide" style={{ color: accent }}>
-            {d.title}
-          </div>
-          <div className="mt-1 text-[12px] leading-snug text-[#5a6b7a]">{d.detail}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SectionLabel({ children }) {
-  return (
-    <div className="mb-3 font-mono text-[7px] uppercase tracking-[0.32em] text-[#46566a]">
+    <div className="uppercase" style={{ marginBottom: `${mb}px`, fontSize: '8px', fontWeight: 500, letterSpacing: '0.2em', color: '#304050' }}>
       {children}
     </div>
   );
 }
 
+function StackChips({ primary, secondary }) {
+  const chip = (name, isPrimary) => (
+    <span
+      key={name}
+      className="rounded-[3px] font-mono"
+      style={
+        isPrimary
+          ? { fontSize: '9px', padding: '5px 10px', color: '#e8a040', background: 'rgba(232,160,64,0.08)', border: '0.5px solid rgba(232,160,64,0.2)' }
+          : { fontSize: '9px', padding: '5px 10px', color: '#4a6070', background: '#0a0e14', border: '0.5px solid #1a2530' }
+      }
+    >
+      {name}
+    </span>
+  );
+  return (
+    <div className="flex flex-wrap" style={{ gap: '6px' }}>
+      {(primary || []).map((n) => chip(n, true))}
+      {(secondary || []).map((n) => chip(n, false))}
+    </div>
+  );
+}
+
 function Brief({ project }) {
-  const accent = accentFor(project.kind);
   return (
     <motion.div
       key="brief"
-      initial={{ opacity: 0, scale: 0.97 }}
-      animate={{ opacity: 1, scale: 1, transition: { duration: DUR.briefFade, ease: EASE_STD } }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: { duration: DUR.briefFade, ease: EASE_STD } }}
       exit={{ opacity: 0, transition: { duration: 0.2 } }}
-      className="mx-auto flex w-full max-w-6xl flex-col px-6"
+      className="w-full"
     >
-      {/* Hero header */}
-      <div className="flex flex-col items-center text-center">
+      {/* HEADER */}
+      <div className="text-center" style={{ padding: '48px 64px 40px 64px', borderBottom: '0.5px solid #151c28', background: '#06080c' }}>
         <span
-          className="rounded-full border px-3 py-0.5 font-mono text-[8px] uppercase tracking-[0.2em]"
-          style={{ color: accent, borderColor: `${accent}66`, background: `${accent}14` }}
+          className="inline-block uppercase"
+          style={{ fontSize: '9px', letterSpacing: '0.2em', color: '#e8a040', background: 'rgba(232,160,64,0.08)', border: '0.5px solid rgba(232,160,64,0.25)', padding: '5px 14px', borderRadius: '3px', marginBottom: '20px' }}
         >
           {project.badge}
         </span>
-        <h2
-          className="mt-4 max-w-3xl font-display text-[36px] font-extrabold leading-[1.05] text-[#dde6f0] sm:text-[40px]"
-          style={{ letterSpacing: '-0.02em' }}
-        >
+        <h2 style={{ fontSize: '44px', fontWeight: 800, color: '#dde6f0', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: '16px' }}>
           {project.label}
         </h2>
-        <div className="mt-3 font-mono text-[10px] tracking-wider text-[#5a6b7a]">
-          {[project.role, project.company, project.period, project.location].filter(Boolean).join('  ·  ')}
+        <div className="flex flex-wrap justify-center font-mono" style={{ fontSize: '11px', letterSpacing: '0.06em', color: '#4a6070', marginBottom: '32px', gap: '0' }}>
+          {[project.role, project.company, project.dateRange, project.location].filter(Boolean).map((seg, i, arr) => (
+            <span key={seg}>
+              {seg}
+              {i < arr.length - 1 && <span style={{ color: '#1c2535' }}> · </span>}
+            </span>
+          ))}
         </div>
         <MetricStrip metrics={project.metrics} />
       </div>
 
-      {/* Two-column body */}
-      <div className="mt-9 grid grid-cols-1 gap-7 lg:grid-cols-[38fr_62fr]">
+      {/* BODY — two columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-[38fr_62fr]">
         {/* LEFT */}
-        <div className="flex flex-col">
-          <SectionLabel>Context</SectionLabel>
-          <p className="text-[12px] leading-[1.75] text-[#4a6070]">{project.context}</p>
+        <div style={{ padding: '40px 32px 40px 48px' }}>
+          <MicroLabel mb={12}>Context</MicroLabel>
+          <p style={{ fontSize: '13px', color: '#4a6070', lineHeight: 1.8, marginBottom: '32px' }}>
+            {project.description}
+          </p>
 
-          <div className="mt-6">
-            <SectionLabel>Stack</SectionLabel>
-            <TechChips stack={project.techStack} accent={accent} />
+          <MicroLabel mb={10}>Stack</MicroLabel>
+          <div style={{ marginBottom: '32px' }}>
+            <StackChips primary={project.primaryStack} secondary={project.secondaryStack} />
           </div>
 
-          <div className="mt-6">
-            <SectionLabel>Key Decisions</SectionLabel>
-            <DecisionList decisions={project.keyDecisions} accent={accent} />
-          </div>
+          {project.keyDecisions?.length > 0 && (
+            <>
+              <MicroLabel mb={16}>Key Decisions</MicroLabel>
+              <div>
+                {project.keyDecisions.map((d, i) => (
+                  <div key={d.title}>
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#e8a040', marginBottom: '5px' }}>{d.title}</div>
+                    <div style={{ fontSize: '12px', color: '#4a6070', lineHeight: 1.7 }}>{d.body}</div>
+                    {i < project.keyDecisions.length - 1 && (
+                      <div style={{ borderTop: '0.5px solid #111820', margin: '14px 0' }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* RIGHT — signature force graph */}
-        <div className="flex min-h-[480px] flex-col">
-          <SectionLabel>System Architecture</SectionLabel>
-          <div className="flex-1 rounded-lg border border-white/[0.07]">
-            {project.architectureGraph ? (
-              <ArchitectureGraph
-                nodes={project.architectureGraph.nodes}
-                edges={project.architectureGraph.edges}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center font-mono text-[11px] text-[#46566a]">
-                NO DIAGRAM
-              </div>
-            )}
+        {/* RIGHT */}
+        <div style={{ padding: '32px 40px 32px 32px', borderLeft: '0.5px solid #111820' }}>
+          <BentoPanels project={project} />
+
+          <div style={{ marginTop: '32px' }}>
+            <MicroLabel mb={12}>System Architecture</MicroLabel>
+            <div style={{ height: '256px', borderRadius: '6px', border: '0.5px solid #151c28', overflow: 'hidden' }}>
+              {project.architectureGraph ? (
+                <ArchitectureGraph nodes={project.architectureGraph.nodes} edges={project.architectureGraph.edges} />
+              ) : (
+                <div className="flex h-full items-center justify-center font-mono" style={{ fontSize: '11px', color: '#304050' }}>
+                  NO DIAGRAM
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -260,11 +325,14 @@ export default function MissionControl() {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, selected, setEnteredZone]);
 
+  const onBack = () => (selected ? setSelected(null) : setEnteredZone(null));
+
   return (
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-40 flex flex-col bg-[#06080c]"
+          className="mc-root fixed inset-0 z-40 flex flex-col"
+          style={{ background: '#06080c' }}
           initial={{ y: '100%' }}
           animate={{ y: 0, transition: { duration: DUR.slideIn, ease: EASE_OUT } }}
           exit={{ y: '100%', transition: { duration: DUR.slideOut, ease: EASE_OUT } }}
@@ -272,56 +340,24 @@ export default function MissionControl() {
           {/* Dotted-grid backdrop */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-[0.5]"
+            className="pointer-events-none absolute inset-0"
             style={{
+              opacity: 0.5,
               backgroundImage: 'radial-gradient(rgba(120,150,220,0.10) 1px, transparent 1px)',
               backgroundSize: '26px 26px',
               maskImage: 'radial-gradient(90% 80% at 50% 35%, #000 30%, transparent 85%)',
             }}
           />
 
-          {/* Top bar — breadcrumb + project count + exit */}
-          <div className="relative flex items-center justify-between px-7 py-5">
-            <div className="flex items-center gap-5">
-              {project && (
-                <button
-                  onClick={() => setSelected(null)}
-                  className="font-mono text-[11px] tracking-[0.2em] text-[#46566a] transition-colors hover:text-[#e8a040]"
-                >
-                  ← BACK
-                </button>
-              )}
-              <div className="font-mono text-[11px] tracking-[0.28em] text-[#7a8a9a]">
-                MISSION CONTROL{' '}
-                <span className="text-[#46566a]">// {zone?.label || 'ENGINEERING DISTRICT'}</span>
-                {project && (
-                  <span className="text-[#46566a]">
-                    {' // '}
-                    <span style={{ color: accentFor(project.kind) }}>{project.label}</span>
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-5">
-              {!project && (
-                <span className="font-mono text-[11px] tracking-[0.2em] text-[#46566a]">
-                  {projects.length} PROJECTS
-                </span>
-              )}
-              <button
-                onClick={() => setEnteredZone(null)}
-                className="font-mono text-[11px] tracking-[0.2em] text-[#46566a] transition-colors hover:text-[#e8a040]"
-              >
-                EXIT ✕ <span className="opacity-50">ESC</span>
-              </button>
-            </div>
-          </div>
+          <NavBar zone={zone} project={project} onBack={onBack} onExit={() => setEnteredZone(null)} />
 
           {/* Stage */}
-          <div className="relative flex flex-1 flex-col items-center justify-center overflow-y-auto px-2 py-6">
+          <div className="relative flex-1 overflow-y-auto">
             <AnimatePresence mode="wait" initial={false}>
               {!project ? (
-                <Wall key="wall" projects={projects} onSelect={setSelected} />
+                <div key="wall" className="flex min-h-full items-center justify-center" style={{ padding: '48px' }}>
+                  <Wall projects={projects} onSelect={setSelected} />
+                </div>
               ) : (
                 <Brief key="brief" project={project} />
               )}

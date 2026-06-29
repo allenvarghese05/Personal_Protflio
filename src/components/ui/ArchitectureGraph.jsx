@@ -16,6 +16,7 @@ export default function ArchitectureGraph({ nodes, edges }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const [tip, setTip] = useState(null); // { x, y, label, desc }
+  const [legendItems, setLegendItems] = useState([]);
 
   useEffect(() => {
     if (!nodes || !edges) return;
@@ -26,7 +27,33 @@ export default function ArchitectureGraph({ nodes, edges }) {
     // Deep-copy so the simulation can mutate x/y/vx/vy without touching props.
     const simNodes = nodes.map((n) => ({ ...n, _a: 1 }));
     const byId = new Map(simNodes.map((n) => [n.id, n]));
-    const simLinks = edges.map((e) => ({ source: e.source, target: e.target, _a: 1 }));
+    const simLinks = edges.map((e, i) => ({ source: e.source, target: e.target, _a: 1, _phase: (i * 0.37) % 1 }));
+
+    // Semi-fixed initial positions — largest node at centre, the rest on a ring
+    // around it — so the layout starts organised, then the forces relax it.
+    const center = simNodes.reduce((a, b) => (b.r > a.r ? b : a), simNodes[0]);
+    const others = simNodes.filter((n) => n !== center);
+    center.x = 0;
+    center.y = 0;
+    others.forEach((n, i) => {
+      const a = (i / others.length) * Math.PI * 2;
+      n.x = Math.cos(a) * 120;
+      n.y = Math.sin(a) * 120;
+    });
+
+    // Legend: distinct node colours present, mapped to human labels.
+    const COLOR_LABELS = {
+      '#e8a040': 'Core / Logic',
+      '#30c0a0': 'Auth / Security',
+      '#4090e0': 'Data / Service',
+      '#9060e0': 'Realtime',
+      '#608090': 'Storage',
+    };
+    const legend = [...new Set(simNodes.map((n) => n.color))].map((c) => ({
+      color: c,
+      label: COLOR_LABELS[c] || '',
+    }));
+    setLegendItems(legend);
 
     let width = 0;
     let height = 0;
@@ -105,6 +132,7 @@ export default function ArchitectureGraph({ nodes, edges }) {
 
     function draw() {
       ctx.clearRect(0, 0, width, height);
+      const now = performance.now();
       // Edges
       for (const l of simLinks) {
         l._a += (targetLinkAlpha(l) - l._a) * lerpK;
@@ -122,6 +150,16 @@ export default function ArchitectureGraph({ nodes, edges }) {
           ctx.lineWidth = 0.5;
         }
         ctx.stroke();
+        // Animated pulse travelling along the edge (data flow)
+        const t = ((now / 1600) + l._phase) % 1;
+        const px = l.source.x + (l.target.x - l.source.x) * t;
+        const py = l.source.y + (l.target.y - l.source.y) * t;
+        const pc = d3.color(lit ? hover.color : l.source.color);
+        pc.opacity = (lit ? 0.9 : 0.5) * l._a;
+        ctx.beginPath();
+        ctx.arc(px, py, lit ? 2 : 1.4, 0, Math.PI * 2);
+        ctx.fillStyle = pc.toString();
+        ctx.fill();
       }
       // Nodes
       for (const n of simNodes) {
@@ -256,6 +294,22 @@ export default function ArchitectureGraph({ nodes, edges }) {
             {tip.label}
           </div>
           <div className="mt-1 text-[11px] leading-snug text-[#7a8a9a]">{tip.desc}</div>
+        </div>
+      )}
+      {/* Colour legend */}
+      {legendItems.length > 0 && (
+        <div className="pointer-events-none absolute bottom-3 left-3 flex flex-col gap-1.5">
+          {legendItems.map((l) => (
+            <div key={l.color} className="flex items-center gap-2">
+              <span className="rounded-full" style={{ width: '7px', height: '7px', background: l.color }} />
+              <span
+                className="font-mono uppercase"
+                style={{ fontSize: '7px', letterSpacing: '0.14em', color: '#304050' }}
+              >
+                {l.label}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>

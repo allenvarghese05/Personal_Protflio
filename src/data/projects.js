@@ -1,12 +1,10 @@
 /**
  * Mission Control content — the Engineering District project briefs.
  *
- * This is the single source of truth the Mission Control UI reads from; there
- * is NO hardcoded per-project JSX. Each project carries its own
- * `architectureGraph` (nodes + edges) which <ArchitectureGraph /> renders.
- *
- * `kind` drives the accent colour / badge: signature | current | project |
- * classified. Node colours come from the shared NODE_COLOR palette.
+ * Single source of truth for the Mission Control UI (no per-project JSX). Each
+ * project carries its own `architectureGraph` (nodes + edges) for the
+ * force-directed diagram. `kind` drives the accent / badge colour:
+ * signature | current | project | classified.
  */
 
 const C = {
@@ -23,46 +21,34 @@ export const ENGINEERING_PROJECTS = [
     kind: 'signature',
     badge: 'SIGNATURE BUILD · SOLE ENGINEER',
     label: 'Church Building Application System',
+    subtitle:
+      'Enterprise application platform with 5-tier approval, GPS enforcement, and RBAC',
     role: 'Software Solutions Architect',
     company: 'Indian Evangelical Team',
-    period: 'Dec 2025 – Mar 2026',
-    location: 'Hybrid · Delhi',
-    context:
-      'Sole engineer on an enterprise platform: a 10-page dynamic application moving through a 5-tier approval chain, with GPS-based 8km bylaw enforcement (Haversine), RBAC on every route, OTP auth, and 3-phase construction tracking — system design through production.',
-    tags: ['Architecture', 'Security', 'GIS', 'Full-stack'],
-    techStack: [
-      { name: 'Next.js 14', primary: true },
-      { name: 'TypeScript', primary: true },
-      { name: 'Supabase', primary: true },
-      { name: 'Haversine', primary: true },
-      { name: 'Prisma ORM' },
-      { name: 'PostgreSQL' },
-      { name: 'RBAC' },
-      { name: 'OTP Auth' },
-      { name: 'GIS' },
-      { name: 'REST API' },
-    ],
+    dateRange: 'Dec 2025 – Mar 2026',
+    location: 'Hybrid, Delhi',
+    description:
+      'Sole engineer on an enterprise platform: a 10-page dynamic application moving through a 5-tier approval chain, with GPS-based 8km bylaw enforcement via the Haversine formula, RBAC on every route, and OTP authentication. Owned it from system design through production, including 3-phase construction tracking and live approval updates.',
     metrics: [
       { value: '18', label: 'Lifecycle statuses' },
       { value: '15+', label: 'Postgres tables' },
       { value: '6', label: 'User roles' },
       { value: '80+', label: 'Tasks owned' },
     ],
+    primaryStack: ['Next.js 14', 'TypeScript', 'Supabase', 'Haversine'],
+    secondaryStack: ['Prisma ORM', 'PostgreSQL', 'RBAC', 'OTP Auth', 'GIS', 'REST API'],
     keyDecisions: [
       {
         title: 'RBAC on every route',
-        detail:
-          'Not just page-level — route middleware enforces role checks server-side before any data is fetched.',
+        body: 'Not just page-level — route middleware enforces role checks server-side before any data is fetched.',
       },
       {
         title: 'Haversine over PostGIS',
-        detail:
-          'Lightweight formula sufficient for 8km radius enforcement without standing up a full spatial extension.',
+        body: 'Lightweight formula sufficient for 8km radius enforcement without standing up a full spatial extension.',
       },
       {
         title: 'Supabase Realtime for approvals',
-        detail:
-          'No polling — status changes push live to every role tier the moment an approval moves.',
+        body: 'No polling — status changes push live to every role tier the moment an approval moves.',
       },
     ],
     architectureGraph: {
@@ -106,32 +92,27 @@ export const ENGINEERING_PROJECTS = [
   {
     id: 'overflow',
     kind: 'current',
-    badge: 'CURRENT ROLE',
+    badge: 'CURRENT ROLE · FULL-STACK',
     label: 'Overflow',
+    subtitle: 'Internal full-stack tooling platform for team workflow management',
     role: 'Software Engineer Intern',
     company: 'Overflow',
-    period: 'Mar 2026 – Present',
-    location: '150-person · $30M+ funded',
-    context:
-      'Building internal tooling end-to-end in Next.js at a venture-backed startup — owning features from spec to ship.',
-    tags: ['Next.js', 'Full-stack', 'Internal tooling'],
-    techStack: [
-      { name: 'Next.js', primary: true },
-      { name: 'React', primary: true },
-      { name: 'TypeScript', primary: true },
-      { name: 'Node.js' },
-      { name: 'REST APIs' },
-      { name: 'Internal tooling' },
-    ],
+    dateRange: 'Mar 2026 – Present',
+    location: '150-person startup',
+    description:
+      'Building internal tooling end-to-end in Next.js at a venture-backed startup. Owning features from spec to ship for a 150-person team — full-stack, purpose-built workflows over generic SaaS.',
     metrics: [
       { value: '$30M+', label: 'Funding raised' },
-      { value: '150', label: 'Person team' },
+      { value: '150', label: 'Team size' },
       { value: 'E2E', label: 'Feature ownership' },
+      { value: 'Full', label: 'Stack scope' },
     ],
+    primaryStack: ['Next.js', 'React', 'TypeScript'],
+    secondaryStack: ['Node.js', 'REST APIs', 'Internal tooling'],
     keyDecisions: [
-      { title: 'Own the slice end to end', detail: 'Spec → build → ship in one pair of hands — fewer handoffs, tighter feedback loops at startup pace.' },
-      { title: 'Purpose-built over off-the-shelf', detail: 'Internal tools beat generic SaaS for the edge cases a 150-person team actually hits daily.' },
-      { title: 'Ship small, ship often', detail: 'Incremental delivery keeps each change reviewable and reversible instead of big-bang releases.' },
+      { title: 'Own the slice end to end', body: 'Spec → build → ship in one pair of hands — fewer handoffs, tighter feedback loops at startup pace.' },
+      { title: 'Purpose-built over off-the-shelf', body: 'Internal tools beat generic SaaS for the edge cases a 150-person team actually hits daily.' },
+      { title: 'Ship small, ship often', body: 'Incremental delivery keeps each change reviewable and reversible instead of big-bang releases.' },
     ],
     architectureGraph: {
       nodes: [
@@ -158,29 +139,25 @@ export const ENGINEERING_PROJECTS = [
     kind: 'project',
     badge: 'CREATIVE · ENGINEERING',
     label: 'Drexel Electric Racing',
+    subtitle: 'Photography, video, and web presence for university racing team',
     role: 'Creative Content Manager',
     company: 'Drexel Electric Racing',
-    period: 'Oct 2023 – Sep 2025',
+    dateRange: 'Oct 2023 – Sep 2025',
     location: 'Philadelphia',
-    context:
-      'Professional photo & video shoots and site upkeep for Drexel’s electric racing team — the creative thread, applied to engineering.',
-    tags: ['Photography', 'Video', 'Web'],
-    techStack: [
-      { name: 'Photography', primary: true },
-      { name: 'Video', primary: true },
-      { name: 'Web', primary: true },
-      { name: 'Lightroom' },
-      { name: 'Premiere' },
-      { name: 'CMS' },
-    ],
+    description:
+      'Professional photo and video shoots and website upkeep for Drexel’s electric racing team across two seasons. Built one consistent visual identity and shipped assets where sponsors and recruits actually saw them.',
     metrics: [
       { value: '2 yrs', label: 'Content lead' },
       { value: '1', label: 'Visual identity' },
+      { value: 'Pro', label: 'Photo + video' },
+      { value: 'Web', label: 'Delivery' },
     ],
+    primaryStack: ['Photography', 'Video', 'Web'],
+    secondaryStack: ['Lightroom', 'Premiere', 'CMS'],
     keyDecisions: [
-      { title: 'One look across two years', detail: 'A consistent grade and framing so a season of shoots reads as a single brand.' },
-      { title: 'Web-first delivery', detail: 'Assets shipped to the site where sponsors and recruits actually saw them.' },
-      { title: 'Capture for reuse', detail: 'Shot wide and long so one session feeds stills, reels, and the website at once.' },
+      { title: 'One look across two years', body: 'A consistent grade and framing so a season of shoots reads as a single brand.' },
+      { title: 'Web-first delivery', body: 'Assets shipped to the site where sponsors and recruits actually saw them.' },
+      { title: 'Capture for reuse', body: 'Shot wide and long so one session feeds stills, reels, and the website at once.' },
     ],
     architectureGraph: {
       nodes: [
@@ -206,28 +183,25 @@ export const ENGINEERING_PROJECTS = [
     kind: 'project',
     badge: 'LIVE PRODUCTION',
     label: 'Sound Technician',
+    subtitle: 'Live sound, lighting, and streaming systems for events',
     role: 'Sound Technician',
     company: 'Drexel University',
-    period: 'Jan 2024 – Feb 2026',
+    dateRange: 'Jan 2024 – Feb 2026',
     location: 'Philadelphia',
-    context:
-      'Ran sound, lighting, and live streaming for campus events — the hands-on AV craft that later inspired AutoMix AI.',
-    tags: ['Live sound', 'Lighting', 'Streaming'],
-    techStack: [
-      { name: 'Live sound', primary: true },
-      { name: 'Lighting', primary: true },
-      { name: 'Streaming', primary: true },
-      { name: 'Mixing' },
-      { name: 'Signal flow' },
-    ],
+    description:
+      'Ran sound, lighting, and live streaming for campus events. Gain-staged for headroom, built redundant signal paths for a medium with no second take, and mixed the broadcast as a first-class output.',
     metrics: [
       { value: 'Live', label: 'Campus events' },
       { value: '3', label: 'Disciplines' },
+      { value: '2 yrs', label: 'On the desk' },
+      { value: 'A/V', label: 'Full chain' },
     ],
+    primaryStack: ['Live sound', 'Lighting', 'Streaming'],
+    secondaryStack: ['Mixing', 'Signal flow'],
     keyDecisions: [
-      { title: 'Gain-stage before the show', detail: 'Set clean levels up front so a live mix has headroom instead of fighting feedback mid-event.' },
-      { title: 'Redundant signal paths', detail: 'A backup feed on critical channels — live has no second take.' },
-      { title: 'Stream as a first-class output', detail: 'Mixed for the room and the broadcast separately so the online audience wasn’t an afterthought.' },
+      { title: 'Gain-stage before the show', body: 'Set clean levels up front so a live mix has headroom instead of fighting feedback mid-event.' },
+      { title: 'Redundant signal paths', body: 'A backup feed on critical channels — live has no second take.' },
+      { title: 'Stream as a first-class output', body: 'Mixed for the room and the broadcast separately so the online audience wasn’t an afterthought.' },
     ],
     architectureGraph: {
       nodes: [
@@ -252,28 +226,25 @@ export const ENGINEERING_PROJECTS = [
     kind: 'project',
     badge: 'PRODUCTION INTERN',
     label: 'Tree of Life',
+    subtitle: 'Software and film production tools for a documentary project',
     role: 'Live Sound Engineer / Production Intern',
     company: 'Tree of Life Church',
-    period: 'Jun – Jul 2024',
+    dateRange: 'Jun – Jul 2024',
     location: 'Texas',
-    context:
-      'Creative arts team — live sound, fixed bugs in the church app, and filmed a promotional video on location in Mexico.',
-    tags: ['Live sound', 'Software', 'Film'],
-    techStack: [
-      { name: 'Live sound', primary: true },
-      { name: 'Film', primary: true },
-      { name: 'Bug fixing', primary: true },
-      { name: 'Church app' },
-      { name: 'Production' },
-    ],
+    description:
+      'Creative arts team — ran live sound, triaged and fixed bugs in the church app, and filmed a promotional video on location in Mexico. Favoured reliability for the congregation over engineer-pleasing complexity.',
     metrics: [
       { value: 'MX', label: 'On-location shoot' },
       { value: '3', label: 'Hats worn' },
+      { value: '2 mo', label: 'Internship' },
+      { value: 'Live', label: 'Service sound' },
     ],
+    primaryStack: ['Live sound', 'Film', 'Bug fixing'],
+    secondaryStack: ['Church app', 'Production'],
     keyDecisions: [
-      { title: 'Fix the app where it hurt', detail: 'Triaged the church app to the bugs users hit most, not the longest backlog ticket.' },
-      { title: 'Shoot on location', detail: 'Filmed the promo in Mexico for real texture a studio set-up couldn’t fake.' },
-      { title: 'Serve the service first', detail: 'Live sound choices favoured reliability for the congregation over engineer-pleasing complexity.' },
+      { title: 'Fix the app where it hurt', body: 'Triaged the church app to the bugs users hit most, not the longest backlog ticket.' },
+      { title: 'Shoot on location', body: 'Filmed the promo in Mexico for real texture a studio set-up couldn’t fake.' },
+      { title: 'Serve the service first', body: 'Live sound choices favoured reliability for the congregation over engineer-pleasing complexity.' },
     ],
     architectureGraph: {
       nodes: [
@@ -295,13 +266,17 @@ export const ENGINEERING_PROJECTS = [
     kind: 'classified',
     badge: 'CLASSIFIED',
     label: 'Project Redacted',
+    subtitle: 'Details withheld under non-disclosure agreement',
     locked: true,
     role: 'Under NDA',
     company: '—',
-    period: '—',
+    dateRange: '—',
     location: '—',
-    context: 'Details withheld under NDA.',
-    tags: ['NDA'],
+    description: 'Details withheld under NDA.',
+    metrics: [],
+    primaryStack: [],
+    secondaryStack: ['NDA'],
+    keyDecisions: [],
   },
 ];
 
