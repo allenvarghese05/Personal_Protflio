@@ -45,6 +45,7 @@ export default function ArchitectureGraph({ nodes, edges }) {
   const [tip, setTip] = useState(null); // { x, y, label, desc, category, connected[] }
   const [legendItems, setLegendItems] = useState([]);
   const [showHint, setShowHint] = useState(true);
+  const [zoomPct, setZoomPct] = useState(100);
 
   useEffect(() => {
     if (!nodes || !edges) return;
@@ -83,6 +84,12 @@ export default function ArchitectureGraph({ nodes, edges }) {
 
     /* ---- SVG scaffold ------------------------------------------------- */
     svg.selectAll('*').remove();
+    // transparent background rect captures pan/zoom events everywhere
+    const bgRect = svg
+      .append('rect')
+      .attr('class', 'bg')
+      .attr('fill', 'transparent')
+      .style('cursor', 'grab');
     const zoomG = svg.append('g').attr('class', 'zoom-group');
     const linkG = zoomG.append('g').attr('class', 'links');
     const nodeG = zoomG.append('g').attr('class', 'nodes');
@@ -244,6 +251,7 @@ export default function ArchitectureGraph({ nodes, edges }) {
       .on('start', (event, d) => {
         isDraggingNode = true;
         d._moved = false;
+        svgEl.style.cursor = 'move';
         if (!event.active) sim.alphaTarget(0.3).restart();
         d.fx = d.x;
         d.fy = d.y;
@@ -255,6 +263,7 @@ export default function ArchitectureGraph({ nodes, edges }) {
       })
       .on('end', (event, d) => {
         isDraggingNode = false;
+        svgEl.style.cursor = '';
         if (!event.active) sim.alphaTarget(GRAPH.alphaTarget);
         d.fx = null;
         d.fy = null;
@@ -277,43 +286,44 @@ export default function ArchitectureGraph({ nodes, edges }) {
     /* ---- zoom + pan --------------------------------------------------- */
     const zoom = d3
       .zoom()
-      .scaleExtent([0.3, 3])
-      .translateExtent([[-500, -500], [width + 500, height + 500]])
-      .filter((event) => !isDraggingNode && event.type !== 'dblclick' && !event.button)
+      .scaleExtent([0.2, 4])
+      .translateExtent([[-600, -600], [width + 600, height + 600]])
+      .filter((event) => {
+        if (event.type === 'wheel') return true; // zoom/pan via wheel
+        if (event.type === 'mousedown') return !isDraggingNode;
+        return !isDraggingNode;
+      })
+      .on('start', (event) => {
+        if (event.sourceEvent && event.sourceEvent.type === 'mousedown') bgRect.style('cursor', 'grabbing');
+      })
       .on('zoom', (event) => {
         zoomG.attr('transform', event.transform);
-        // keep an open tooltip glued to its node
+        setZoomPct(Math.round(event.transform.k * 100));
         if (focusId) {
           const n = byId.get(focusId);
           setTip((prev) => (prev ? { ...prev, x: event.transform.applyX(n.x), y: event.transform.applyY(n.y), flipX: event.transform.applyX(n.x) > width * 0.7, flipY: event.transform.applyY(n.y) > height * 0.8 } : prev));
         }
-      });
+      })
+      .on('end', () => bgRect.style('cursor', 'grab'));
     svg.call(zoom).on('dblclick.zoom', null);
+
+    // Stop the page/stage from scrolling — let d3-zoom own the wheel.
+    const preventWheel = (e) => e.preventDefault();
+    svgEl.addEventListener('wheel', preventWheel, { passive: false });
 
     // empty-canvas click → exit focus (drag handles node clicks)
     svg.on('click', (event) => {
       if (event.defaultPrevented) return;
-      // if the click landed on a node, the drag 'end' already handled it
       const [mx, my] = d3.pointer(event, zoomG.node());
       const onNode = simNodes.some((n) => Math.hypot(n.x - mx, n.y - my) < n._r + 6);
       if (!onNode) setFocus(null);
     });
-    // double-click empty → reset view
-    svg.on('dblclick', () => svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity));
-
-    // trackpad two-finger scroll → PAN (pinch=ctrl and mouse-wheel still zoom)
-    const onWheel = (e) => {
-      if (e.ctrlKey) return; // pinch — let d3 zoom
-      if (e.deltaMode === 0) {
-        // pixel deltas = trackpad: pan instead of zoom
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        const t = d3.zoomTransform(svgEl);
-        svg.call(zoom.translateBy, -e.deltaX / t.k, -e.deltaY / t.k);
+    // double-click empty space → reset zoom to fit
+    svg.on('dblclick', (event) => {
+      if (event.target === svgEl || event.target.tagName === 'rect') {
+        svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity);
       }
-      // deltaMode 1 (mouse wheel lines) → fall through to d3 zoom
-    };
-    svgEl.addEventListener('wheel', onWheel, { passive: false, capture: true });
+    });
 
     zoomApi.current = {
       zoomBy: (f) => svg.transition().duration(200).call(zoom.scaleBy, f),
@@ -325,7 +335,8 @@ export default function ArchitectureGraph({ nodes, edges }) {
       width = wrap.clientWidth;
       height = wrap.clientHeight;
       svg.attr('width', width).attr('height', height);
-      zoom.translateExtent([[-500, -500], [width + 500, height + 500]]);
+      bgRect.attr('width', width).attr('height', height);
+      zoom.translateExtent([[-600, -600], [width + 600, height + 600]]);
       seed();
       sim.alpha(0.5).restart();
     }
@@ -341,7 +352,7 @@ export default function ArchitectureGraph({ nodes, edges }) {
     return () => {
       sim.stop();
       ro.disconnect();
-      svgEl.removeEventListener('wheel', onWheel, { capture: true });
+      svgEl.removeEventListener('wheel', preventWheel);
       window.removeEventListener('keydown', onKey);
       svg.on('.zoom', null).on('click', null).on('dblclick', null);
     };
@@ -353,8 +364,20 @@ export default function ArchitectureGraph({ nodes, edges }) {
   }, []);
 
   return (
-    <div ref={wrapRef} className="relative h-full w-full overflow-hidden bg-[#05070a]">
+    <div
+      ref={wrapRef}
+      className="relative h-full w-full overflow-hidden bg-[#05070a]"
+      style={{ touchAction: 'none', userSelect: 'none' }}
+    >
       <svg ref={svgRef} className="block h-full w-full" />
+
+      {/* zoom-level indicator */}
+      <div
+        className="pointer-events-none absolute font-mono"
+        style={{ left: '8px', bottom: '6px', fontSize: '8px', color: '#1a2535', letterSpacing: '0.06em' }}
+      >
+        {zoomPct}%
+      </div>
 
       {/* tooltip */}
       {tip && (
@@ -394,8 +417,8 @@ export default function ArchitectureGraph({ nodes, edges }) {
       {/* legend */}
       {legendItems.length > 0 && (
         <div
-          className="pointer-events-none absolute bottom-2 left-2 flex flex-wrap gap-x-3 gap-y-1"
-          style={{ maxWidth: 'calc(100% - 90px)', background: 'rgba(5,7,10,0.78)', borderRadius: '4px', padding: '5px 8px' }}
+          className="pointer-events-none absolute left-2 flex flex-wrap gap-x-3 gap-y-1"
+          style={{ bottom: '22px', maxWidth: 'calc(100% - 90px)', background: 'rgba(5,7,10,0.78)', borderRadius: '4px', padding: '5px 8px' }}
         >
           {legendItems.map((l) => (
             <div key={l.label} className="flex items-center gap-1.5">

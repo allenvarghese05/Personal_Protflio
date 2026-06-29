@@ -120,6 +120,76 @@ function StaircaseChain() {
   );
 }
 
+/* Isometric 3D stacked layers — widest/grassroots (Pastor) at the bottom,
+   narrowing up to the single point of authority (Finance) at the top. */
+const ISO_LAYERS = [
+  { w: 200, cy: 300, top: '#0d1828', left: '#07101a', right: '#050d14', accent: '#e8a040', num: '01', role: 'PASTOR', sub: '3,000+ pastors · submits', side: 'L' },
+  { w: 175, cy: 248, top: '#0e1a2a', left: '#081220', right: '#060f18', accent: '#c87030', num: '02', role: 'DIVISION LEADER', sub: '~150 leaders · reviews', side: 'R' },
+  { w: 150, cy: 196, top: '#0d1828', left: '#07101a', right: '#050d14', accent: '#e8a040', num: '03', role: 'HQ TEAM', sub: 'national HQ · checks', side: 'L' },
+  { w: 125, cy: 144, top: '#0e1a2a', left: '#081220', right: '#060f18', accent: '#c87030', num: '04', role: 'PRESIDENT', sub: '1 president · approves', side: 'R' },
+  { w: 100, cy: 92, top: '#0d1828', left: '#07101a', right: '#050d14', accent: '#30c0a0', num: '05', role: 'FINANCE DEPT', sub: 'finance board · releases', side: 'L' },
+];
+const CX = 260;
+const DEPTH = 18;
+const VR = 0.32; // vertical:horizontal ratio (flatter than 0.5 so slabs read as platforms)
+
+function IsoStack() {
+  const top4 = ISO_LAYERS[4];
+  const topApex = top4.cy - top4.w * VR;
+  return (
+    <svg viewBox="-90 0 640 430" width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
+      {ISO_LAYERS.map((L) => {
+        const vy = L.w * VR;
+        const Lx = CX - L.w;
+        const Rx = CX + L.w;
+        const top = `${Lx},${L.cy} ${CX},${L.cy - vy} ${Rx},${L.cy} ${CX},${L.cy + vy}`;
+        const leftF = `${Lx},${L.cy} ${CX},${L.cy + vy} ${CX},${L.cy + vy + DEPTH} ${Lx},${L.cy + DEPTH}`;
+        const rightF = `${CX},${L.cy + vy} ${Rx},${L.cy} ${Rx},${L.cy + DEPTH} ${CX},${L.cy + vy + DEPTH}`;
+        const accentD = `M ${Lx},${L.cy} L ${CX},${L.cy + vy} L ${Rx},${L.cy}`;
+        const onLeft = L.side === 'L';
+        const edgeX = onLeft ? Lx : Rx;
+        const labelX = onLeft ? Lx - 18 : Rx + 18;
+        const anchor = onLeft ? 'end' : 'start';
+        return (
+          <g key={L.num}>
+            <polygon points={leftF} fill={L.left} />
+            <polygon points={rightF} fill={L.right} />
+            <polygon points={top} fill={L.top} stroke="#1a2535" strokeWidth="0.5" />
+            {/* accent glow on the front V edge */}
+            <path d={accentD} fill="none" stroke={L.accent} strokeWidth="1.5" style={{ filter: `drop-shadow(0 0 3px ${L.accent})` }} />
+            {/* label connector + diamond */}
+            <line x1={edgeX} y1={L.cy} x2={labelX} y2={L.cy} stroke="#1a2535" strokeWidth="0.5" />
+            <rect x={edgeX - 3} y={L.cy - 3} width="6" height="6" fill={L.accent} transform={`rotate(45 ${edgeX} ${L.cy})`} />
+            {/* tier + role */}
+            <text x={labelX} y={L.cy - 4} textAnchor={anchor} fontSize="10" fontWeight="700" fontFamily="monospace">
+              <tspan fill={L.accent}>{L.num}</tspan>
+              <tspan fill="#8aa0b8">{`  ${L.role}`}</tspan>
+            </text>
+            {/* sublabel */}
+            <text x={labelX} y={L.cy + 8} textAnchor={anchor} fontSize="8" fill="#3a5060" fontFamily="monospace">{L.sub}</text>
+          </g>
+        );
+      })}
+
+      {/* top — permit approved */}
+      <line x1={CX} y1={topApex} x2={CX} y2={topApex - 20} stroke="#30c0a0" strokeWidth="1" style={{ filter: 'drop-shadow(0 0 3px #30c0a0)' }} />
+      <text x={CX - 6} y={topApex - 24} textAnchor="middle" fontSize="11" fill="#30c0a0" style={{ filter: 'drop-shadow(0 0 4px #30c0a0)' }}>✦</text>
+      <text x={CX + 8} y={topApex - 21} textAnchor="start" fontSize="9" fill="#30c0a0" fontFamily="monospace" letterSpacing="0.5">PERMIT APPROVED</text>
+
+      {/* bottom — application submitted pill */}
+      <g>
+        <rect x={CX - 78} y={ISO_LAYERS[0].cy + ISO_LAYERS[0].w * VR + DEPTH + 8} width="156" height="20" rx="10" fill="#0a1220" stroke="#e8a040" strokeWidth="0.5" />
+        <text x={CX} y={ISO_LAYERS[0].cy + ISO_LAYERS[0].w * VR + DEPTH + 18} textAnchor="middle" dominantBaseline="middle" fill="#e8a040" fontSize="9" fontFamily="monospace" letterSpacing="0.5">APPLICATION SUBMITTED</text>
+      </g>
+
+      {/* travelling orb bottom → top */}
+      <circle r="6" fill="#e8a040" style={{ filter: 'blur(1.5px) drop-shadow(0 0 4px #e8a040)' }}>
+        <animateMotion dur="3s" repeatCount="indefinite" path={`M ${CX},${ISO_LAYERS[0].cy} L ${CX},${topApex}`} />
+      </circle>
+    </svg>
+  );
+}
+
 function ApprovalChainPanel({ project }) {
   const iet = project.id === 'iet';
   if (!iet) {
@@ -140,8 +210,8 @@ function ApprovalChainPanel({ project }) {
   }
   return (
     <Panel heading="5-Tier Approval Chain">
-      <div style={{ minHeight: '248px' }}>
-        <StaircaseChain />
+      <div style={{ minHeight: '348px' }}>
+        <IsoStack />
       </div>
     </Panel>
   );
