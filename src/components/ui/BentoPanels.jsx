@@ -45,52 +45,104 @@ function EndPill({ text, color, check }) {
   );
 }
 
-function ChainConnector({ dashed }) {
+const TIERS = [
+  { num: '01', role: 'PASTOR', action: 'submits', pop: '3,000+ pastors' },
+  { num: '02', role: 'DIVISION LEADER', action: 'reviews', pop: '~150 leaders' },
+  { num: '03', role: 'HQ TEAM', action: 'checks', pop: 'national HQ' },
+  { num: '04', role: 'PRESIDENT', action: 'approves', pop: '1 president' },
+  { num: '05', role: 'FINANCE DEPT', action: 'releases', pop: 'finance board' },
+];
+
+/* Ascending staircase — reads bottom-left (grassroots) → top-right (authority). */
+function StaircaseChain() {
+  const W = 150;
+  const H = 34;
+  const SKEW = 12;
+  const stepX = (i) => 6 + i * 46;
+  const stepY = (i) => 224 - i * 44; // y grows downward; higher i → higher up
+  const cx = (i) => stepX(i) + W / 2;
+  const cy = (i) => stepY(i) + H / 2;
+
+  // path the travelling dot follows: entry → each step centre → exit
+  const dotPath =
+    `M 40,266 ` +
+    TIERS.map((_, i) => `L ${cx(i)},${cy(i)}`).join(' ') +
+    ` L 360,30`;
+
   return (
-    <div className="relative mx-auto" style={{ width: '0', height: dashed ? '12px' : '16px' }}>
-      <div
-        className="absolute left-1/2 top-0 -translate-x-1/2"
-        style={{ width: dashed ? '0' : '1px', height: '100%', borderLeft: dashed ? '1px dashed #1a2535' : '1px solid #1a2535' }}
-      />
-      {dashed && (
-        <span className="chain-dot absolute left-1/2 top-0 -translate-x-1/2 rounded-full" style={{ width: '4px', height: '4px', background: '#e8a040' }} />
-      )}
-    </div>
+    <svg viewBox="0 0 400 290" width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
+      {/* entry pill (bottom-left) */}
+      <g>
+        <rect x="6" y="256" width="150" height="20" rx="10" fill="#0a1220" stroke="#e8a040" strokeWidth="0.5" />
+        <text x="81" y="266" textAnchor="middle" dominantBaseline="middle" fill="#e8a040" fontSize="9" fontFamily="monospace" letterSpacing="0.5">APPLICATION SUBMITTED</text>
+      </g>
+      {/* exit pill (top-right) */}
+      <g>
+        <rect x="250" y="14" width="144" height="20" rx="10" fill="#0a1220" stroke="#30c0a0" strokeWidth="0.5" />
+        <text x="322" y="24" textAnchor="middle" dominantBaseline="middle" fill="#30c0a0" fontSize="9" fontFamily="monospace" letterSpacing="0.5">✓ PERMIT APPROVED</text>
+      </g>
+
+      {TIERS.map((t, i) => {
+        const x = stepX(i);
+        const y = stepY(i);
+        const odd = i % 2 === 0; // steps 1,3,5 (index 0,2,4)
+        const fill = odd ? '#0d1828' : '#0a1220';
+        const accent = odd ? '#e8a040' : '#c87030';
+        const pts = `${x + SKEW},${y} ${x + W},${y} ${x + W - SKEW},${y + H} ${x},${y + H}`;
+        return (
+          <g key={t.num}>
+            {/* up-right connector arrow toward the next step */}
+            {i < TIERS.length - 1 && (
+              <text x={x + W - 4} y={y - 4} fontSize="9" fill="#2a3a48" fontFamily="monospace">↗</text>
+            )}
+            <polygon points={pts} fill={fill} />
+            {/* amber/orange left accent edge */}
+            <line x1={x + SKEW} y1={y} x2={x} y2={y + H} stroke={accent} strokeWidth="3" />
+            {/* tier number */}
+            <text x={x + SKEW + 6} y={y + H / 2} dominantBaseline="middle" fill="#e8a040" fontSize="14" fontWeight="800" fontFamily="monospace">{t.num}</text>
+            {/* role + action */}
+            <text x={x + SKEW + 30} y={y + 12} dominantBaseline="middle" fill="#8aa0b8" fontSize="10" fontWeight="600" fontFamily="monospace">{t.role}</text>
+            <text x={x + SKEW + 30} y={y + 24} dominantBaseline="middle" fill="#3a5060" fontSize="9" fontStyle="italic" fontFamily="monospace">{t.action}</text>
+            {/* population context */}
+            <text x={x + SKEW} y={y + H + 9} dominantBaseline="middle" fill="#2a3a48" fontSize="8" fontFamily="monospace">{t.pop}</text>
+          </g>
+        );
+      })}
+
+      {/* travelling dot */}
+      <path id="stair-path" d={dotPath} fill="none" stroke="none" />
+      <circle r="3" fill="#e8a040">
+        <animateMotion dur="3s" repeatCount="indefinite">
+          <mpath href="#stair-path" />
+        </animateMotion>
+      </circle>
+    </svg>
   );
 }
 
-const TIERS = [
-  { name: 'PASTOR', action: 'submits application', tier: 'TIER 1' },
-  { name: 'DIVISION LEADER', action: 'reviews & forwards', tier: 'TIER 2' },
-  { name: 'HQ TEAM', action: 'compliance check', tier: 'TIER 3' },
-  { name: 'PRESIDENT', action: 'executive approval', tier: 'TIER 4' },
-  { name: 'FINANCE DEPT', action: 'releases funds', tier: 'TIER 5' },
-];
-
 function ApprovalChainPanel({ project }) {
   const iet = project.id === 'iet';
-  const rows = iet
-    ? TIERS
-    : (project.primaryStack || []).map((s, i) => ({ name: s.toUpperCase(), action: '', tier: `0${i + 1}` }));
-  return (
-    <Panel heading={iet ? '5-Tier Approval Chain' : 'Primary Flow'}>
-      <EndPill text={iet ? 'APPLICATION SUBMITTED' : 'INPUT'} color="#e8a040" />
-      <ChainConnector />
-      {rows.map((r, i) => (
-        <div key={r.name}>
-          <div
-            className="flex items-center"
-            style={{ background: '#0a0f18', borderLeft: '2px solid #e8a040', borderRadius: '0 4px 4px 0', padding: '8px 12px', gap: '8px' }}
-          >
-            <span className="font-mono" style={{ color: '#8aa0b8', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>{r.name}</span>
-            <span className="flex-1 truncate text-center font-mono" style={{ color: '#3a5060', fontSize: '10px', fontStyle: 'italic' }}>{r.action}</span>
-            <span className="font-mono" style={{ color: '#1a2535', fontSize: '9px', whiteSpace: 'nowrap' }}>{r.tier}</span>
-          </div>
-          {i < rows.length - 1 && <ChainConnector dashed />}
+  if (!iet) {
+    return (
+      <Panel heading="Primary Flow">
+        <EndPill text="INPUT" color="#e8a040" />
+        <div className="my-2 flex flex-col gap-2">
+          {(project.primaryStack || []).map((s, i) => (
+            <div key={s} className="flex items-center justify-between" style={{ background: '#0a0f18', borderLeft: '2px solid #e8a040', borderRadius: '0 4px 4px 0', padding: '8px 12px' }}>
+              <span className="font-mono" style={{ color: '#8aa0b8', fontSize: '11px', fontWeight: 600 }}>{s.toUpperCase()}</span>
+              <span className="font-mono" style={{ color: '#1a2535', fontSize: '9px' }}>{`0${i + 1}`}</span>
+            </div>
+          ))}
         </div>
-      ))}
-      <ChainConnector />
-      <EndPill text={iet ? 'PERMIT APPROVED · FUNDS DISBURSED' : 'SHIPPED'} color="#30c0a0" check={iet} />
+        <EndPill text="SHIPPED" color="#30c0a0" />
+      </Panel>
+    );
+  }
+  return (
+    <Panel heading="5-Tier Approval Chain">
+      <div style={{ minHeight: '248px' }}>
+        <StaircaseChain />
+      </div>
     </Panel>
   );
 }

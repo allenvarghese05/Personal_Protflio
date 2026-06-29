@@ -4,11 +4,13 @@ import * as d3 from 'd3';
 import { GRAPH } from '@/lib/motion';
 
 /**
- * Obsidian-style force-directed architecture graph drawn directly on a canvas
- * (D3 owns the simulation; no React wrapper). Reusable for any { nodes, edges }.
+ * Obsidian-style force-directed architecture graph, rendered as SVG with d3
+ * controlling the DOM directly (force sim + zoom/pan + drag + focus mode).
  *
- * Reads the rich schema (category / importance / x,y% / edge direction) when
- * present, and falls back to a simple { color, r, desc } schema otherwise.
+ * Interactions: scroll/pinch zoom, drag-to-pan empty space, two-finger
+ * trackpad pan, drag nodes, click a node for FOCUS MODE (dims everything else
+ * and shows a tooltip with its connections). Reads the rich node schema
+ * (category / importance / x,y% / edge direction).
  */
 
 const COLOR_BY_CATEGORY = {
@@ -37,26 +39,27 @@ const descOf = (n) => n.description || n.desc || '';
 
 export default function ArchitectureGraph({ nodes, edges }) {
   const wrapRef = useRef(null);
-  const canvasRef = useRef(null);
-  const [tip, setTip] = useState(null); // { x, y, label, desc, flipX, flipY }
+  const svgRef = useRef(null);
+  const zoomApi = useRef(null);
+  const focusApi = useRef(null);
+  const [tip, setTip] = useState(null); // { x, y, label, desc, category, connected[] }
   const [legendItems, setLegendItems] = useState([]);
+  const [showHint, setShowHint] = useState(true);
 
   useEffect(() => {
     if (!nodes || !edges) return;
     const wrap = wrapRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const svgEl = svgRef.current;
+    const svg = d3.select(svgEl);
 
     const simNodes = nodes.map((n) => ({
       ...n,
       _r: radiusOf(n),
       _c: colorOf(n),
       _desc: descOf(n),
-      _a: 1, // display alpha (hover dim)
-      _s: 1, // display scale (hover grow)
-      _hasXY: typeof n.x === 'number' && typeof n.y === 'number',
       _px: n.x, // authored layout % — captured before d3 mutates node.x/y
       _py: n.y,
+      _hasXY: typeof n.x === 'number' && typeof n.y === 'number',
     }));
     const byId = new Map(simNodes.map((n) => [n.id, n]));
     const simLinks = edges.map((e) => ({
@@ -64,71 +67,86 @@ export default function ArchitectureGraph({ nodes, edges }) {
       target: e.target,
       label: e.label || '',
       direction: e.direction || 'one-way',
-      _a: 1,
     }));
+    const neighbours = new Map(simNodes.map((n) => [n.id, new Set()]));
+    simLinks.forEach((l) => {
+      neighbours.get(l.source).add(l.target);
+      neighbours.get(l.target).add(l.source);
+    });
 
-    let width = 0;
-    let height = 0;
-    let dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const mouse = { x: null, y: null };
-    let hover = null;
-    let dragging = null;
-    let downAt = null;
-    let released = false;
+    let width = wrap.clientWidth || 600;
+    let height = wrap.clientHeight || 360;
 
-    // Legend — only categories present in this project's nodes.
+    // Legend — categories present.
     const cats = [...new Set(simNodes.map((n) => n.category).filter(Boolean))];
-    setLegendItems(
-      cats.map((c) => ({ color: COLOR_BY_CATEGORY[c] || '#608090', label: CATEGORY_LABEL[c] || c }))
-    );
+    setLegendItems(cats.map((c) => ({ color: COLOR_BY_CATEGORY[c] || '#608090', label: CATEGORY_LABEL[c] || c })));
 
-    // Cursor repulsion (strength 60 within 70px).
-    const REPEL_R = 70;
-    const mouseForce = () => {
-      if (mouse.x == null || dragging) return;
-      for (const n of simNodes) {
-        const dx = n.x - mouse.x;
-        const dy = n.y - mouse.y;
-        const d2 = dx * dx + dy * dy;
-        if (d2 < REPEL_R * REPEL_R) {
-          const d = Math.sqrt(d2) || 1;
-          const f = (1 - d / REPEL_R) * 60;
-          n.vx += (dx / d) * f * 0.02;
-          n.vy += (dy / d) * f * 0.02;
-        }
-      }
-    };
+    /* ---- SVG scaffold ------------------------------------------------- */
+    svg.selectAll('*').remove();
+    const zoomG = svg.append('g').attr('class', 'zoom-group');
+    const linkG = zoomG.append('g').attr('class', 'links');
+    const nodeG = zoomG.append('g').attr('class', 'nodes');
 
-    // Hard clamp so nodes can never leave the canvas. Must run AFTER d3's
-    // position integration (i.e. in the tick handler, not as a force), or the
-    // x += vx step re-pushes nodes back out of bounds.
-    const clampPositions = () => {
-      for (const n of simNodes) {
-        n.x = Math.max(n._r + 2, Math.min(width - n._r - 2, n.x));
-        n.y = Math.max(n._r + 2, Math.min(height - n._r - 14, n.y));
-      }
-    };
+    const link = linkG
+      .selectAll('line')
+      .data(simLinks)
+      .join('line')
+      .attr('stroke', 'rgba(255,255,255,0.06)')
+      .attr('stroke-width', 0.5)
+      .style('transition', 'stroke-opacity 0.2s ease, stroke 0.2s ease');
 
+    const node = nodeG
+      .selectAll('g.node')
+      .data(simNodes, (d) => d.id)
+      .join('g')
+      .attr('class', 'node')
+      .style('cursor', 'pointer');
+
+    // inner scale group (separate from position translate so the breathing
+    // tick doesn't fight the CSS scale transition)
+    const scaleG = node
+      .append('g')
+      .attr('class', 'scaleG')
+      .style('transition', 'transform 0.2s ease, opacity 0.2s ease')
+      .style('transform-box', 'fill-box')
+      .style('transform-origin', 'center');
+
+    scaleG
+      .append('circle')
+      .attr('r', (d) => d._r)
+      .attr('fill', '#07090e')
+      .attr('stroke', (d) => d._c)
+      .attr('stroke-width', 1.5)
+      .style('transition', 'stroke-width 0.2s ease, filter 0.2s ease');
+
+    scaleG
+      .append('text')
+      .text((d) => d.label)
+      .attr('text-anchor', 'middle')
+      .attr('fill', (d) => (d.importance === 'center' ? '#e8a040' : d._c))
+      .attr('font-family', 'ui-monospace, "JetBrains Mono", monospace')
+      .attr('font-size', (d) => (d.importance === 'center' ? 10 : 8))
+      .attr('font-weight', (d) => (d.importance === 'center' ? 600 : 400))
+      .attr('dominant-baseline', (d) => (d.importance === 'center' ? 'middle' : 'hanging'))
+      .attr('y', (d) => (d.importance === 'center' ? 0 : d._r + 4))
+      .style('paint-order', 'stroke')
+      .style('stroke', '#07090e')
+      .style('stroke-width', (d) => (d.importance === 'center' ? 3 : 0));
+
+    /* ---- force simulation -------------------------------------------- */
     const sim = d3
       .forceSimulation(simNodes)
       .force('link', d3.forceLink(simLinks).id((d) => d.id).distance((l) => 26 + l.source._r + l.target._r).strength(0.18))
       .force('charge', d3.forceManyBody().strength(-55).distanceMax(220))
       .force('collide', d3.forceCollide().radius((d) => d._r + 10))
-      .force('mouse', mouseForce)
       .alphaDecay(GRAPH.alphaDecay)
       .velocityDecay(GRAPH.velocityDecay)
       .alphaTarget(GRAPH.alphaTarget)
-      .on('tick', draw);
+      .on('tick', ticked);
 
     function seed() {
-      // Anchor each node toward its authored x,y% (or a ring if none) so the
-      // layout matches the design, then let it drift gently from there.
-      const hasLayout = simNodes.some((n) => n._hasXY);
       simNodes.forEach((n, i) => {
         if (n._hasXY) {
-          // Pad the authored 0–100% layout into the canvas with margins so
-          // labels and the legend never collide with the edges. Use the
-          // captured percentage (_px/_py), not the live, sim-mutated x/y.
           n._tx = (0.05 + (n._px / 100) * 0.9) * width;
           n._ty = (0.05 + (n._py / 100) * 0.8) * height;
         } else {
@@ -136,253 +154,215 @@ export default function ArchitectureGraph({ nodes, edges }) {
           n._tx = width / 2 + Math.cos(a) * Math.min(width, height) * 0.34;
           n._ty = height / 2 + Math.sin(a) * Math.min(width, height) * 0.34;
         }
+        n.x = n._tx;
+        n.y = n._ty;
       });
       sim.force('x', d3.forceX((n) => n._tx).strength(0.14));
       sim.force('y', d3.forceY((n) => n._ty).strength(0.14));
-      if (!released) {
-        // Pin to authored positions, then release after 2s for a natural drift.
-        simNodes.forEach((n) => {
-          n.x = n._tx;
-          n.y = n._ty;
-          n.fx = n._tx;
-          n.fy = n._ty;
-        });
-        setTimeout(() => {
-          released = true;
-          simNodes.forEach((n) => {
-            n.fx = null;
-            n.fy = null;
-          });
-          sim.alpha(0.5).restart();
-        }, 2000);
+    }
+    seed();
+
+    function ticked() {
+      // clamp inside the canvas (runs after d3 integrates positions)
+      for (const n of simNodes) {
+        n.x = Math.max(n._r + 2, Math.min(width - n._r - 2, n.x));
+        n.y = Math.max(n._r + 2, Math.min(height - n._r - 14, n.y));
       }
+      link
+        .attr('x1', (d) => d.source.x)
+        .attr('y1', (d) => d.source.y)
+        .attr('x2', (d) => d.target.x)
+        .attr('y2', (d) => d.target.y);
+      node.attr('transform', (d) => `translate(${d.x},${d.y})`);
     }
 
+    /* ---- focus + hover state ----------------------------------------- */
+    let focusId = null;
+    let hoverId = null;
+
+    function isLit(id) {
+      const active = focusId || hoverId;
+      if (!active) return true;
+      return id === active || neighbours.get(active).has(id);
+    }
+    function applyState() {
+      const active = focusId || hoverId;
+      const isFocus = !!focusId;
+      scaleG
+        .style('opacity', (d) => (!active ? 1 : isLit(d.id) ? 1 : isFocus ? 0.08 : 0.12))
+        .style('transform', (d) => {
+          if (!active) return 'scale(1)';
+          if (d.id === active) return isFocus ? 'scale(1.15)' : 'scale(1.2)';
+          return isLit(d.id) ? 'scale(1.05)' : 'scale(1)';
+        });
+      scaleG
+        .select('circle')
+        .attr('stroke-width', (d) => (d.id === active ? 3 : 1.5))
+        .style('filter', (d) => (d.id === active ? `drop-shadow(0 0 8px ${d._c})` : 'none'));
+      link
+        .style('stroke', (l) => {
+          if (active && (l.source.id === active || l.target.id === active)) return byId.get(active)._c;
+          return 'rgba(255,255,255,0.06)';
+        })
+        .style('stroke-opacity', (l) => {
+          if (!active) return 1;
+          const on = l.source.id === active || l.target.id === active;
+          return on ? 0.7 : isFocus ? 0.03 : 0.04;
+        })
+        .attr('stroke-width', (l) => (active && (l.source.id === active || l.target.id === active) ? 1.5 : 0.5));
+    }
+
+    function setFocus(id) {
+      focusId = id;
+      applyState();
+      if (id) {
+        const n = byId.get(id);
+        const connected = [...neighbours.get(id)].map((cid) => byId.get(cid).label);
+        const t = d3.zoomTransform(svgEl);
+        setTip({
+          id,
+          x: t.applyX(n.x),
+          y: t.applyY(n.y),
+          label: n.label,
+          desc: n._desc,
+          category: n.category,
+          connected,
+          flipX: t.applyX(n.x) > width * 0.7,
+          flipY: t.applyY(n.y) > height * 0.8,
+        });
+      } else {
+        setTip(null);
+      }
+    }
+    focusApi.current = () => setFocus(null);
+
+    /* ---- drag (suppresses pan via isDraggingNode) --------------------- */
+    let isDraggingNode = false;
+    const drag = d3
+      .drag()
+      .container(() => zoomG.node())
+      .on('start', (event, d) => {
+        isDraggingNode = true;
+        d._moved = false;
+        if (!event.active) sim.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      })
+      .on('drag', (event, d) => {
+        if (Math.hypot(event.dx, event.dy) > 0.5) d._moved = true;
+        d.fx = event.x;
+        d.fy = event.y;
+      })
+      .on('end', (event, d) => {
+        isDraggingNode = false;
+        if (!event.active) sim.alphaTarget(GRAPH.alphaTarget);
+        d.fx = null;
+        d.fy = null;
+        // click (no real movement) → toggle focus
+        if (!d._moved) setFocus(focusId === d.id ? null : d.id);
+      });
+    node.call(drag);
+
+    // hover via per-node pointer events
+    node
+      .on('pointerenter', (event, d) => {
+        hoverId = d.id;
+        if (!focusId) applyState();
+      })
+      .on('pointerleave', () => {
+        hoverId = null;
+        if (!focusId) applyState();
+      });
+
+    /* ---- zoom + pan --------------------------------------------------- */
+    const zoom = d3
+      .zoom()
+      .scaleExtent([0.3, 3])
+      .translateExtent([[-500, -500], [width + 500, height + 500]])
+      .filter((event) => !isDraggingNode && event.type !== 'dblclick' && !event.button)
+      .on('zoom', (event) => {
+        zoomG.attr('transform', event.transform);
+        // keep an open tooltip glued to its node
+        if (focusId) {
+          const n = byId.get(focusId);
+          setTip((prev) => (prev ? { ...prev, x: event.transform.applyX(n.x), y: event.transform.applyY(n.y), flipX: event.transform.applyX(n.x) > width * 0.7, flipY: event.transform.applyY(n.y) > height * 0.8 } : prev));
+        }
+      });
+    svg.call(zoom).on('dblclick.zoom', null);
+
+    // empty-canvas click → exit focus (drag handles node clicks)
+    svg.on('click', (event) => {
+      if (event.defaultPrevented) return;
+      // if the click landed on a node, the drag 'end' already handled it
+      const [mx, my] = d3.pointer(event, zoomG.node());
+      const onNode = simNodes.some((n) => Math.hypot(n.x - mx, n.y - my) < n._r + 6);
+      if (!onNode) setFocus(null);
+    });
+    // double-click empty → reset view
+    svg.on('dblclick', () => svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity));
+
+    // trackpad two-finger scroll → PAN (pinch=ctrl and mouse-wheel still zoom)
+    const onWheel = (e) => {
+      if (e.ctrlKey) return; // pinch — let d3 zoom
+      if (e.deltaMode === 0) {
+        // pixel deltas = trackpad: pan instead of zoom
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const t = d3.zoomTransform(svgEl);
+        svg.call(zoom.translateBy, -e.deltaX / t.k, -e.deltaY / t.k);
+      }
+      // deltaMode 1 (mouse wheel lines) → fall through to d3 zoom
+    };
+    svgEl.addEventListener('wheel', onWheel, { passive: false, capture: true });
+
+    zoomApi.current = {
+      zoomBy: (f) => svg.transition().duration(200).call(zoom.scaleBy, f),
+      reset: () => svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity),
+    };
+
+    /* ---- resize ------------------------------------------------------- */
     function resize() {
-      const r = wrap.getBoundingClientRect();
-      width = r.width;
-      height = r.height;
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      width = wrap.clientWidth;
+      height = wrap.clientHeight;
+      svg.attr('width', width).attr('height', height);
+      zoom.translateExtent([[-500, -500], [width + 500, height + 500]]);
       seed();
-      sim.alpha(0.6).restart();
+      sim.alpha(0.5).restart();
     }
     const ro = new ResizeObserver(resize);
     ro.observe(wrap);
     resize();
 
-    const lerpK = 1 - Math.exp((-(1000 / 60) / 120) * 4); // ~120ms ease
-    const linkedTo = (a, b) =>
-      simLinks.some(
-        (l) =>
-          (l.source.id === a && l.target.id === b) || (l.source.id === b && l.target.id === a)
-      );
-    const targetNodeAlpha = (n) => (!hover ? 1 : n === hover ? 1 : linkedTo(hover.id, n.id) ? 1 : 0.12);
-    const targetNodeScale = (n) => (n === hover ? 1.2 : 1);
-    const targetLinkAlpha = (l) =>
-      !hover ? 1 : l.source.id === hover.id || l.target.id === hover.id ? 1 : 0.04;
-
-    function draw() {
-      clampPositions();
-      ctx.clearRect(0, 0, width, height);
-      const now = performance.now();
-
-      // Edges
-      for (const l of simLinks) {
-        l._a += (targetLinkAlpha(l) - l._a) * lerpK;
-        const connected = hover && (l.source.id === hover.id || l.target.id === hover.id);
-        ctx.beginPath();
-        ctx.moveTo(l.source.x, l.source.y);
-        ctx.lineTo(l.target.x, l.target.y);
-        if (connected) {
-          const c = d3.color(hover._c);
-          c.opacity = 0.6 * l._a;
-          ctx.strokeStyle = c.toString();
-          ctx.lineWidth = 1.2;
-        } else {
-          ctx.strokeStyle = `rgba(255,255,255,${0.06 * l._a})`;
-          ctx.lineWidth = 0.5;
-        }
-        ctx.stroke();
-
-        // Directional pulse — a dash travelling source→target at ~15px/s,
-        // in the destination colour. Two-way edges pulse both directions.
-        const len = Math.hypot(l.target.x - l.source.x, l.target.y - l.source.y) || 1;
-        const drawPulse = (from, to, col) => {
-          const u = (((now / 1000) * 15) / len) % 1;
-          const px = from.x + (to.x - from.x) * u;
-          const py = from.y + (to.y - from.y) * u;
-          const pc = d3.color(col);
-          pc.opacity = (connected ? 0.9 : 0.2) * l._a;
-          ctx.beginPath();
-          ctx.arc(px, py, connected ? 2 : 1.4, 0, Math.PI * 2);
-          ctx.fillStyle = pc.toString();
-          ctx.fill();
-        };
-        drawPulse(l.source, l.target, l.target._c);
-        if (l.direction === 'two-way') drawPulse(l.target, l.source, l.source._c);
-      }
-
-      // Nodes
-      for (const n of simNodes) {
-        n._a += (targetNodeAlpha(n) - n._a) * lerpK;
-        n._s += (targetNodeScale(n) - n._s) * lerpK;
-        const isHover = n === hover;
-        const r = n._r * n._s;
-        ctx.save();
-        ctx.globalAlpha = n._a;
-        if (isHover) {
-          ctx.shadowColor = n._c;
-          ctx.shadowBlur = 8;
-        }
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        ctx.fillStyle = n === dragging ? 'rgba(232,160,64,0.15)' : '#07090e';
-        ctx.fill();
-        ctx.lineWidth = isHover ? 3 : 1.5;
-        ctx.strokeStyle = n._c;
-        ctx.stroke();
-        ctx.restore();
-
-        // Label — center node inside, others below.
-        ctx.globalAlpha = n._a;
-        ctx.textAlign = 'center';
-        if (n.importance === 'center') {
-          ctx.font = '600 10px ui-monospace, "JetBrains Mono", monospace';
-          ctx.fillStyle = '#e8a040';
-          ctx.textBaseline = 'middle';
-          ctx.shadowColor = '#07090e';
-          ctx.shadowBlur = 6;
-          ctx.fillText(n.label, n.x, n.y);
-          ctx.shadowBlur = 0;
-        } else {
-          ctx.font = '8px ui-monospace, "JetBrains Mono", monospace';
-          ctx.fillStyle = n._c;
-          ctx.textBaseline = 'top';
-          ctx.fillText(n.label, n.x, n.y + r + 4);
-        }
-        ctx.globalAlpha = 1;
-      }
-
-      // Hovered edge label
-      if (hover) {
-        for (const l of simLinks) {
-          if (!l.label) continue;
-          if (l.source.id !== hover.id && l.target.id !== hover.id) continue;
-          const mx = (l.source.x + l.target.x) / 2;
-          const my = (l.source.y + l.target.y) / 2;
-          ctx.font = '7px ui-monospace, "JetBrains Mono", monospace';
-          const w = ctx.measureText(l.label).width + 8;
-          ctx.fillStyle = 'rgba(5,7,10,0.92)';
-          ctx.fillRect(mx - w / 2, my - 7, w, 13);
-          ctx.fillStyle = '#6080a0';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(l.label, mx, my);
-        }
-      }
-    }
-
-    // Pointer
-    const toLocal = (e) => {
-      const r = canvas.getBoundingClientRect();
-      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    const onKey = (e) => {
+      if (e.key === 'Escape' && focusId) setFocus(null);
     };
-    const pick = (p) => {
-      let best = null;
-      let bd = Infinity;
-      for (const n of simNodes) {
-        const d = Math.hypot(n.x - p.x, n.y - p.y);
-        if (d < n._r + 6 && d < bd) {
-          bd = d;
-          best = n;
-        }
-      }
-      return best;
-    };
-    const onMove = (e) => {
-      const p = toLocal(e);
-      mouse.x = p.x;
-      mouse.y = p.y;
-      if (dragging) {
-        dragging.fx = p.x;
-        dragging.fy = p.y;
-        sim.alphaTarget(0.3).restart();
-        return;
-      }
-      const h = pick(p);
-      if (h !== hover) {
-        hover = h;
-        canvas.style.cursor = h ? 'pointer' : 'default';
-      }
-    };
-    const onLeave = () => {
-      mouse.x = null;
-      mouse.y = null;
-      hover = null;
-    };
-    const onDown = (e) => {
-      const p = toLocal(e);
-      const n = pick(p);
-      downAt = { x: p.x, y: p.y, node: n };
-      if (n) {
-        dragging = n;
-        n.fx = n.x;
-        n.fy = n.y;
-        sim.alphaTarget(0.3).restart();
-      }
-    };
-    const onUp = (e) => {
-      const p = toLocal(e);
-      if (dragging) {
-        dragging.fx = null;
-        dragging.fy = null;
-        dragging = null;
-        sim.alphaTarget(GRAPH.alphaTarget);
-      }
-      if (downAt) {
-        const moved = Math.hypot(p.x - downAt.x, p.y - downAt.y);
-        if (moved < 4) {
-          const n = downAt.node;
-          if (n) {
-            setTip((t) =>
-              t && t.id === n.id
-                ? null
-                : { id: n.id, x: n.x, y: n.y, label: n.label, desc: n._desc, category: n.category, flipX: n.x > width * 0.7, flipY: n.y > height * 0.8 }
-            );
-          } else setTip(null);
-        }
-      }
-      downAt = null;
-    };
-    canvas.addEventListener('pointermove', onMove);
-    canvas.addEventListener('pointerleave', onLeave);
-    canvas.addEventListener('pointerdown', onDown);
-    window.addEventListener('pointerup', onUp);
+    window.addEventListener('keydown', onKey);
 
     return () => {
       sim.stop();
       ro.disconnect();
-      canvas.removeEventListener('pointermove', onMove);
-      canvas.removeEventListener('pointerleave', onLeave);
-      canvas.removeEventListener('pointerdown', onDown);
-      window.removeEventListener('pointerup', onUp);
+      svgEl.removeEventListener('wheel', onWheel, { capture: true });
+      window.removeEventListener('keydown', onKey);
+      svg.on('.zoom', null).on('click', null).on('dblclick', null);
     };
   }, [nodes, edges]);
 
+  useEffect(() => {
+    const t = setTimeout(() => setShowHint(false), 3000);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <div ref={wrapRef} className="relative h-full w-full overflow-hidden bg-[#05070a]">
-      <canvas ref={canvasRef} className="block h-full w-full" />
+      <svg ref={svgRef} className="block h-full w-full" />
+
+      {/* tooltip */}
       {tip && (
         <div
-          className="pointer-events-none absolute z-10"
+          className="pointer-events-none absolute z-20"
           style={{
             left: tip.flipX ? tip.x - 236 : tip.x + 16,
-            top: tip.flipY ? tip.y - 8 - 96 : tip.y - 8,
+            top: tip.flipY ? tip.y - 8 - 120 : tip.y - 8,
             maxWidth: '220px',
             background: '#07090e',
             border: '0.5px solid #e8a040',
@@ -397,17 +377,25 @@ export default function ArchitectureGraph({ nodes, edges }) {
           <div className="font-mono" style={{ fontSize: '10px', color: '#6080a0', lineHeight: 1.6 }}>
             {tip.desc}
           </div>
+          {tip.connected?.length > 0 && (
+            <div className="font-mono" style={{ marginTop: '8px' }}>
+              <span className="uppercase" style={{ fontSize: '8px', letterSpacing: '0.1em', color: '#3a5060' }}>Connected to: </span>
+              <span style={{ fontSize: '9px', color: '#3a5060' }}>{tip.connected.join(', ')}</span>
+            </div>
+          )}
           {tip.category && (
-            <div className="font-mono uppercase" style={{ fontSize: '8px', letterSpacing: '0.1em', color: '#3a5060', marginTop: '8px' }}>
+            <div className="font-mono uppercase" style={{ fontSize: '8px', letterSpacing: '0.1em', color: '#3a5060', marginTop: '6px' }}>
               {tip.category}
             </div>
           )}
         </div>
       )}
+
+      {/* legend */}
       {legendItems.length > 0 && (
         <div
           className="pointer-events-none absolute bottom-2 left-2 flex flex-wrap gap-x-3 gap-y-1"
-          style={{ maxWidth: 'calc(100% - 16px)', background: 'rgba(5,7,10,0.78)', borderRadius: '4px', padding: '5px 8px' }}
+          style={{ maxWidth: 'calc(100% - 90px)', background: 'rgba(5,7,10,0.78)', borderRadius: '4px', padding: '5px 8px' }}
         >
           {legendItems.map((l) => (
             <div key={l.label} className="flex items-center gap-1.5">
@@ -419,6 +407,36 @@ export default function ArchitectureGraph({ nodes, edges }) {
           ))}
         </div>
       )}
+
+      {/* hint */}
+      {showHint && (
+        <div
+          className="pointer-events-none absolute left-2 top-2 font-mono"
+          style={{ fontSize: '8px', color: '#1a2535', transition: 'opacity 0.6s', letterSpacing: '0.06em' }}
+        >
+          scroll to zoom · drag to pan · click nodes to explore
+        </div>
+      )}
+
+      {/* zoom controls */}
+      <div className="absolute bottom-2 right-2 flex flex-col gap-1">
+        {[
+          { k: '+', fn: () => zoomApi.current?.zoomBy(1.3) },
+          { k: '−', fn: () => zoomApi.current?.zoomBy(1 / 1.3) },
+          { k: '⊡', fn: () => zoomApi.current?.reset() },
+        ].map((b) => (
+          <button
+            key={b.k}
+            onClick={b.fn}
+            className="flex items-center justify-center font-mono transition-colors"
+            style={{ width: '24px', height: '24px', background: '#07090e', border: '0.5px solid #1a2535', borderRadius: '4px', color: '#3a5060', fontSize: '12px' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#0d1420'; e.currentTarget.style.color = '#6080a0'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#07090e'; e.currentTarget.style.color = '#3a5060'; }}
+          >
+            {b.k}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

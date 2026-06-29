@@ -187,27 +187,29 @@ function BuildTimeline({ items }) {
   if (!items?.length) return null;
   return (
     <div style={{ marginTop: '32px' }}>
-      <MicroLabel mb={16}>Build Timeline</MicroLabel>
+      <div className="font-mono uppercase" style={{ fontSize: '9px', letterSpacing: '0.2em', color: '#3a5060', marginBottom: '20px' }}>
+        Build Timeline
+      </div>
       <div>
         {items.map((it, i) => (
-          <div key={it.week} className="flex" style={{ gap: '12px' }}>
+          <div key={it.week} className="flex" style={{ gap: '16px' }}>
             {/* dot + connector rail */}
-            <div className="flex flex-col items-center" style={{ paddingTop: '3px' }}>
+            <div className="flex flex-col items-center" style={{ paddingTop: '2px' }}>
               <span
                 className="shrink-0 rounded-full"
-                style={{ width: '6px', height: '6px', background: it.done ? '#e8a040' : '#1a2535' }}
+                style={{ width: '8px', height: '8px', background: it.done ? '#e8a040' : '#1a2535' }}
               />
               {i < items.length - 1 && (
-                <span style={{ flex: 1, width: 0, borderLeft: '0.5px dashed #1a2535', marginTop: '2px' }} />
+                <span style={{ flex: 1, width: 0, borderLeft: '1px dashed #1a2535', marginTop: '3px', minHeight: '16px' }} />
               )}
             </div>
             {/* content */}
-            <div style={{ paddingBottom: i < items.length - 1 ? '8px' : '0' }}>
-              <div className="font-mono uppercase" style={{ fontSize: '8px', letterSpacing: '0.1em', color: '#3a5060' }}>
+            <div style={{ paddingBottom: i < items.length - 1 ? '16px' : '0' }}>
+              <div className="font-mono uppercase" style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.12em', color: '#3a5060', marginBottom: '4px' }}>
                 {it.week}
               </div>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: '#8aa0b8', margin: '3px 0' }}>{it.title}</div>
-              <div style={{ fontSize: '10px', color: '#3a5060', lineHeight: 1.5 }}>{it.desc}</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#8aa0b8', marginBottom: '4px' }}>{it.title}</div>
+              <div style={{ fontSize: '11px', color: '#3a5060', lineHeight: 1.6 }}>{it.desc}</div>
             </div>
           </div>
         ))}
@@ -300,7 +302,7 @@ function Brief({ project }) {
 
           <div style={{ marginTop: '32px' }}>
             <MicroLabel mb={12}>System Architecture</MicroLabel>
-            <div style={{ height: '340px', borderRadius: '6px', border: '0.5px solid #151c28', overflow: 'hidden' }}>
+            <div style={{ height: '360px', borderRadius: '6px', border: '0.5px solid #151c28', overflow: 'hidden' }}>
               {project.architectureGraph ? (
                 <ArchitectureGraph nodes={project.architectureGraph.nodes} edges={project.architectureGraph.edges} />
               ) : (
