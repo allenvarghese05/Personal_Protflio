@@ -22,23 +22,24 @@ const HEADING = {
 function Panel({ heading, children }) {
   return (
     <div
-      className="flex flex-col"
+      className="flex min-w-0 flex-col"
       style={{ background: '#07090e', border: '0.5px solid #1a2535', borderRadius: '8px', padding: '16px' }}
     >
       <div className="font-mono" style={HEADING}>{heading}</div>
-      <div className="relative flex-1">{children}</div>
+      <div className="relative min-w-0 flex-1">{children}</div>
     </div>
   );
 }
 
 /* ── PANEL 1 — 5-tier approval flowchart ─────────────────────────────────── */
 
-function EndPill({ text, color }) {
+function EndPill({ text, color, check }) {
   return (
     <div
       className="mx-auto text-center font-mono"
-      style={{ width: '80%', background: '#0d1420', border: `0.5px solid ${color}`, color, fontSize: '9px', borderRadius: '999px', padding: '5px 0', letterSpacing: '0.1em' }}
+      style={{ width: '86%', background: '#0d1420', border: `0.5px solid ${color}`, color, fontSize: '9px', borderRadius: '999px', padding: '5px 8px', letterSpacing: '0.08em' }}
     >
+      {check && <span style={{ marginRight: '4px' }}>✓</span>}
       {text}
     </div>
   );
@@ -59,34 +60,37 @@ function ChainConnector({ dashed }) {
 }
 
 const TIERS = [
-  ['PASTOR', 'TIER 1'],
-  ['DIVISION', 'TIER 2'],
-  ['HQ', 'TIER 3'],
-  ['PRESIDENT', 'TIER 4'],
-  ['FINANCE', 'TIER 5'],
+  { name: 'PASTOR', action: 'submits application', tier: 'TIER 1' },
+  { name: 'DIVISION LEADER', action: 'reviews & forwards', tier: 'TIER 2' },
+  { name: 'HQ TEAM', action: 'compliance check', tier: 'TIER 3' },
+  { name: 'PRESIDENT', action: 'executive approval', tier: 'TIER 4' },
+  { name: 'FINANCE DEPT', action: 'releases funds', tier: 'TIER 5' },
 ];
 
 function ApprovalChainPanel({ project }) {
   const iet = project.id === 'iet';
-  const rows = iet ? TIERS : (project.primaryStack || []).map((s, i) => [s.toUpperCase(), `0${i + 1}`]);
+  const rows = iet
+    ? TIERS
+    : (project.primaryStack || []).map((s, i) => ({ name: s.toUpperCase(), action: '', tier: `0${i + 1}` }));
   return (
     <Panel heading={iet ? '5-Tier Approval Chain' : 'Primary Flow'}>
       <EndPill text={iet ? 'APPLICATION SUBMITTED' : 'INPUT'} color="#e8a040" />
       <ChainConnector />
-      {rows.map(([name, tier], i) => (
-        <div key={name}>
+      {rows.map((r, i) => (
+        <div key={r.name}>
           <div
-            className="flex items-center justify-between"
-            style={{ background: '#0a0f18', borderLeft: '2px solid #e8a040', borderRadius: '0 4px 4px 0', padding: '8px 12px' }}
+            className="flex items-center"
+            style={{ background: '#0a0f18', borderLeft: '2px solid #e8a040', borderRadius: '0 4px 4px 0', padding: '8px 12px', gap: '8px' }}
           >
-            <span className="font-mono" style={{ color: '#8aa0b8', fontSize: '11px', fontWeight: 600 }}>{name}</span>
-            <span className="font-mono" style={{ color: '#3a5060', fontSize: '9px', letterSpacing: '0.1em' }}>{tier}</span>
+            <span className="font-mono" style={{ color: '#8aa0b8', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>{r.name}</span>
+            <span className="flex-1 truncate text-center font-mono" style={{ color: '#3a5060', fontSize: '10px', fontStyle: 'italic' }}>{r.action}</span>
+            <span className="font-mono" style={{ color: '#1a2535', fontSize: '9px', whiteSpace: 'nowrap' }}>{r.tier}</span>
           </div>
           {i < rows.length - 1 && <ChainConnector dashed />}
         </div>
       ))}
       <ChainConnector />
-      <EndPill text={iet ? 'PERMIT APPROVED' : 'SHIPPED'} color="#30c0a0" />
+      <EndPill text={iet ? 'PERMIT APPROVED · FUNDS DISBURSED' : 'SHIPPED'} color="#30c0a0" check={iet} />
     </Panel>
   );
 }
@@ -229,7 +233,7 @@ function DecisionsPanel({ project }) {
 
 export default function BentoPanels({ project }) {
   return (
-    <div className="grid grid-cols-2" style={{ gap: '16px' }}>
+    <div className="grid grid-cols-2 min-w-0" style={{ gap: '16px' }}>
       <ApprovalChainPanel project={project} />
       <GpsPhasePanel project={project} />
       <MetricsPanel project={project} />

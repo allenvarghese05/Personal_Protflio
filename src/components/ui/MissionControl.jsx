@@ -183,6 +183,39 @@ function MetricStrip({ metrics }) {
   );
 }
 
+function BuildTimeline({ items }) {
+  if (!items?.length) return null;
+  return (
+    <div style={{ marginTop: '32px' }}>
+      <MicroLabel mb={16}>Build Timeline</MicroLabel>
+      <div>
+        {items.map((it, i) => (
+          <div key={it.week} className="flex" style={{ gap: '12px' }}>
+            {/* dot + connector rail */}
+            <div className="flex flex-col items-center" style={{ paddingTop: '3px' }}>
+              <span
+                className="shrink-0 rounded-full"
+                style={{ width: '6px', height: '6px', background: it.done ? '#e8a040' : '#1a2535' }}
+              />
+              {i < items.length - 1 && (
+                <span style={{ flex: 1, width: 0, borderLeft: '0.5px dashed #1a2535', marginTop: '2px' }} />
+              )}
+            </div>
+            {/* content */}
+            <div style={{ paddingBottom: i < items.length - 1 ? '8px' : '0' }}>
+              <div className="font-mono uppercase" style={{ fontSize: '8px', letterSpacing: '0.1em', color: '#3a5060' }}>
+                {it.week}
+              </div>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: '#8aa0b8', margin: '3px 0' }}>{it.title}</div>
+              <div style={{ fontSize: '10px', color: '#3a5060', lineHeight: 1.5 }}>{it.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MicroLabel({ children, mb = 12 }) {
   return (
     <div className="uppercase" style={{ marginBottom: `${mb}px`, fontSize: '8px', fontWeight: 500, letterSpacing: '0.2em', color: '#304050' }}>
@@ -247,7 +280,7 @@ function Brief({ project }) {
       {/* BODY — two columns */}
       <div className="grid grid-cols-1 lg:grid-cols-[38fr_62fr]">
         {/* LEFT */}
-        <div style={{ padding: '40px 32px 40px 48px' }}>
+        <div className="min-w-0" style={{ padding: '40px 32px 40px 48px' }}>
           <MicroLabel mb={12}>Context</MicroLabel>
           <p style={{ fontSize: '13px', color: '#4a6070', lineHeight: 1.8, marginBottom: '32px' }}>
             {project.description}
@@ -258,10 +291,11 @@ function Brief({ project }) {
             <StackChips primary={project.primaryStack} secondary={project.secondaryStack} />
           </div>
           {/* Key Decisions now live in the architecture bento (Panel 4). */}
+          <BuildTimeline items={project.timeline} />
         </div>
 
         {/* RIGHT */}
-        <div style={{ padding: '32px 40px 32px 32px', borderLeft: '0.5px solid #111820' }}>
+        <div className="min-w-0" style={{ padding: '32px 40px 32px 32px', borderLeft: '0.5px solid #111820' }}>
           <BentoPanels project={project} />
 
           <div style={{ marginTop: '32px' }}>

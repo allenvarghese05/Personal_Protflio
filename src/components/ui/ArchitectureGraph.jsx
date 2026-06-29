@@ -55,6 +55,8 @@ export default function ArchitectureGraph({ nodes, edges }) {
       _a: 1, // display alpha (hover dim)
       _s: 1, // display scale (hover grow)
       _hasXY: typeof n.x === 'number' && typeof n.y === 'number',
+      _px: n.x, // authored layout % — captured before d3 mutates node.x/y
+      _py: n.y,
     }));
     const byId = new Map(simNodes.map((n) => [n.id, n]));
     const simLinks = edges.map((e) => ({
@@ -97,10 +99,20 @@ export default function ArchitectureGraph({ nodes, edges }) {
       }
     };
 
+    // Hard clamp so nodes can never leave the canvas. Must run AFTER d3's
+    // position integration (i.e. in the tick handler, not as a force), or the
+    // x += vx step re-pushes nodes back out of bounds.
+    const clampPositions = () => {
+      for (const n of simNodes) {
+        n.x = Math.max(n._r + 2, Math.min(width - n._r - 2, n.x));
+        n.y = Math.max(n._r + 2, Math.min(height - n._r - 14, n.y));
+      }
+    };
+
     const sim = d3
       .forceSimulation(simNodes)
-      .force('link', d3.forceLink(simLinks).id((d) => d.id).distance((l) => 34 + l.source._r + l.target._r).strength(0.12))
-      .force('charge', d3.forceManyBody().strength(-90))
+      .force('link', d3.forceLink(simLinks).id((d) => d.id).distance((l) => 26 + l.source._r + l.target._r).strength(0.18))
+      .force('charge', d3.forceManyBody().strength(-55).distanceMax(220))
       .force('collide', d3.forceCollide().radius((d) => d._r + 10))
       .force('mouse', mouseForce)
       .alphaDecay(GRAPH.alphaDecay)
@@ -115,17 +127,18 @@ export default function ArchitectureGraph({ nodes, edges }) {
       simNodes.forEach((n, i) => {
         if (n._hasXY) {
           // Pad the authored 0–100% layout into the canvas with margins so
-          // labels and the legend never collide with the edges.
-          n._tx = (0.05 + (n.x / 100) * 0.9) * width;
-          n._ty = (0.05 + (n.y / 100) * 0.8) * height;
+          // labels and the legend never collide with the edges. Use the
+          // captured percentage (_px/_py), not the live, sim-mutated x/y.
+          n._tx = (0.05 + (n._px / 100) * 0.9) * width;
+          n._ty = (0.05 + (n._py / 100) * 0.8) * height;
         } else {
           const a = (i / simNodes.length) * Math.PI * 2;
           n._tx = width / 2 + Math.cos(a) * Math.min(width, height) * 0.34;
           n._ty = height / 2 + Math.sin(a) * Math.min(width, height) * 0.34;
         }
       });
-      sim.force('x', d3.forceX((n) => n._tx).strength(0.06));
-      sim.force('y', d3.forceY((n) => n._ty).strength(0.06));
+      sim.force('x', d3.forceX((n) => n._tx).strength(0.14));
+      sim.force('y', d3.forceY((n) => n._ty).strength(0.14));
       if (!released) {
         // Pin to authored positions, then release after 2s for a natural drift.
         simNodes.forEach((n) => {
@@ -162,18 +175,19 @@ export default function ArchitectureGraph({ nodes, edges }) {
     ro.observe(wrap);
     resize();
 
-    const lerpK = 1 - Math.exp((-(1000 / 60) / 150) * 4); // ~150ms ease
+    const lerpK = 1 - Math.exp((-(1000 / 60) / 120) * 4); // ~120ms ease
     const linkedTo = (a, b) =>
       simLinks.some(
         (l) =>
           (l.source.id === a && l.target.id === b) || (l.source.id === b && l.target.id === a)
       );
-    const targetNodeAlpha = (n) => (!hover ? 1 : n === hover ? 1 : linkedTo(hover.id, n.id) ? 1 : 0.15);
-    const targetNodeScale = (n) => (n === hover ? 1.3 : 1);
+    const targetNodeAlpha = (n) => (!hover ? 1 : n === hover ? 1 : linkedTo(hover.id, n.id) ? 1 : 0.12);
+    const targetNodeScale = (n) => (n === hover ? 1.2 : 1);
     const targetLinkAlpha = (l) =>
-      !hover ? 1 : l.source.id === hover.id || l.target.id === hover.id ? 1 : 0.08;
+      !hover ? 1 : l.source.id === hover.id || l.target.id === hover.id ? 1 : 0.04;
 
     function draw() {
+      clampPositions();
       ctx.clearRect(0, 0, width, height);
       const now = performance.now();
 
@@ -227,7 +241,7 @@ export default function ArchitectureGraph({ nodes, edges }) {
         }
         ctx.beginPath();
         ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        ctx.fillStyle = '#07090e';
+        ctx.fillStyle = n === dragging ? 'rgba(232,160,64,0.15)' : '#07090e';
         ctx.fill();
         ctx.lineWidth = isHover ? 3 : 1.5;
         ctx.strokeStyle = n._c;
@@ -338,7 +352,7 @@ export default function ArchitectureGraph({ nodes, edges }) {
             setTip((t) =>
               t && t.id === n.id
                 ? null
-                : { id: n.id, x: n.x, y: n.y, label: n.label, desc: n._desc, flipX: n.x > width - 170, flipY: n.y > height - 110 }
+                : { id: n.id, x: n.x, y: n.y, label: n.label, desc: n._desc, category: n.category, flipX: n.x > width * 0.7, flipY: n.y > height * 0.8 }
             );
           } else setTip(null);
         }
@@ -365,22 +379,29 @@ export default function ArchitectureGraph({ nodes, edges }) {
       <canvas ref={canvasRef} className="block h-full w-full" />
       {tip && (
         <div
-          className="pointer-events-none absolute z-10 w-[180px]"
+          className="pointer-events-none absolute z-10"
           style={{
-            left: tip.flipX ? tip.x - 188 : tip.x + 14,
-            top: tip.flipY ? tip.y - 70 : tip.y + 14,
+            left: tip.flipX ? tip.x - 236 : tip.x + 16,
+            top: tip.flipY ? tip.y - 8 - 96 : tip.y - 8,
+            maxWidth: '220px',
             background: '#07090e',
             border: '0.5px solid #e8a040',
-            borderRadius: '4px',
-            padding: '8px 10px',
+            borderRadius: '6px',
+            padding: '10px 14px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
           }}
         >
-          <div className="font-mono" style={{ fontSize: '9px', fontWeight: 600, color: '#e8a040', marginBottom: '4px' }}>
+          <div className="font-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#e8a040', marginBottom: '6px' }}>
             {tip.label}
           </div>
-          <div className="font-mono" style={{ fontSize: '9px', color: '#8aa0b8', lineHeight: 1.5 }}>
+          <div className="font-mono" style={{ fontSize: '10px', color: '#6080a0', lineHeight: 1.6 }}>
             {tip.desc}
           </div>
+          {tip.category && (
+            <div className="font-mono uppercase" style={{ fontSize: '8px', letterSpacing: '0.1em', color: '#3a5060', marginTop: '8px' }}>
+              {tip.category}
+            </div>
+          )}
         </div>
       )}
       {legendItems.length > 0 && (

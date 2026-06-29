@@ -51,6 +51,16 @@ export const ENGINEERING_PROJECTS = [
         body: "Every API endpoint re-derives the user's role and resource ownership from the JWT on each request rather than trusting client-side route guards, ensuring that dashboard UI access restrictions are not the only enforcement boundary.",
       },
     ],
+    timeline: [
+      { week: 'WEEK 1', title: 'Database Architecture', desc: 'Schema design, 15+ table ERD, role permission matrix', done: true },
+      { week: 'WEEK 2', title: 'Auth & RBAC Layer', desc: 'OTP authentication, JWT sessions, route middleware', done: true },
+      { week: 'WEEK 3', title: 'Approval Workflow Engine', desc: '5-tier state machine, status transitions, notification hooks', done: true },
+      { week: 'WEEK 4', title: 'GPS Enforcement', desc: 'Haversine implementation, coordinate validation, bylaw checks', done: true },
+      { week: 'WEEK 5', title: 'Form System & UI', desc: '10-page multi-step form, React Hook Form, Zod validation', done: true },
+      { week: 'WEEK 6', title: 'Construction Tracking', desc: '3-phase tracker, document uploads, Supabase Storage', done: true },
+      { week: 'WEEK 7', title: 'Realtime & Dashboards', desc: 'Supabase Realtime, role-specific dashboards, SMS Gateway', done: true },
+      { week: 'WEEK 8', title: 'Testing & Deployment', desc: 'End-to-end testing, production deployment, handover', done: true },
+    ],
     architectureGraph: {
       nodes: [
         { id: 'app', label: 'Church Building System', description: 'Next.js 14 App Router application — the central platform serving all 6 user roles across dashboards, application forms, and reporting interfaces.', category: 'core', importance: 'center', x: 50, y: 50 },
