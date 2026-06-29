@@ -4,18 +4,41 @@ import * as d3 from 'd3';
 import { GRAPH } from '@/lib/motion';
 
 /**
- * Obsidian-style force-directed architecture graph, drawn directly on a
- * <canvas> with D3 controlling the simulation (no React wrapper). Reusable —
- * pass any { nodes, edges } shape. Nodes are draggable, hovering a node dims
- * the rest and highlights its edges, clicking a node shows a tooltip, the
- * cursor gently repels nearby nodes, and the layout never fully settles.
+ * Obsidian-style force-directed architecture graph drawn directly on a canvas
+ * (D3 owns the simulation; no React wrapper). Reusable for any { nodes, edges }.
  *
- * Pure 2D/DOM — no Three.js here (keeps the world and Mission Control separate).
+ * Reads the rich schema (category / importance / x,y% / edge direction) when
+ * present, and falls back to a simple { color, r, desc } schema otherwise.
  */
+
+const COLOR_BY_CATEGORY = {
+  core: '#e8a040',
+  auth: '#30c0a0',
+  data: '#4090e0',
+  realtime: '#9060e0',
+  storage: '#608090',
+  location: '#4090e0',
+  workflow: '#c87830',
+};
+const RADIUS_BY_IMPORTANCE = { center: 26, primary: 15, secondary: 11, leaf: 7 };
+const CATEGORY_LABEL = {
+  core: 'Core',
+  auth: 'Auth / Security',
+  workflow: 'Workflow',
+  location: 'Location',
+  realtime: 'Realtime',
+  storage: 'Storage',
+  data: 'Data',
+};
+
+const colorOf = (n) => n.color || COLOR_BY_CATEGORY[n.category] || '#608090';
+const radiusOf = (n) => n.r ?? RADIUS_BY_IMPORTANCE[n.importance] ?? 12;
+const descOf = (n) => n.description || n.desc || '';
+
 export default function ArchitectureGraph({ nodes, edges }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
-  const [tip, setTip] = useState(null); // { x, y, label, desc }
+  const [tip, setTip] = useState(null); // { x, y, label, desc, flipX, flipY }
   const [legendItems, setLegendItems] = useState([]);
 
   useEffect(() => {
@@ -24,74 +47,103 @@ export default function ArchitectureGraph({ nodes, edges }) {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
-    // Deep-copy so the simulation can mutate x/y/vx/vy without touching props.
-    const simNodes = nodes.map((n) => ({ ...n, _a: 1 }));
-    const byId = new Map(simNodes.map((n) => [n.id, n]));
-    const simLinks = edges.map((e, i) => ({ source: e.source, target: e.target, _a: 1, _phase: (i * 0.37) % 1 }));
-
-    // Semi-fixed initial positions — largest node at centre, the rest on a ring
-    // around it — so the layout starts organised, then the forces relax it.
-    const center = simNodes.reduce((a, b) => (b.r > a.r ? b : a), simNodes[0]);
-    const others = simNodes.filter((n) => n !== center);
-    center.x = 0;
-    center.y = 0;
-    others.forEach((n, i) => {
-      const a = (i / others.length) * Math.PI * 2;
-      n.x = Math.cos(a) * 120;
-      n.y = Math.sin(a) * 120;
-    });
-
-    // Legend: distinct node colours present, mapped to human labels.
-    const COLOR_LABELS = {
-      '#e8a040': 'Core / Logic',
-      '#30c0a0': 'Auth / Security',
-      '#4090e0': 'Data / Service',
-      '#9060e0': 'Realtime',
-      '#608090': 'Storage',
-    };
-    const legend = [...new Set(simNodes.map((n) => n.color))].map((c) => ({
-      color: c,
-      label: COLOR_LABELS[c] || '',
+    const simNodes = nodes.map((n) => ({
+      ...n,
+      _r: radiusOf(n),
+      _c: colorOf(n),
+      _desc: descOf(n),
+      _a: 1, // display alpha (hover dim)
+      _s: 1, // display scale (hover grow)
+      _hasXY: typeof n.x === 'number' && typeof n.y === 'number',
     }));
-    setLegendItems(legend);
+    const byId = new Map(simNodes.map((n) => [n.id, n]));
+    const simLinks = edges.map((e) => ({
+      source: e.source,
+      target: e.target,
+      label: e.label || '',
+      direction: e.direction || 'one-way',
+      _a: 1,
+    }));
 
     let width = 0;
     let height = 0;
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const mouse = { x: null, y: null };
+    let hover = null;
+    let dragging = null;
+    let downAt = null;
+    let released = false;
 
-    const mouse = { x: null, y: null, down: false };
-    let hover = null; // node under cursor
-    let dragging = null; // node being dragged
-    let downAt = null; // { x, y, node } for click-vs-drag
-    let raf = 0;
+    // Legend — only categories present in this project's nodes.
+    const cats = [...new Set(simNodes.map((n) => n.category).filter(Boolean))];
+    setLegendItems(
+      cats.map((c) => ({ color: COLOR_BY_CATEGORY[c] || '#608090', label: CATEGORY_LABEL[c] || c }))
+    );
 
-    // Cursor repulsion — pushes nodes away from the pointer when it's near.
+    // Cursor repulsion (strength 60 within 70px).
+    const REPEL_R = 70;
     const mouseForce = () => {
       if (mouse.x == null || dragging) return;
-      const R = 90;
       for (const n of simNodes) {
         const dx = n.x - mouse.x;
         const dy = n.y - mouse.y;
         const d2 = dx * dx + dy * dy;
-        if (d2 < R * R) {
+        if (d2 < REPEL_R * REPEL_R) {
           const d = Math.sqrt(d2) || 1;
-          const f = ((R - d) / R) * 6;
-          n.vx += (dx / d) * f;
-          n.vy += (dy / d) * f;
+          const f = (1 - d / REPEL_R) * 60;
+          n.vx += (dx / d) * f * 0.02;
+          n.vy += (dy / d) * f * 0.02;
         }
       }
     };
 
     const sim = d3
       .forceSimulation(simNodes)
-      .force('link', d3.forceLink(simLinks).id((d) => d.id).distance((l) => 40 + (l.source.r || 10) + (l.target.r || 10)).strength(0.25))
-      .force('charge', d3.forceManyBody().strength(-380))
-      .force('collide', d3.forceCollide().radius((d) => d.r + 16))
+      .force('link', d3.forceLink(simLinks).id((d) => d.id).distance((l) => 34 + l.source._r + l.target._r).strength(0.12))
+      .force('charge', d3.forceManyBody().strength(-90))
+      .force('collide', d3.forceCollide().radius((d) => d._r + 10))
       .force('mouse', mouseForce)
       .alphaDecay(GRAPH.alphaDecay)
       .velocityDecay(GRAPH.velocityDecay)
       .alphaTarget(GRAPH.alphaTarget)
       .on('tick', draw);
+
+    function seed() {
+      // Anchor each node toward its authored x,y% (or a ring if none) so the
+      // layout matches the design, then let it drift gently from there.
+      const hasLayout = simNodes.some((n) => n._hasXY);
+      simNodes.forEach((n, i) => {
+        if (n._hasXY) {
+          // Pad the authored 0–100% layout into the canvas with margins so
+          // labels and the legend never collide with the edges.
+          n._tx = (0.05 + (n.x / 100) * 0.9) * width;
+          n._ty = (0.05 + (n.y / 100) * 0.8) * height;
+        } else {
+          const a = (i / simNodes.length) * Math.PI * 2;
+          n._tx = width / 2 + Math.cos(a) * Math.min(width, height) * 0.34;
+          n._ty = height / 2 + Math.sin(a) * Math.min(width, height) * 0.34;
+        }
+      });
+      sim.force('x', d3.forceX((n) => n._tx).strength(0.06));
+      sim.force('y', d3.forceY((n) => n._ty).strength(0.06));
+      if (!released) {
+        // Pin to authored positions, then release after 2s for a natural drift.
+        simNodes.forEach((n) => {
+          n.x = n._tx;
+          n.y = n._ty;
+          n.fx = n._tx;
+          n.fy = n._ty;
+        });
+        setTimeout(() => {
+          released = true;
+          simNodes.forEach((n) => {
+            n.fx = null;
+            n.fy = null;
+          });
+          sim.alpha(0.5).restart();
+        }, 2000);
+      }
+    }
 
     function resize() {
       const r = wrap.getBoundingClientRect();
@@ -103,112 +155,142 @@ export default function ArchitectureGraph({ nodes, edges }) {
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      sim.force('center', d3.forceCenter(width / 2, height / 2));
+      seed();
       sim.alpha(0.6).restart();
     }
-
     const ro = new ResizeObserver(resize);
     ro.observe(wrap);
     resize();
 
-    // Per-frame alpha lerp so highlight/dim eases over ~hoverMs.
-    const lerpK = 1 - Math.exp(-(1000 / 60) / GRAPH.hoverMs * 4);
-    function targetAlpha(node) {
-      if (!hover) return 1;
-      if (node === hover) return 1;
-      return isLinked(hover.id, node.id) ? 1 : 0.18;
-    }
-    function targetLinkAlpha(l) {
-      if (!hover) return 1;
-      return l.source.id === hover.id || l.target.id === hover.id ? 1 : 0.12;
-    }
-    function isLinked(a, b) {
-      return simLinks.some(
+    const lerpK = 1 - Math.exp((-(1000 / 60) / 150) * 4); // ~150ms ease
+    const linkedTo = (a, b) =>
+      simLinks.some(
         (l) =>
-          (l.source.id === a && l.target.id === b) ||
-          (l.source.id === b && l.target.id === a)
+          (l.source.id === a && l.target.id === b) || (l.source.id === b && l.target.id === a)
       );
-    }
+    const targetNodeAlpha = (n) => (!hover ? 1 : n === hover ? 1 : linkedTo(hover.id, n.id) ? 1 : 0.15);
+    const targetNodeScale = (n) => (n === hover ? 1.3 : 1);
+    const targetLinkAlpha = (l) =>
+      !hover ? 1 : l.source.id === hover.id || l.target.id === hover.id ? 1 : 0.08;
 
     function draw() {
       ctx.clearRect(0, 0, width, height);
       const now = performance.now();
+
       // Edges
       for (const l of simLinks) {
         l._a += (targetLinkAlpha(l) - l._a) * lerpK;
-        const lit = hover && (l.source.id === hover.id || l.target.id === hover.id);
+        const connected = hover && (l.source.id === hover.id || l.target.id === hover.id);
         ctx.beginPath();
         ctx.moveTo(l.source.x, l.source.y);
         ctx.lineTo(l.target.x, l.target.y);
-        if (lit) {
-          const c = d3.color(hover.color);
+        if (connected) {
+          const c = d3.color(hover._c);
           c.opacity = 0.6 * l._a;
           ctx.strokeStyle = c.toString();
           ctx.lineWidth = 1.2;
         } else {
-          ctx.strokeStyle = `rgba(255,255,255,${0.08 * l._a})`;
+          ctx.strokeStyle = `rgba(255,255,255,${0.06 * l._a})`;
           ctx.lineWidth = 0.5;
         }
         ctx.stroke();
-        // Animated pulse travelling along the edge (data flow)
-        const t = ((now / 1600) + l._phase) % 1;
-        const px = l.source.x + (l.target.x - l.source.x) * t;
-        const py = l.source.y + (l.target.y - l.source.y) * t;
-        const pc = d3.color(lit ? hover.color : l.source.color);
-        pc.opacity = (lit ? 0.9 : 0.5) * l._a;
-        ctx.beginPath();
-        ctx.arc(px, py, lit ? 2 : 1.4, 0, Math.PI * 2);
-        ctx.fillStyle = pc.toString();
-        ctx.fill();
+
+        // Directional pulse — a dash travelling source→target at ~15px/s,
+        // in the destination colour. Two-way edges pulse both directions.
+        const len = Math.hypot(l.target.x - l.source.x, l.target.y - l.source.y) || 1;
+        const drawPulse = (from, to, col) => {
+          const u = (((now / 1000) * 15) / len) % 1;
+          const px = from.x + (to.x - from.x) * u;
+          const py = from.y + (to.y - from.y) * u;
+          const pc = d3.color(col);
+          pc.opacity = (connected ? 0.9 : 0.2) * l._a;
+          ctx.beginPath();
+          ctx.arc(px, py, connected ? 2 : 1.4, 0, Math.PI * 2);
+          ctx.fillStyle = pc.toString();
+          ctx.fill();
+        };
+        drawPulse(l.source, l.target, l.target._c);
+        if (l.direction === 'two-way') drawPulse(l.target, l.source, l.source._c);
       }
+
       // Nodes
       for (const n of simNodes) {
-        n._a += (targetAlpha(n) - n._a) * lerpK;
+        n._a += (targetNodeAlpha(n) - n._a) * lerpK;
+        n._s += (targetNodeScale(n) - n._s) * lerpK;
         const isHover = n === hover;
+        const r = n._r * n._s;
         ctx.save();
         ctx.globalAlpha = n._a;
         if (isHover) {
-          ctx.shadowColor = n.color;
-          ctx.shadowBlur = 18;
+          ctx.shadowColor = n._c;
+          ctx.shadowBlur = 8;
         }
         ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-        ctx.fillStyle = '#0c1420';
+        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = '#07090e';
         ctx.fill();
         ctx.lineWidth = isHover ? 3 : 1.5;
-        ctx.strokeStyle = n.color;
+        ctx.strokeStyle = n._c;
         ctx.stroke();
         ctx.restore();
-        // Label
+
+        // Label — center node inside, others below.
         ctx.globalAlpha = n._a;
-        ctx.fillStyle = n.color;
-        ctx.font = '8px ui-monospace, "JetBrains Mono", monospace';
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText(n.label, n.x, n.y + n.r + 4);
+        if (n.importance === 'center') {
+          ctx.font = '600 10px ui-monospace, "JetBrains Mono", monospace';
+          ctx.fillStyle = '#e8a040';
+          ctx.textBaseline = 'middle';
+          ctx.shadowColor = '#07090e';
+          ctx.shadowBlur = 6;
+          ctx.fillText(n.label, n.x, n.y);
+          ctx.shadowBlur = 0;
+        } else {
+          ctx.font = '8px ui-monospace, "JetBrains Mono", monospace';
+          ctx.fillStyle = n._c;
+          ctx.textBaseline = 'top';
+          ctx.fillText(n.label, n.x, n.y + r + 4);
+        }
         ctx.globalAlpha = 1;
+      }
+
+      // Hovered edge label
+      if (hover) {
+        for (const l of simLinks) {
+          if (!l.label) continue;
+          if (l.source.id !== hover.id && l.target.id !== hover.id) continue;
+          const mx = (l.source.x + l.target.x) / 2;
+          const my = (l.source.y + l.target.y) / 2;
+          ctx.font = '7px ui-monospace, "JetBrains Mono", monospace';
+          const w = ctx.measureText(l.label).width + 8;
+          ctx.fillStyle = 'rgba(5,7,10,0.92)';
+          ctx.fillRect(mx - w / 2, my - 7, w, 13);
+          ctx.fillStyle = '#6080a0';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(l.label, mx, my);
+        }
       }
     }
 
-    // Pointer helpers
-    function toLocal(e) {
+    // Pointer
+    const toLocal = (e) => {
       const r = canvas.getBoundingClientRect();
       return { x: e.clientX - r.left, y: e.clientY - r.top };
-    }
-    function pick(p) {
+    };
+    const pick = (p) => {
       let best = null;
       let bd = Infinity;
       for (const n of simNodes) {
         const d = Math.hypot(n.x - p.x, n.y - p.y);
-        if (d < n.r + 6 && d < bd) {
+        if (d < n._r + 6 && d < bd) {
           bd = d;
           best = n;
         }
       }
       return best;
-    }
-
-    function onMove(e) {
+    };
+    const onMove = (e) => {
       const p = toLocal(e);
       mouse.x = p.x;
       mouse.y = p.y;
@@ -223,13 +305,13 @@ export default function ArchitectureGraph({ nodes, edges }) {
         hover = h;
         canvas.style.cursor = h ? 'pointer' : 'default';
       }
-    }
-    function onLeave() {
+    };
+    const onLeave = () => {
       mouse.x = null;
       mouse.y = null;
       hover = null;
-    }
-    function onDown(e) {
+    };
+    const onDown = (e) => {
       const p = toLocal(e);
       const n = pick(p);
       downAt = { x: p.x, y: p.y, node: n };
@@ -239,8 +321,8 @@ export default function ArchitectureGraph({ nodes, edges }) {
         n.fy = n.y;
         sim.alphaTarget(0.3).restart();
       }
-    }
-    function onUp(e) {
+    };
+    const onUp = (e) => {
       const p = toLocal(e);
       if (dragging) {
         dragging.fx = null;
@@ -248,24 +330,21 @@ export default function ArchitectureGraph({ nodes, edges }) {
         dragging = null;
         sim.alphaTarget(GRAPH.alphaTarget);
       }
-      // Click (no real movement) on a node → toggle tooltip
       if (downAt) {
         const moved = Math.hypot(p.x - downAt.x, p.y - downAt.y);
         if (moved < 4) {
-          if (downAt.node) {
+          const n = downAt.node;
+          if (n) {
             setTip((t) =>
-              t && t.id === downAt.node.id
+              t && t.id === n.id
                 ? null
-                : { id: downAt.node.id, x: downAt.node.x, y: downAt.node.y, label: downAt.node.label, desc: downAt.node.desc }
+                : { id: n.id, x: n.x, y: n.y, label: n.label, desc: n._desc, flipX: n.x > width - 170, flipY: n.y > height - 110 }
             );
-          } else {
-            setTip(null);
-          }
+          } else setTip(null);
         }
       }
       downAt = null;
-    }
-
+    };
     canvas.addEventListener('pointermove', onMove);
     canvas.addEventListener('pointerleave', onLeave);
     canvas.addEventListener('pointerdown', onDown);
@@ -274,7 +353,6 @@ export default function ArchitectureGraph({ nodes, edges }) {
     return () => {
       sim.stop();
       ro.disconnect();
-      cancelAnimationFrame(raf);
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerleave', onLeave);
       canvas.removeEventListener('pointerdown', onDown);
@@ -283,29 +361,37 @@ export default function ArchitectureGraph({ nodes, edges }) {
   }, [nodes, edges]);
 
   return (
-    <div ref={wrapRef} className="relative h-full w-full overflow-hidden rounded-lg bg-[#05070a]">
+    <div ref={wrapRef} className="relative h-full w-full overflow-hidden bg-[#05070a]">
       <canvas ref={canvasRef} className="block h-full w-full" />
       {tip && (
         <div
-          className="pointer-events-none absolute z-10 max-w-[220px] -translate-x-1/2 rounded-md border border-white/10 bg-[#0b1018]/95 px-3 py-2 backdrop-blur-sm"
-          style={{ left: tip.x, top: tip.y + 22 }}
+          className="pointer-events-none absolute z-10 w-[180px]"
+          style={{
+            left: tip.flipX ? tip.x - 188 : tip.x + 14,
+            top: tip.flipY ? tip.y - 70 : tip.y + 14,
+            background: '#07090e',
+            border: '0.5px solid #e8a040',
+            borderRadius: '4px',
+            padding: '8px 10px',
+          }}
         >
-          <div className="font-mono text-[10px] font-semibold tracking-wide text-[#dde6f0]">
+          <div className="font-mono" style={{ fontSize: '9px', fontWeight: 600, color: '#e8a040', marginBottom: '4px' }}>
             {tip.label}
           </div>
-          <div className="mt-1 text-[11px] leading-snug text-[#7a8a9a]">{tip.desc}</div>
+          <div className="font-mono" style={{ fontSize: '9px', color: '#8aa0b8', lineHeight: 1.5 }}>
+            {tip.desc}
+          </div>
         </div>
       )}
-      {/* Colour legend */}
       {legendItems.length > 0 && (
-        <div className="pointer-events-none absolute bottom-3 left-3 flex flex-col gap-1.5">
+        <div
+          className="pointer-events-none absolute bottom-2 left-2 flex flex-wrap gap-x-3 gap-y-1"
+          style={{ maxWidth: 'calc(100% - 16px)', background: 'rgba(5,7,10,0.78)', borderRadius: '4px', padding: '5px 8px' }}
+        >
           {legendItems.map((l) => (
-            <div key={l.color} className="flex items-center gap-2">
-              <span className="rounded-full" style={{ width: '7px', height: '7px', background: l.color }} />
-              <span
-                className="font-mono uppercase"
-                style={{ fontSize: '7px', letterSpacing: '0.14em', color: '#304050' }}
-              >
+            <div key={l.label} className="flex items-center gap-1.5">
+              <span className="rounded-full" style={{ width: '6px', height: '6px', background: l.color }} />
+              <span className="font-mono uppercase" style={{ fontSize: '7px', letterSpacing: '0.1em', color: '#3a5060' }}>
                 {l.label}
               </span>
             </div>

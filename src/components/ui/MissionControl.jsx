@@ -254,26 +254,10 @@ function Brief({ project }) {
           </p>
 
           <MicroLabel mb={10}>Stack</MicroLabel>
-          <div style={{ marginBottom: '32px' }}>
+          <div>
             <StackChips primary={project.primaryStack} secondary={project.secondaryStack} />
           </div>
-
-          {project.keyDecisions?.length > 0 && (
-            <>
-              <MicroLabel mb={16}>Key Decisions</MicroLabel>
-              <div>
-                {project.keyDecisions.map((d, i) => (
-                  <div key={d.title}>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#e8a040', marginBottom: '5px' }}>{d.title}</div>
-                    <div style={{ fontSize: '12px', color: '#4a6070', lineHeight: 1.7 }}>{d.body}</div>
-                    {i < project.keyDecisions.length - 1 && (
-                      <div style={{ borderTop: '0.5px solid #111820', margin: '14px 0' }} />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+          {/* Key Decisions now live in the architecture bento (Panel 4). */}
         </div>
 
         {/* RIGHT */}
@@ -282,7 +266,7 @@ function Brief({ project }) {
 
           <div style={{ marginTop: '32px' }}>
             <MicroLabel mb={12}>System Architecture</MicroLabel>
-            <div style={{ height: '256px', borderRadius: '6px', border: '0.5px solid #151c28', overflow: 'hidden' }}>
+            <div style={{ height: '340px', borderRadius: '6px', border: '0.5px solid #151c28', overflow: 'hidden' }}>
               {project.architectureGraph ? (
                 <ArchitectureGraph nodes={project.architectureGraph.nodes} edges={project.architectureGraph.edges} />
               ) : (

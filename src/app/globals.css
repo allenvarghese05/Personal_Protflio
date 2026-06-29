@@ -133,13 +133,24 @@ body {
   word-break: break-word;
 }
 
-/* GPS concentric-ring pulse (bento Panel 2) */
-@keyframes gps-pulse {
-  0%, 100% { box-shadow: 0 0 0 rgba(232, 160, 64, 0); }
-  50% { box-shadow: 0 0 12px rgba(232, 160, 64, 0.3); }
+/* GPS concentric-ring pulse (bento Panel 2) — animates SVG stroke opacity */
+@keyframes gps-ring {
+  0%, 100% { stroke-opacity: 0.4; }
+  50% { stroke-opacity: 1; }
 }
-.gps-pulse {
-  animation: gps-pulse 2s ease-in-out infinite;
+.gps-ring {
+  animation: gps-ring 2.5s ease-in-out infinite;
+}
+
+/* Approval-chain connector: a dot travelling down through the tiers */
+@keyframes chain-dot {
+  0% { transform: translateY(-2px); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(12px); opacity: 0; }
+}
+.chain-dot {
+  animation: chain-dot 2s linear infinite;
 }
 
 @keyframes blink {
