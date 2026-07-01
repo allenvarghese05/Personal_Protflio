@@ -7,6 +7,7 @@ import { ENGINEERING_PROJECTS, projectById } from '@/data/projects';
 import { ACCENTS, DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
 import ArchitectureGraph from './ArchitectureGraph';
 import BentoPanels from './BentoPanels';
+import DeploymentStatusStrip from './DeploymentStatusStrip';
 
 const accentFor = (kind) => ACCENTS[kind] || ACCENTS.project;
 const badgeWord = (kind) =>
@@ -226,14 +227,14 @@ function MicroLabel({ children, mb = 12 }) {
   );
 }
 
-function StackChips({ primary, secondary }) {
+function StackChips({ primary, secondary, accent = '#e8a040' }) {
   const chip = (name, isPrimary) => (
     <span
       key={name}
       className="rounded-[3px] font-mono"
       style={
         isPrimary
-          ? { fontSize: '9px', padding: '5px 10px', color: '#e8a040', background: 'rgba(232,160,64,0.08)', border: '0.5px solid rgba(232,160,64,0.2)' }
+          ? { fontSize: '9px', padding: '5px 10px', color: accent, background: `${accent}14`, border: `0.5px solid ${accent}33` }
           : { fontSize: '9px', padding: '5px 10px', color: '#4a6070', background: '#0a0e14', border: '0.5px solid #1a2530' }
       }
     >
@@ -249,6 +250,7 @@ function StackChips({ primary, secondary }) {
 }
 
 function Brief({ project }) {
+  const accent = accentFor(project.kind);
   return (
     <motion.div
       key="brief"
@@ -261,7 +263,7 @@ function Brief({ project }) {
       <div className="text-center" style={{ padding: '48px 64px 40px 64px', borderBottom: '0.5px solid #151c28', background: '#06080c' }}>
         <span
           className="inline-block uppercase"
-          style={{ fontSize: '9px', letterSpacing: '0.2em', color: '#e8a040', background: 'rgba(232,160,64,0.08)', border: '0.5px solid rgba(232,160,64,0.25)', padding: '5px 14px', borderRadius: '3px', marginBottom: '20px' }}
+          style={{ fontSize: '9px', letterSpacing: '0.2em', color: accent, background: `${accent}14`, border: `0.5px solid ${accent}40`, padding: '5px 14px', borderRadius: '3px', marginBottom: '20px' }}
         >
           {project.badge}
         </span>
@@ -290,7 +292,7 @@ function Brief({ project }) {
 
           <MicroLabel mb={10}>Stack</MicroLabel>
           <div>
-            <StackChips primary={project.primaryStack} secondary={project.secondaryStack} />
+            <StackChips primary={project.primaryStack} secondary={project.secondaryStack} accent={accent} />
           </div>
           {/* Key Decisions now live in the architecture bento (Panel 4). */}
           <BuildTimeline items={project.timeline} />
@@ -298,13 +300,19 @@ function Brief({ project }) {
 
         {/* RIGHT */}
         <div className="min-w-0" style={{ padding: '32px 40px 32px 32px', borderLeft: '0.5px solid #111820' }}>
-          <BentoPanels project={project} />
+          <BentoPanels project={project} accent={accent} />
+
+          {project.deployment && (
+            <div style={{ marginTop: '32px' }}>
+              <DeploymentStatusStrip deployment={project.deployment} />
+            </div>
+          )}
 
           <div style={{ marginTop: '32px' }}>
             <MicroLabel mb={12}>System Architecture</MicroLabel>
             <div style={{ height: '360px', borderRadius: '6px', border: '0.5px solid #151c28', overflow: 'hidden' }}>
               {project.architectureGraph ? (
-                <ArchitectureGraph nodes={project.architectureGraph.nodes} edges={project.architectureGraph.edges} />
+                <ArchitectureGraph nodes={project.architectureGraph.nodes} edges={project.architectureGraph.edges} categoryColors={project.graphColors} accent={accent} />
               ) : (
                 <div className="flex h-full items-center justify-center font-mono" style={{ fontSize: '11px', color: '#304050' }}>
                   NO DIAGRAM

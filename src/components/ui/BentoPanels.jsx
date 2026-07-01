@@ -11,7 +11,6 @@
  */
 
 const HEADING = {
-  color: '#e8a040',
   fontSize: '10px',
   fontWeight: 600,
   letterSpacing: '0.2em',
@@ -19,13 +18,13 @@ const HEADING = {
   marginBottom: '16px',
 };
 
-function Panel({ heading, children }) {
+function Panel({ heading, accent = '#e8a040', children }) {
   return (
     <div
       className="flex min-w-0 flex-col"
       style={{ background: '#07090e', border: '0.5px solid #1a2535', borderRadius: '8px', padding: '16px' }}
     >
-      <div className="font-mono" style={HEADING}>{heading}</div>
+      <div className="font-mono" style={{ ...HEADING, color: accent }}>{heading}</div>
       <div className="relative min-w-0 flex-1">{children}</div>
     </div>
   );
@@ -190,11 +189,110 @@ function IsoStack() {
   );
 }
 
-function ApprovalChainPanel({ project }) {
+/* ── LearnFlow Panel 1 — 5-pipeline context assembly ─────────────────────── */
+
+const PIPELINES = [
+  { name: 'TRANSCRIPT', sub: 'live audio → text', color: '#30c0a0' },
+  { name: 'LECTURE SLIDES', sub: 'OCR extracted', color: '#4090e0' },
+  { name: 'STUDENT NOTES', sub: 'indexed notes', color: '#9060e0' },
+  { name: 'SYLLABUS', sub: 'course structure', color: '#e8a040' },
+  { name: 'ASSIGNMENTS', sub: 'rubrics & briefs', color: '#608090' },
+];
+
+function PipelineFlowPanel({ accent }) {
+  // viewBox coords: 5 inputs on the left flow into the centre, then to GPT-4o.
+  const rowY = (i) => 26 + i * 42;
+  const CXc = 300;
+  const CYc = 118;
+  return (
+    <Panel heading="5-Pipeline Context Assembly" accent={accent}>
+      <div style={{ minHeight: '224px' }}>
+        <svg viewBox="0 0 420 236" width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
+          {/* input pipelines + flowing arrows */}
+          {PIPELINES.map((p, i) => {
+            const y = rowY(i);
+            return (
+              <g key={p.name}>
+                <line
+                  className="pipe-dash"
+                  x1="128" y1={y + 14} x2={CXc - 34} y2={CYc}
+                  stroke={p.color} strokeOpacity="0.4" strokeWidth="0.75"
+                  style={{ animationDelay: `${i * 0.4}s` }}
+                />
+                <rect x="6" y={y} width="122" height="28" rx="4" fill="#0a0f18" />
+                <rect x="6" y={y} width="2" height="28" fill={p.color} />
+                <text x="16" y={y + 12} dominantBaseline="middle" fontSize="9" fontWeight="600" fill={p.color} fontFamily="monospace">{p.name}</text>
+                <text x="16" y={y + 21} dominantBaseline="middle" fontSize="8" fill="#3a5060" fontStyle="italic" fontFamily="monospace">{p.sub}</text>
+              </g>
+            );
+          })}
+
+          {/* centre — context assembly */}
+          <circle cx={CXc} cy={CYc} r="32" fill="#0d1828" stroke="#30c0a0" strokeWidth="1.5" style={{ filter: 'drop-shadow(0 0 5px #30c0a0)' }} />
+          <text x={CXc} y={CYc - 4} textAnchor="middle" dominantBaseline="middle" fontSize="8" fontWeight="700" fill="#30c0a0" fontFamily="monospace">CONTEXT</text>
+          <text x={CXc} y={CYc + 7} textAnchor="middle" dominantBaseline="middle" fontSize="8" fontWeight="700" fill="#30c0a0" fontFamily="monospace">ASSEMBLY</text>
+
+          {/* centre → GPT-4o */}
+          <line x1={CXc + 34} y1={CYc} x2="356" y2={CYc} stroke="#30c0a0" strokeWidth="1.5" />
+          <text x="345" y={CYc - 6} textAnchor="middle" fontSize="7" fill="#3a5060" fontFamily="monospace">assembled prompt</text>
+          <rect x="356" y={CYc - 16} width="60" height="32" rx="4" fill="#0a0f18" />
+          <rect x="356" y={CYc - 16} width="2" height="32" fill="#e8a040" />
+          <text x="364" y={CYc - 3} dominantBaseline="middle" fontSize="8.5" fontWeight="700" fill="#e8a040" fontFamily="monospace">GPT-4o</text>
+          <text x="364" y={CYc + 8} dominantBaseline="middle" fontSize="7" fill="#3a5060" fontFamily="monospace">tutor reply</text>
+        </svg>
+      </div>
+    </Panel>
+  );
+}
+
+/* ── LearnFlow Panel 2 — platform reach + performance ────────────────────── */
+
+function PlatformBadge({ children, label }) {
+  return (
+    <div className="flex items-center gap-2" style={{ background: '#0a0f18', border: '0.5px solid #1a2535', borderRadius: '4px', padding: '8px 16px' }}>
+      {children}
+      <span className="font-mono" style={{ fontSize: '10px', color: '#8aa0b8' }}>{label}</span>
+    </div>
+  );
+}
+
+function PlatformReachPanel({ accent }) {
+  return (
+    <Panel heading="Platform Reach · Performance" accent={accent}>
+      {/* TOP — cross-platform */}
+      <SubHeading>Cross-platform Desktop</SubHeading>
+      <div className="flex items-center justify-center gap-3" style={{ marginBottom: '14px' }}>
+        <PlatformBadge label="macOS">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#8aa0b8"><path d="M17.05 12.04c-.03-2.6 2.13-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.9-1.75.03-3.36 1.02-4.26 2.58-1.82 3.16-.47 7.83 1.3 10.39.86 1.25 1.89 2.66 3.24 2.61 1.3-.05 1.79-.84 3.36-.84 1.57 0 2.01.84 3.39.81 1.4-.02 2.29-1.28 3.15-2.54.99-1.46 1.4-2.87 1.42-2.95-.03-.01-2.72-1.05-2.75-4.15zM14.6 4.5c.72-.87 1.2-2.08 1.07-3.28-1.03.04-2.28.69-3.02 1.55-.66.77-1.24 2-1.08 3.18 1.15.09 2.32-.58 3.03-1.45z"/></svg>
+        </PlatformBadge>
+        <span className="font-mono" style={{ fontSize: '11px', color: '#3a5060' }}>+</span>
+        <PlatformBadge label="Windows">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#8aa0b8"><path d="M3 5.5 10.5 4.4v7.1H3V5.5zm0 13 7.5 1.1v-7H3v5.9zM11.5 4.2 21 3v8.5h-9.5V4.2zm0 8.3H21V21l-9.5-1.3v-7.2z"/></svg>
+        </PlatformBadge>
+      </div>
+
+      <div style={{ borderTop: '0.5px solid #1a2535', margin: '0 0 14px 0' }} />
+
+      {/* BOTTOM — performance */}
+      <div className="text-center">
+        <div className="font-mono" style={{ fontSize: '28px', fontWeight: 800, color: '#e8a040', letterSpacing: '-0.02em', lineHeight: 1 }}>&lt;150ms</div>
+        <div className="font-mono" style={{ marginTop: '4px', fontSize: '8px', color: '#3a5060' }}>query performance</div>
+        <div className="font-mono" style={{ fontSize: '8px', color: '#3a5060' }}>on 50K+ records</div>
+        <div style={{ marginTop: '10px', height: '5px', width: '100%', background: '#0a0f18', borderRadius: '3px', overflow: 'hidden' }}>
+          <div className="perf-fill" style={{ height: '100%', background: 'linear-gradient(90deg, #1a6b58, #30c0a0)', borderRadius: '3px' }} />
+        </div>
+        <div className="font-mono" style={{ marginTop: '6px', fontSize: '7px', letterSpacing: '0.14em', color: '#3a5060' }}>50K+ RECORDS INDEXED</div>
+      </div>
+    </Panel>
+  );
+}
+
+function ApprovalChainPanel({ project, accent }) {
+  if (project.id === 'learnflow-ai') return <PipelineFlowPanel accent={accent} />;
   const iet = project.id === 'iet';
   if (!iet) {
     return (
-      <Panel heading="Primary Flow">
+      <Panel heading="Primary Flow" accent={accent}>
         <EndPill text="INPUT" color="#e8a040" />
         <div className="my-2 flex flex-col gap-2">
           {(project.primaryStack || []).map((s, i) => (
@@ -209,7 +307,7 @@ function ApprovalChainPanel({ project }) {
     );
   }
   return (
-    <Panel heading="5-Tier Approval Chain">
+    <Panel heading="5-Tier Approval Chain" accent={accent}>
       <div style={{ minHeight: '348px' }}>
         <IsoStack />
       </div>
@@ -233,11 +331,12 @@ function SubHeading({ children }) {
   );
 }
 
-function GpsPhasePanel({ project }) {
+function GpsPhasePanel({ project, accent }) {
+  if (project.id === 'learnflow-ai') return <PlatformReachPanel accent={accent} />;
   if (project.id !== 'iet') {
     const items = project.secondaryStack?.length ? project.secondaryStack : project.tags || [];
     return (
-      <Panel heading="Supporting Systems">
+      <Panel heading="Supporting Systems" accent={accent}>
         <div className="flex flex-col gap-2.5">
           {items.map((it) => (
             <div key={it} className="flex items-center gap-2.5">
@@ -250,7 +349,7 @@ function GpsPhasePanel({ project }) {
     );
   }
   return (
-    <Panel heading="GPS · 3-Phase">
+    <Panel heading="GPS · 3-Phase" accent={accent}>
       {/* TOP — GPS enforcement */}
       <SubHeading>GPS Enforcement</SubHeading>
       <div className="flex flex-col items-center" style={{ marginBottom: '12px' }}>
@@ -303,10 +402,10 @@ function GpsPhasePanel({ project }) {
 
 /* ── PANEL 3 — key metrics 2×2 ───────────────────────────────────────────── */
 
-function MetricsPanel({ project }) {
+function MetricsPanel({ project, accent }) {
   const metrics = (project.metrics || []).slice(0, 4);
   return (
-    <Panel heading="Key Metrics">
+    <Panel heading="Key Metrics" accent={accent}>
       <div className="grid grid-cols-2" style={{ gap: '8px' }}>
         {metrics.map((m) => (
           <div
@@ -329,16 +428,16 @@ function MetricsPanel({ project }) {
 
 /* ── PANEL 4 — key decisions ─────────────────────────────────────────────── */
 
-function DecisionsPanel({ project }) {
+function DecisionsPanel({ project, accent }) {
   const decisions = project.keyDecisions || [];
   return (
-    <Panel heading="Key Decisions">
+    <Panel heading="Key Decisions" accent={accent}>
       <div>
         {decisions.map((d, i) => (
           <div key={d.title}>
             <div
               className="font-mono"
-              style={{ fontSize: '10px', fontWeight: 700, color: '#e8a040', letterSpacing: '0.06em', borderLeft: '2px solid #e8a040', paddingLeft: '8px', marginBottom: '5px' }}
+              style={{ fontSize: '10px', fontWeight: 700, color: accent, letterSpacing: '0.06em', borderLeft: `2px solid ${accent}`, paddingLeft: '8px', marginBottom: '5px' }}
             >
               {d.title}
             </div>
@@ -353,13 +452,13 @@ function DecisionsPanel({ project }) {
   );
 }
 
-export default function BentoPanels({ project }) {
+export default function BentoPanels({ project, accent = '#e8a040' }) {
   return (
     <div className="grid grid-cols-2 min-w-0" style={{ gap: '16px' }}>
-      <ApprovalChainPanel project={project} />
-      <GpsPhasePanel project={project} />
-      <MetricsPanel project={project} />
-      <DecisionsPanel project={project} />
+      <ApprovalChainPanel project={project} accent={accent} />
+      <GpsPhasePanel project={project} accent={accent} />
+      <MetricsPanel project={project} accent={accent} />
+      <DecisionsPanel project={project} accent={accent} />
     </div>
   );
 }

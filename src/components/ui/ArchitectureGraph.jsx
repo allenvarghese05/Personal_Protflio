@@ -21,6 +21,11 @@ const COLOR_BY_CATEGORY = {
   storage: '#608090',
   location: '#4090e0',
   workflow: '#c87830',
+  // LearnFlow categories
+  ai: '#9060e0',
+  ui: '#4090e0',
+  audio: '#e8a040',
+  infrastructure: '#3a5060',
 };
 const RADIUS_BY_IMPORTANCE = { center: 26, primary: 15, secondary: 11, leaf: 7 };
 const CATEGORY_LABEL = {
@@ -31,13 +36,18 @@ const CATEGORY_LABEL = {
   realtime: 'Realtime',
   storage: 'Storage',
   data: 'Data',
+  ai: 'AI / Intelligence',
+  ui: 'UI',
+  audio: 'Audio',
+  infrastructure: 'Infrastructure',
 };
 
-const colorOf = (n) => n.color || COLOR_BY_CATEGORY[n.category] || '#608090';
 const radiusOf = (n) => n.r ?? RADIUS_BY_IMPORTANCE[n.importance] ?? 12;
 const descOf = (n) => n.description || n.desc || '';
 
-export default function ArchitectureGraph({ nodes, edges }) {
+export default function ArchitectureGraph({ nodes, edges, categoryColors, accent = '#e8a040' }) {
+  const colorOf = (n) =>
+    n.color || categoryColors?.[n.category] || COLOR_BY_CATEGORY[n.category] || '#608090';
   const wrapRef = useRef(null);
   const svgRef = useRef(null);
   const zoomApi = useRef(null);
@@ -80,7 +90,7 @@ export default function ArchitectureGraph({ nodes, edges }) {
 
     // Legend — categories present.
     const cats = [...new Set(simNodes.map((n) => n.category).filter(Boolean))];
-    setLegendItems(cats.map((c) => ({ color: COLOR_BY_CATEGORY[c] || '#608090', label: CATEGORY_LABEL[c] || c })));
+    setLegendItems(cats.map((c) => ({ color: categoryColors?.[c] || COLOR_BY_CATEGORY[c] || '#608090', label: CATEGORY_LABEL[c] || c })));
 
     /* ---- SVG scaffold ------------------------------------------------- */
     svg.selectAll('*').remove();
@@ -130,7 +140,7 @@ export default function ArchitectureGraph({ nodes, edges }) {
       .append('text')
       .text((d) => d.label)
       .attr('text-anchor', 'middle')
-      .attr('fill', (d) => (d.importance === 'center' ? '#e8a040' : d._c))
+      .attr('fill', (d) => d._c)
       .attr('font-family', 'ui-monospace, "JetBrains Mono", monospace')
       .attr('font-size', (d) => (d.importance === 'center' ? 10 : 8))
       .attr('font-weight', (d) => (d.importance === 'center' ? 600 : 400))
@@ -388,13 +398,13 @@ export default function ArchitectureGraph({ nodes, edges }) {
             top: tip.flipY ? tip.y - 8 - 120 : tip.y - 8,
             maxWidth: '220px',
             background: '#07090e',
-            border: '0.5px solid #e8a040',
+            border: `0.5px solid ${accent}`,
             borderRadius: '6px',
             padding: '10px 14px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
           }}
         >
-          <div className="font-mono" style={{ fontSize: '10px', fontWeight: 600, color: '#e8a040', marginBottom: '6px' }}>
+          <div className="font-mono" style={{ fontSize: '10px', fontWeight: 600, color: accent, marginBottom: '6px' }}>
             {tip.label}
           </div>
           <div className="font-mono" style={{ fontSize: '10px', color: '#6080a0', lineHeight: 1.6 }}>
