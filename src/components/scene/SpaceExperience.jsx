@@ -56,6 +56,9 @@ const FLIGHT_CAM = [
   { p: 1.0, pos: [0, 5.5, -41], tgt: [0, 5.5, -52] }, // into the asteroid field
 ];
 
+const PLANET_CENTER = new THREE.Vector3(0, 0.5, -11);
+const DIVE_CAM_END = new THREE.Vector3(0.4, 0.7, -5.4); // planet fills the frame
+
 function CameraRig() {
   const { camera, pointer } = useThree();
   const phase = useStore((s) => s.phase);
@@ -64,6 +67,9 @@ function CameraRig() {
   const curTarget = useRef(new THREE.Vector3(0, -0.4, 0));
   const tmpPos = useMemo(() => new THREE.Vector3(), []);
   const tmpTgt = useMemo(() => new THREE.Vector3(), []);
+  const prevPhase = useRef(phase);
+  const entryT = useRef(0);
+  const diveFrom = useRef(new THREE.Vector3());
 
   const flightKeys = useMemo(() => toKeys(FLIGHT_CAM), []);
 
@@ -77,14 +83,31 @@ function CameraRig() {
     tmpTgt.lerpVectors(a.tgt, b.tgt, f);
   };
 
-  useFrame(() => {
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
     const flying = phase === 'flight';
     if (typeof window !== 'undefined') {
       window.__cam = camera;
       window.__phase = phase;
     }
 
-    if (flying) {
+    if (prevPhase.current !== phase) {
+      prevPhase.current = phase;
+      entryT.current = t;
+      if (phase === 'dive') diveFrom.current.copy(camera.position);
+    }
+
+    if (phase === 'dive') {
+      // Chase the plunge — push toward the planet until it swallows the frame.
+      const k = Math.min(1, (t - entryT.current) / 1.5);
+      const e = k * k;
+      camera.position.lerpVectors(diveFrom.current, DIVE_CAM_END, e);
+      curTarget.current.lerp(PLANET_CENTER, 0.12);
+      camera.lookAt(curTarget.current);
+      const fov = 50 + e * 18; // speed rush
+      camera.fov += (fov - camera.fov) * 0.2;
+      camera.updateProjectionMatrix();
+    } else if (flying) {
       sample(flightKeys, scrollState.progress);
       // Production lerp is a soft 0.1 (cinematic trailing). Tooling can set
       // window.__fastcam to snap for deterministic screenshots.

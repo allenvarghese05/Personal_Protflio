@@ -9,12 +9,17 @@
  */
 export const HERO_END = 0.4;
 
+// The space journey now ENDS at the orbit / name card — full scroll maps to
+// this fraction of the original camera path (the Engineering Station and
+// asteroid-belt shots beyond it are unreachable; that content lives on the
+// planet in Mission Control). From the name card, the TRAVEL button hands
+// over to the Big Bang dive + landing.
+export const JOURNEY_END = 0.4;
+
 // activeChapter index → [start, end] progress band the panel is visible.
-// Recruiter-first order: Engineering (work) before Origins (high school).
+// Band end sits past JOURNEY_END so the name card holds at full scroll.
 export const CHAPTER_BANDS = [
-  { ch: 1, start: 0.3, end: 0.43 }, // orbit / name card
-  { ch: 2, start: 0.48, end: 0.74 }, // Engineering Station (work)
-  { ch: 3, start: 0.8, end: 0.99 }, // Origins (asteroid belt)
+  { ch: 1, start: 0.3, end: 0.41 }, // orbit / name card (journey climax)
 ];
 
 export function chapterFor(progress) {

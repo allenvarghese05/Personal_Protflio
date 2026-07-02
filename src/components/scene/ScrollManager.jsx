@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import Lenis from 'lenis';
 import { useStore } from '@/lib/store';
 import { scrollState } from '@/lib/scrollState';
-import { chapterFor } from '@/lib/journey';
+import { chapterFor, JOURNEY_END } from '@/lib/journey';
 
 /**
  * Owns the Lenis smooth-scroll instance and bridges scroll → 3D flight.
@@ -38,13 +38,15 @@ export default function ScrollManager() {
       if (shouldRun && stopped) { lenis.start(); stopped = false; }
       else if (!shouldRun && !stopped) { lenis.stop(); stopped = true; }
 
-      // Progress straight from scroll position (bulletproof)
+      // Progress straight from scroll position (bulletproof). Full scroll
+      // maps to JOURNEY_END of the camera path — the journey climaxes and
+      // holds at the orbit/name-card shot instead of flying on past it.
       const docLimit =
         document.documentElement.scrollHeight - window.innerHeight || 1;
       const limit = lenis.limit || docLimit;
       const scroll = lenis.scroll != null ? lenis.scroll : window.scrollY;
       const p = Math.min(1, Math.max(0, scroll / limit));
-      scrollState.progress = p;
+      scrollState.progress = p * JOURNEY_END;
 
       const v = Math.min(1, Math.abs(lenis.velocity || 0) / 35);
       scrollState.velocity += (v - scrollState.velocity) * 0.12;
@@ -53,7 +55,7 @@ export default function ScrollManager() {
       if (phase === 'ready' && p > 0.004) setPhase('flight');
 
       // Which content panel is active (drives the overlays)
-      const ch = chapterFor(p);
+      const ch = chapterFor(scrollState.progress);
       if (ch !== activeChapter) setActiveChapter(ch);
 
       raf = requestAnimationFrame(loop);

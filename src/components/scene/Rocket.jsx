@@ -8,6 +8,8 @@ import { HERO_END } from '@/lib/journey';
 
 const PAD = new THREE.Vector3(0, -1.9, 1.5); // low on the launch pad (bottom of frame)
 const ROCKET_END = new THREE.Vector3(1.7, 3.3, -9); // climbs up-and-right into orbit, clear of the name card
+const DIVE_TARGET = new THREE.Vector3(0, 0.5, -11); // planet core — the Big Bang entry
+const UP = new THREE.Vector3(0, 1, 0);
 
 const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
@@ -103,6 +105,8 @@ export default function Rocket() {
   const phaseEntry = useRef(0);
   const lean = useRef(0); // smoothed bank, springs back when scrolling stops
   const pitch = useRef(0);
+  const diveFrom = useRef(new THREE.Vector3());
+  const diveQuat = useRef(new THREE.Quaternion());
 
   useFrame((state) => {
     const g = groupRef.current;
@@ -113,6 +117,13 @@ export default function Rocket() {
     if (prevPhase.current !== phase) {
       prevPhase.current = phase;
       phaseEntry.current = t;
+      if (phase === 'dive') {
+        // Capture launch point + the orientation that points the nose at the
+        // planet core (rocket's nose is its +Y axis).
+        diveFrom.current.copy(g.position);
+        const dir = DIVE_TARGET.clone().sub(g.position).normalize();
+        diveQuat.current.setFromUnitVectors(UP, dir);
+      }
     }
     const since = t - phaseEntry.current;
 
@@ -156,6 +167,13 @@ export default function Rocket() {
         PAD.z
       );
       g.rotation.z = Math.sin(t * 2) * 0.01;
+    } else if (phase === 'dive') {
+      // Big Bang entry — full burn, nose-first plunge into the planet core.
+      const k = Math.min(1, since / 1.5);
+      const e = k * k; // accelerating
+      g.position.lerpVectors(diveFrom.current, DIVE_TARGET, e);
+      g.quaternion.slerp(diveQuat.current, 0.12);
+      thrust = 1.3;
     } else {
       // flight — rocket arcs up-and-right into orbit within the hero portion,
       // then parks there (the camera flies on through the chapters). It banks

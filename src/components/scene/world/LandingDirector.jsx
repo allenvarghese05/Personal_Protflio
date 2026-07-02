@@ -11,7 +11,7 @@ import { worldState } from '@/lib/worldState';
  *   Beat 4 — lights ramp from 0 → normal (worldState.reveal, 600ms)
  *   Beat 6 — Fortnite drop: altitude 50 → 0, bounce.out (starts +500ms)
  *   Beat 7 — touchdown: dust-puff Points + camera shake impulse
- * IntroSequence owns the DOM beats (flash, letterbox, welcome, handoff).
+ * BigBangTransition owns the DOM beats (flash, shockwave, welcome, handoff).
  */
 const DUST_COUNT = 8;
 const DUST_LIFE = 0.4;

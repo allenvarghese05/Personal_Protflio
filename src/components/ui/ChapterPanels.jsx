@@ -29,6 +29,7 @@ const fade = {
 
 /** Chapter 1 — the orbit / name card (centered hero climax). */
 function NameCard() {
+  const setPhase = useStore((s) => s.setPhase);
   return (
     <motion.div
       {...fade}
@@ -77,6 +78,18 @@ function NameCard() {
         >
           {identity.tagline}
         </motion.p>
+
+        {/* The handoff — leave orbit and drop onto the planet */}
+        <motion.div variants={item} className="pointer-events-auto mt-10">
+          <button
+            onClick={() => setPhase('dive')}
+            className="group glass glass-glow flex items-center gap-3 rounded-full border border-[var(--gold)]/40 px-8 py-3.5 font-mono text-xs font-semibold tracking-[0.25em] text-[var(--gold)] transition-all duration-300 hover:scale-[1.05] hover:border-[var(--gold)]"
+            style={{ textShadow: '0 0 14px rgba(245,181,68,0.55)' }}
+          >
+            TRAVEL TO ALLEN&apos;S WORLD
+            <span className="transition-transform duration-300 group-hover:translate-x-1.5">→</span>
+          </button>
+        </motion.div>
       </motion.div>
     </motion.div>
   );
@@ -148,12 +161,14 @@ function ChapterCard({ data }) {
 
 export default function ChapterPanels() {
   const active = useStore((s) => s.activeChapter);
+  const phase = useStore((s) => s.phase);
   const engineering = chapters.find((c) => c.index === 2);
   const origins = chapters.find((c) => c.index === 3);
 
   return (
     <AnimatePresence mode="wait">
-      {active === 1 && <NameCard key="name" />}
+      {/* The card fades out the moment the dive begins */}
+      {active === 1 && phase !== 'dive' && <NameCard key="name" />}
       {active === 2 && engineering && (
         <ChapterCard key="engineering" data={engineering} />
       )}

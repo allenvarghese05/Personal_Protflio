@@ -7,7 +7,9 @@ import MemoryCard from '@/components/ui/MemoryCard';
 import StaticHero from '@/components/fallback/StaticHero';
 import ScrollManager from '@/components/scene/ScrollManager';
 import SpaceExperience from '@/components/scene/SpaceExperience';
-import JourneyExperience from '@/components/journey/JourneyExperience';
+import WorldExperience from '@/components/scene/world/WorldExperience';
+import MissionControl from '@/components/ui/MissionControl';
+import BigBangTransition, { ControlHint } from '@/components/journey/BigBangTransition';
 
 // NOTE: SpaceExperience is imported statically (not next/dynamic) so it
 // shares the SAME store + scrollState module instances as ScrollManager
@@ -39,15 +41,32 @@ function detectTier() {
   return 'base';
 }
 
+/**
+ * THE journey: launch cinematic → scroll ascent → orbit / name card →
+ * TRAVEL TO ALLEN'S WORLD → Big Bang dive → astronaut drop → walkable world
+ * (Mission Control). One-way — landing is the point of no return.
+ * /?world=1 skips straight to the surface (dev / direct access).
+ */
 export default function Home() {
   const [mounted, setMounted] = useState(false);
+  const [isWorldRoute, setIsWorldRoute] = useState(false);
   const tier = useStore((s) => s.tier);
   const setTier = useStore((s) => s.setTier);
+  const journeyPhase = useStore((s) => s.journeyPhase);
+  const setJourneyPhase = useStore((s) => s.setJourneyPhase);
 
   useEffect(() => {
     setTier(detectTier());
+    const isWorld = new URLSearchParams(window.location.search).has('world');
+    setIsWorldRoute(isWorld);
+    setJourneyPhase(isWorld ? 'world' : 'intro');
     setMounted(true);
-  }, [setTier]);
+  }, [setTier, setJourneyPhase]);
+
+  // Debug/test hook — lets tooling observe the journey phase.
+  useEffect(() => {
+    if (mounted) window.__jp = journeyPhase;
+  }, [mounted, journeyPhase]);
 
   // Avoid hydration flash — render nothing until tier is known
   if (!mounted) {
@@ -59,32 +78,39 @@ export default function Home() {
     return <StaticHero />;
   }
 
-  // Allen's World journey: rocket approach → Big Bang entry → walkable world.
-  // /?world=1 plays the full intro; add &skip=1 to jump straight to the surface.
-  if (
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).has('world')
-  ) {
-    const skip = new URLSearchParams(window.location.search).has('skip');
-    return (
-      <main className="relative bg-[var(--void)]">
-        <JourneyExperience skipIntro={skip} />
-      </main>
-    );
+  const world = (
+    <>
+      <WorldExperience />
+      <MissionControl />
+    </>
+  );
+
+  // Direct surface access — no space intro
+  if (isWorldRoute) {
+    return <main className="relative bg-[var(--void)]">{world}</main>;
   }
 
-  // Enhanced / full: scroll-driven launch → orbital reveal
   return (
     <main className="relative bg-[var(--void)]">
-      {/* Fixed 3D layer + overlays */}
-      <SpaceExperience tier={tier} />
-      <LoadingScreen />
-      <ChapterPanels />
-      <MemoryCard />
-      <ScrollManager />
+      {journeyPhase === 'intro' ? (
+        <>
+          {/* Fixed 3D layer + overlays */}
+          <SpaceExperience tier={tier} />
+          <LoadingScreen />
+          <ChapterPanels />
+          <MemoryCard />
+          <ScrollManager />
 
-      {/* Scroll runway — distance that scrubs the whole journey (hero + chapters) */}
-      <div aria-hidden style={{ height: '700vh' }} />
+          {/* Scroll runway — the ascent climaxes at the orbit / name card */}
+          <div aria-hidden style={{ height: '320vh' }} />
+        </>
+      ) : (
+        world
+      )}
+
+      {/* Big Bang overlays persist across the intro → landing swap */}
+      {journeyPhase !== 'world' && <BigBangTransition />}
+      {journeyPhase === 'world' && <ControlHint />}
     </main>
   );
 }
