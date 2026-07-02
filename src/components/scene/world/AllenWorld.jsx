@@ -403,13 +403,26 @@ export function District({ id, position = [10, 0, 0], color = '#ff8a3d', label =
    the "you've arrived somewhere with life" payoff after cold deep space.
 ---------------------------------------------------------------------------- */
 function WorldLighting() {
+  // Base intensities scaled by worldState.reveal — 1 in normal play, tweened
+  // 0 → 1 while the world materialises out of the Act 3 white flash.
+  const hemi = useRef();
+  const key = useRef();
+  const rim = useRef();
+  const amb = useRef();
+  useFrame(() => {
+    const r = worldState.reveal;
+    if (hemi.current) hemi.current.intensity = 1.05 * r;
+    if (key.current) key.current.intensity = 2.1 * r;
+    if (rim.current) rim.current.intensity = 0.5 * r;
+    if (amb.current) amb.current.intensity = 0.28 * r;
+  });
   return (
     <>
-      <hemisphereLight args={['#7a64b0', '#d59a55', 1.05]} />
-      <directionalLight position={[14, 20, 8]} intensity={2.1} color="#ffe6c2" castShadow />
+      <hemisphereLight ref={hemi} args={['#7a64b0', '#d59a55', 1.05]} />
+      <directionalLight ref={key} position={[14, 20, 8]} intensity={2.1} color="#ffe6c2" castShadow />
       {/* Cool rim from the opposite side to model the cel forms */}
-      <directionalLight position={[-12, 8, -10]} intensity={0.5} color="#6a78c8" />
-      <ambientLight intensity={0.28} color="#b89a7a" />
+      <directionalLight ref={rim} position={[-12, 8, -10]} intensity={0.5} color="#6a78c8" />
+      <ambientLight ref={amb} intensity={0.28} color="#b89a7a" />
     </>
   );
 }

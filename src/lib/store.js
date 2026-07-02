@@ -51,4 +51,11 @@ export const useStore = create((set) => ({
   // and dims/blurs the world behind it (null = out in the world).
   enteredZone: null,
   setEnteredZone: (enteredZone) => set({ enteredZone }),
+
+  // The intro → landing → explore arc on the world route:
+  //   'intro'   — scroll-driven rocket approach (Acts 1–2) + Big Bang (Act 3)
+  //   'landing' — world visible, astronaut dropping in (control locked)
+  //   'world'   — full player control
+  journeyPhase: 'world',
+  setJourneyPhase: (journeyPhase) => set({ journeyPhase }),
 }));

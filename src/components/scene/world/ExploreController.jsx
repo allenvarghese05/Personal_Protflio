@@ -49,6 +49,8 @@ export default function ExploreController({ astronautRef, moving }) {
     let down = null; // { x, y, t, dragging }
 
     const onDown = (e) => {
+      // No control until the landing cinematic hands off
+      if (useStore.getState().journeyPhase !== 'world') return;
       down = { x: e.clientX, y: e.clientY, t: performance.now(), drag: 0 };
     };
     const onMove = (e) => {
@@ -83,6 +85,7 @@ export default function ExploreController({ astronautRef, moving }) {
     const onKey = (e) => {
       if (e.key !== 'e' && e.key !== 'E') return;
       const s = useStore.getState();
+      if (s.journeyPhase !== 'world') return;
       if (s.nearZone && !s.enteredZone) s.setEnteredZone(s.nearZone);
     };
 
@@ -205,10 +208,11 @@ export default function ExploreController({ astronautRef, moving }) {
     if (!pivoting.current)
       worldState.azimuth = lerpAngle(worldState.azimuth, worldState.azimuthTarget, azK);
 
-    // Apply to astronaut (smooth heading)
+    // Apply to astronaut (smooth heading). `altitude` is the Act 3 drop —
+    // zero in normal play, tweened 50 → 0 by LandingDirector.
     const a = astronautRef.current;
     if (a) {
-      a.position.copy(p);
+      a.position.set(p.x, p.y + worldState.altitude, p.z);
       a.rotation.y = lerpAngle(a.rotation.y, worldState.heading, 0.18);
     }
 
@@ -222,8 +226,9 @@ export default function ExploreController({ astronautRef, moving }) {
 
     // Look target: the astronaut normally; biased toward the district (and up
     // toward the prompt) once inside the trigger so the cluster is framed.
+    // During the Act 3 drop the camera tilts up to follow the fall.
     let lx = p.x;
-    let ly = p.y + 1.3;
+    let ly = p.y + 1.3 + worldState.altitude * 0.7;
     let lz = p.z;
     if (insidePos.current) {
       lx = THREE.MathUtils.lerp(p.x, insidePos.current[0], 0.45);
@@ -234,10 +239,18 @@ export default function ExploreController({ astronautRef, moving }) {
       lookAt.current.set(lx, ly, lz);
       lookInit.current = true;
     }
-    lookAt.current.x += (lx - lookAt.current.x) * camK;
-    lookAt.current.y += (ly - lookAt.current.y) * camK;
-    lookAt.current.z += (lz - lookAt.current.z) * camK;
+    const lookK = worldState.altitude > 0.01 ? 0.25 : camK;
+    lookAt.current.x += (lx - lookAt.current.x) * lookK;
+    lookAt.current.y += (ly - lookAt.current.y) * lookK;
+    lookAt.current.z += (lz - lookAt.current.z) * lookK;
     camera.lookAt(lookAt.current);
+
+    // Touchdown shake — a decaying random impulse fired by LandingDirector
+    if (worldState.shake > 0.001) {
+      camera.position.x += (Math.random() - 0.5) * 0.14 * worldState.shake;
+      camera.position.y += (Math.random() - 0.5) * 0.1 * worldState.shake;
+      worldState.shake *= 0.86;
+    }
 
     // Zone proximity → drives the ENTER prompt
     let near = null;

@@ -5,6 +5,7 @@ import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import AllenWorld from './AllenWorld';
 import Astronaut from './Astronaut';
 import ExploreController from './ExploreController';
+import LandingDirector from './LandingDirector';
 import { useStore } from '@/lib/store';
 
 /**
@@ -16,6 +17,7 @@ export default function WorldExperience() {
   const astronautRef = useRef();
   const moving = useRef(false);
   const entered = useStore((s) => s.enteredZone);
+  const landing = useStore((s) => s.journeyPhase) === 'landing';
   return (
     <div
       className="fixed inset-0 z-0 transition-[filter,transform] duration-[400ms] ease-out"
@@ -37,6 +39,7 @@ export default function WorldExperience() {
           <Astronaut ref={astronautRef} moving={moving} />
         </Suspense>
         <ExploreController astronautRef={astronautRef} moving={moving} />
+        {landing && <LandingDirector />}
         <EffectComposer multisampling={4}>
           <Bloom intensity={0.6} luminanceThreshold={0.6} luminanceSmoothing={0.3} mipmapBlur />
           <Vignette offset={0.3} darkness={0.55} />

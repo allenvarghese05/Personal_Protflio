@@ -15,4 +15,11 @@ export const worldState = {
   heading: 0, // facing angle (radians)
   azimuth: 0, // smoothed camera orbit angle around the astronaut
   azimuthTarget: 0, // drag updates this; azimuth damps toward it
+
+  // Landing cinematic (Act 3): the astronaut drops in from `altitude` while
+  // `reveal` fades the world lighting up from black; `shake` is a decaying
+  // camera impulse fired on touchdown. All 1/0 in normal play.
+  altitude: 0, // extra Y offset above the ground (Fortnite drop)
+  reveal: 1, // 0→1 multiplier on the world lights
+  shake: 0, // camera shake impulse, decays each frame
 };

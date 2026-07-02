@@ -7,8 +7,7 @@ import MemoryCard from '@/components/ui/MemoryCard';
 import StaticHero from '@/components/fallback/StaticHero';
 import ScrollManager from '@/components/scene/ScrollManager';
 import SpaceExperience from '@/components/scene/SpaceExperience';
-import WorldExperience from '@/components/scene/world/WorldExperience';
-import MissionControl from '@/components/ui/MissionControl';
+import JourneyExperience from '@/components/journey/JourneyExperience';
 
 // NOTE: SpaceExperience is imported statically (not next/dynamic) so it
 // shares the SAME store + scrollState module instances as ScrollManager
@@ -60,15 +59,16 @@ export default function Home() {
     return <StaticHero />;
   }
 
-  // Dev preview of Allen's World (Act 4) in isolation: /?world=1
+  // Allen's World journey: rocket approach → Big Bang entry → walkable world.
+  // /?world=1 plays the full intro; add &skip=1 to jump straight to the surface.
   if (
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).has('world')
   ) {
+    const skip = new URLSearchParams(window.location.search).has('skip');
     return (
       <main className="relative bg-[var(--void)]">
-        <WorldExperience />
-        <MissionControl />
+        <JourneyExperience skipIntro={skip} />
       </main>
     );
   }
