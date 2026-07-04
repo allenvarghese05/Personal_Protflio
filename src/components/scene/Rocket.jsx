@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { useStore } from '@/lib/store';
 import { scrollState } from '@/lib/scrollState';
 import { HERO_END } from '@/lib/journey';
+import { ENTRY } from '@/lib/entrySequence';
 
 const PAD = new THREE.Vector3(0, -1.9, 1.5); // low on the launch pad (bottom of frame)
 const ROCKET_END = new THREE.Vector3(1.7, 3.3, -9); // climbs up-and-right into orbit, clear of the name card
@@ -168,12 +169,14 @@ export default function Rocket() {
       );
       g.rotation.z = Math.sin(t * 2) * 0.01;
     } else if (phase === 'dive') {
-      // Big Bang entry — full burn, nose-first plunge into the planet core.
-      const k = Math.min(1, since / 1.5);
+      // Big Bang entry — hold through the stillness/stir, then nose over and
+      // plunge into the planet core at full burn, just ahead of the camera.
+      const noseOver = since > ENTRY.ACCEL - 0.4;
+      const k = THREE.MathUtils.clamp((since - ENTRY.ACCEL) / (ENTRY.ACCEL_DUR - 0.4), 0, 1);
       const e = k * k; // accelerating
       g.position.lerpVectors(diveFrom.current, DIVE_TARGET, e);
-      g.quaternion.slerp(diveQuat.current, 0.12);
-      thrust = 1.3;
+      if (noseOver) g.quaternion.slerp(diveQuat.current, 0.1);
+      thrust = Math.min(1.3, 0.55 + e * 1.2);
     } else {
       // flight — rocket arcs up-and-right into orbit within the hero portion,
       // then parks there (the camera flies on through the chapters). It banks

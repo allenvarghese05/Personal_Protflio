@@ -20,8 +20,10 @@ import LaunchSmoke from './LaunchSmoke';
 import EngineeringStation from './EngineeringStation';
 import AsteroidBelt from './AsteroidBelt';
 import Nebula from './Nebula';
+import { WarpTunnel, PlanetStir, EntryDistortion } from './EntryEffects';
 import { useStore } from '@/lib/store';
 import { scrollState } from '@/lib/scrollState';
+import { ENTRY, entryState, resetEntryState } from '@/lib/entrySequence';
 
 const smooth = (a, b, t) => {
   const x = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1);
@@ -57,7 +59,6 @@ const FLIGHT_CAM = [
 ];
 
 const PLANET_CENTER = new THREE.Vector3(0, 0.5, -11);
-const DIVE_CAM_END = new THREE.Vector3(0.4, 0.7, -5.4); // planet fills the frame
 
 function CameraRig() {
   const { camera, pointer } = useThree();
@@ -69,7 +70,7 @@ function CameraRig() {
   const tmpTgt = useMemo(() => new THREE.Vector3(), []);
   const prevPhase = useRef(phase);
   const entryT = useRef(0);
-  const diveFrom = useRef(new THREE.Vector3());
+  const diveCurve = useRef(null);
 
   const flightKeys = useMemo(() => toKeys(FLIGHT_CAM), []);
 
@@ -94,19 +95,50 @@ function CameraRig() {
     if (prevPhase.current !== phase) {
       prevPhase.current = phase;
       entryT.current = t;
-      if (phase === 'dive') diveFrom.current.copy(camera.position);
+      if (phase === 'dive') {
+        // The gravity fall — not a straight zoom. A comet path: drift out and
+        // up first (weightless), then get pulled in, violently, at the end.
+        resetEntryState();
+        entryState.active = true;
+        const s = camera.position.clone();
+        diveCurve.current = new THREE.CatmullRomCurve3([
+          s,
+          s.clone().add(new THREE.Vector3(-1.4, 0.9, -0.9)),
+          new THREE.Vector3(0.7, 0.9, -6.2),
+          new THREE.Vector3(0.18, 0.62, -9.0),
+          new THREE.Vector3(0, 0.5, -10.3), // inside the atmosphere shell
+        ]);
+      }
     }
 
     if (phase === 'dive') {
-      // Chase the plunge — push toward the planet until it swallows the frame.
-      const k = Math.min(1, (t - entryT.current) / 1.5);
+      const since = t - entryT.current;
+      entryState.t = since;
+
+      // Act A — the planet stirs (equator ring, atmosphere charge, lens)
+      entryState.stir = THREE.MathUtils.clamp((since - ENTRY.STIR) / 0.8, 0, 1);
+      entryState.lens =
+        THREE.MathUtils.clamp((since - ENTRY.STIR) / 1.5, 0, 1) * 0.008 +
+        entryState.warp * 0.01;
+
+      // Act B — the pull. power2.in: slow drift, then it has you.
+      const k = THREE.MathUtils.clamp((since - ENTRY.ACCEL) / ENTRY.ACCEL_DUR, 0, 1);
       const e = k * k;
-      camera.position.lerpVectors(diveFrom.current, DIVE_CAM_END, e);
-      curTarget.current.lerp(PLANET_CENTER, 0.12);
+      entryState.warp = Math.pow(k, 1.5);
+      entryState.heat = THREE.MathUtils.clamp((since - ENTRY.HEAT) / (ENTRY.FLASH - ENTRY.HEAT), 0, 1);
+
+      if (diveCurve.current && k > 0) diveCurve.current.getPoint(e, camera.position);
+      curTarget.current.lerp(PLANET_CENTER, 0.04 + entryState.stir * 0.1);
       camera.lookAt(curTarget.current);
-      const fov = 50 + e * 18; // speed rush
+      // low-frequency rumble grows with the pull
+      camera.rotation.z += Math.sin(t * 47) * 0.004 * entryState.warp;
+
+      const fov = 50 + e * 24; // speed rush
       camera.fov += (fov - camera.fov) * 0.2;
       camera.updateProjectionMatrix();
+
+      // ride the existing speed-reactive bloom + chromatic aberration
+      scrollState.velocity = entryState.warp * 1.1 + entryState.heat * 0.6;
     } else if (flying) {
       sample(flightKeys, scrollState.progress);
       // Production lerp is a soft 0.1 (cinematic trailing). Tooling can set
@@ -227,6 +259,9 @@ export default function SpaceExperience({ tier = 'full' }) {
         <LaunchSmoke />
         <EngineeringStation />
         <AsteroidBelt />
+        {/* World-entry cinematic FX (inert until the dive) */}
+        <PlanetStir />
+        <WarpTunnel />
       </Suspense>
 
       <CameraRig />
@@ -252,6 +287,8 @@ export default function SpaceExperience({ tier = 'full' }) {
             <BrightnessContrast brightness={0.0} contrast={0.1} />
             <Vignette eskil={false} offset={0.28} darkness={0.82} />
             <Noise opacity={0.04} blendFunction={BlendFunction.OVERLAY} />
+            {/* gravitational lens + heat shimmer (identity until the dive) */}
+            <EntryDistortion />
           </EffectComposer>
         </>
       )}

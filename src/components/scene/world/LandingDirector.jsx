@@ -4,48 +4,90 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { worldState } from '@/lib/worldState';
+import { ENTRY } from '@/lib/entrySequence';
 
 /**
- * World-side beats of the Act 3 landing (mounted the moment the white flash
- * hands over to the world canvas):
- *   Beat 4 — lights ramp from 0 → normal (worldState.reveal, 600ms)
- *   Beat 6 — Fortnite drop: altitude 50 → 0, bounce.out (starts +500ms)
- *   Beat 7 — touchdown: dust-puff Points + camera shake impulse
- * BigBangTransition owns the DOM beats (flash, shockwave, welcome, handoff).
+ * World-side beats of the arrival (mounted the moment the white flash hands
+ * over to the world canvas):
+ *   · the world materialises — lights ramp 0 → 1 over 1.2s
+ *   · the drop — a re-entry streak falls out of the sky and becomes the
+ *     astronaut: gravity fall (power2.in) chained into a landing bounce
+ *   · impact — hemisphere dust burst, ground shockwave ripple, diminishing
+ *     camera shake, synthesized thud
+ * BigBangTransition owns the DOM beats (flash, letterbox, titles, handoff).
  */
-const DUST_COUNT = 8;
-const DUST_LIFE = 0.4;
+
+const DUST = [
+  { count: 9, size: 0.32, speed: 2.6 }, // heavy clods, low and wide
+  { count: 7, size: 0.14, speed: 3.6 }, // fine spray, higher arcs
+];
+const DUST_LIFE = 0.8;
+
+function thud() {
+  try {
+    const ctx = window.__entryAudio;
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.setValueAtTime(80, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 0.3);
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5);
+  } catch {}
+}
 
 export default function LandingDirector() {
-  const dustRef = useRef();
-  const dustMatRef = useRef();
+  const streakRef = useRef();
+  const rippleRef = useRef();
+  const dustRefs = useRef([]);
+  const dustMats = useRef([]);
   const dustT = useRef(-1); // <0 = inactive; else seconds since impact
+  const impactAt = useRef(new THREE.Vector3());
 
-  const { positions, dirs } = useMemo(() => {
-    const positions = new Float32Array(DUST_COUNT * 3);
-    const dirs = [];
-    for (let i = 0; i < DUST_COUNT; i++) {
-      const a = (i / DUST_COUNT) * Math.PI * 2;
-      dirs.push(new THREE.Vector3(Math.cos(a), 0.25 + Math.random() * 0.3, Math.sin(a)));
-    }
-    return { positions, dirs };
-  }, []);
+  const clusters = useMemo(
+    () =>
+      DUST.map((c) => {
+        const positions = new Float32Array(c.count * 3);
+        const dirs = [];
+        for (let i = 0; i < c.count; i++) {
+          // full hemisphere: some straight up, most outward
+          const a = (i / c.count) * Math.PI * 2 + Math.random() * 0.5;
+          const up = 0.2 + Math.random() * 0.8;
+          const out = Math.sqrt(Math.max(0.05, 1 - up * up));
+          dirs.push(new THREE.Vector3(Math.cos(a) * out, up, Math.sin(a) * out));
+        }
+        return { ...c, positions, dirs };
+      }),
+    []
+  );
 
   useEffect(() => {
-    // Beat 4 — the world materialises out of the dark
-    const reveal = gsap.to(worldState, { reveal: 1, duration: 0.6, ease: 'power2.out' });
-    // Beat 6 — the drop (freefall, bounce handled by the ease)
-    const drop = gsap.to(worldState, {
+    // The world materialises out of the dark
+    const reveal = gsap.to(worldState, { reveal: 1, duration: 1.2, ease: 'power2.out' });
+
+    // The drop — gravity, then the bounce. Two eases, chained.
+    const drop = gsap.timeline({ delay: ENTRY.DROP_DELAY });
+    drop.to(worldState, { altitude: 2.2, duration: ENTRY.FALL_MAIN, ease: 'power2.in' });
+    drop.to(worldState, {
       altitude: 0,
-      duration: 1.2,
-      delay: 0.5,
+      duration: ENTRY.FALL_BOUNCE,
       ease: 'bounce.out',
-      onComplete: () => {
-        // Beat 7 — impact
-        worldState.shake = 1;
-        dustT.current = 0;
+      onStart: () => {
+        // impact happens at the first ground contact of the bounce ease
       },
     });
+    drop.call(() => {
+      // IMPACT
+      impactAt.current.copy(worldState.pos);
+      worldState.shake = 1.5; // big jolt; the rig decays it in diminishing steps
+      dustT.current = 0;
+      thud();
+    }, null, ENTRY.FALL_MAIN + 0.06); // as the bounce first kisses the ground
+
     return () => {
       reveal.kill();
       drop.kill();
@@ -54,40 +96,95 @@ export default function LandingDirector() {
     };
   }, []);
 
-  useFrame((_, delta) => {
-    if (dustT.current < 0 || !dustRef.current) return;
+  useFrame((state, delta) => {
+    // Re-entry streak — the astronaut materialises out of a falling star
+    if (streakRef.current) {
+      const alt = worldState.altitude;
+      const falling = alt > 1.5;
+      streakRef.current.visible = falling;
+      if (falling) {
+        const p = worldState.pos;
+        streakRef.current.position.set(p.x, alt + 4.2, p.z);
+        // fades in near the top of the fall, thins as it descends
+        const born = THREE.MathUtils.clamp((60 - alt) / 10, 0, 1);
+        const dying = THREE.MathUtils.clamp(alt / 18, 0, 1);
+        streakRef.current.material.opacity = born * (0.25 + dying * 0.45);
+      }
+    }
+
+    // Ground shockwave ripple
+    if (rippleRef.current && dustT.current >= 0) {
+      const k = Math.min(dustT.current / 0.6, 1);
+      rippleRef.current.visible = k < 1;
+      const r = 0.2 + k * 8;
+      rippleRef.current.scale.set(r, r, r);
+      rippleRef.current.material.opacity = 0.45 * (1 - k);
+      rippleRef.current.position.set(impactAt.current.x, 0.03, impactAt.current.z);
+    }
+
+    // Dust burst
+    if (dustT.current < 0) return;
     dustT.current += delta;
     const k = Math.min(dustT.current / DUST_LIFE, 1);
-    const p = worldState.pos;
-    for (let i = 0; i < DUST_COUNT; i++) {
-      const d = dirs[i];
-      const r = 0.15 + k * 1.1;
-      positions[i * 3] = p.x + d.x * r;
-      positions[i * 3 + 1] = 0.06 + d.y * k * 0.8;
-      positions[i * 3 + 2] = p.z + d.z * r;
-    }
-    dustRef.current.geometry.attributes.position.needsUpdate = true;
-    if (dustMatRef.current) {
-      dustMatRef.current.size = 0.05 + k * 0.3;
-      dustMatRef.current.opacity = 0.8 * (1 - k);
-    }
+    const ease = 1 - Math.pow(1 - k, 2); // ease-out
+    clusters.forEach((c, ci) => {
+      const geo = dustRefs.current[ci];
+      if (!geo) return;
+      for (let i = 0; i < c.count; i++) {
+        const d = c.dirs[i];
+        const r = ease * c.speed;
+        c.positions[i * 3] = impactAt.current.x + d.x * r;
+        c.positions[i * 3 + 1] = 0.05 + d.y * r * (1 - k * 0.7); // arcs fall back
+        c.positions[i * 3 + 2] = impactAt.current.z + d.z * r;
+      }
+      geo.attributes.position.needsUpdate = true;
+      const m = dustMats.current[ci];
+      if (m) {
+        m.size = c.size * (0.4 + ease * 0.8);
+        m.opacity = 0.85 * (1 - k);
+      }
+    });
     if (k >= 1) dustT.current = -1;
   });
 
   return (
-    <points ref={dustRef} frustumCulled={false}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial
-        ref={dustMatRef}
-        color="#caa15e"
-        size={0}
-        sizeAttenuation
-        transparent
-        opacity={0}
-        depthWrite={false}
-      />
-    </points>
+    <group>
+      {/* re-entry contrail above the falling astronaut */}
+      <mesh ref={streakRef} visible={false}>
+        <cylinderGeometry args={[0.02, 0.09, 8, 8, 1, true]} />
+        <meshBasicMaterial
+          color="#ffd9a0"
+          transparent
+          opacity={0}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* impact shockwave through the ground */}
+      <mesh ref={rippleRef} visible={false} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.85, 1, 48]} />
+        <meshBasicMaterial color="#e8c896" transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* hemisphere dust burst — two clusters for varied grain */}
+      {clusters.map((c, ci) => (
+        <points key={ci} frustumCulled={false}>
+          <bufferGeometry ref={(el) => el && (dustRefs.current[ci] = el)}>
+            <bufferAttribute attach="attributes-position" args={[c.positions, 3]} />
+          </bufferGeometry>
+          <pointsMaterial
+            ref={(el) => el && (dustMats.current[ci] = el)}
+            color="#b98a5c"
+            size={0}
+            sizeAttenuation
+            transparent
+            opacity={0}
+            depthWrite={false}
+          />
+        </points>
+      ))}
+    </group>
   );
 }

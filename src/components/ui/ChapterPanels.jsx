@@ -1,8 +1,13 @@
 'use client';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import gsap from 'gsap';
+import { SplitText } from 'gsap/SplitText';
 import { useStore } from '@/lib/store';
 import { identity, chapters } from '@/data/timeline';
 import { AsciiGlitchRipple } from '@/components/ui/AsciiGlitchRipple';
+
+if (typeof window !== 'undefined') gsap.registerPlugin(SplitText);
 
 const EASE = [0.22, 1, 0.36, 1];
 const container = {
@@ -30,6 +35,61 @@ const fade = {
 /** Chapter 1 — the orbit / name card (centered hero climax). */
 function NameCard() {
   const setPhase = useStore((s) => s.setPhase);
+  const [label, setLabel] = useState("TRAVEL TO ALLEN'S WORLD");
+  const firing = useRef(false);
+  const badgeRef = useRef(null);
+  const nameRef = useRef(null);
+  const kickerRef = useRef(null);
+  const taglineRef = useRef(null);
+  const btnRef = useRef(null);
+  const btnRowRef = useRef(null);
+
+  /** Beat 0 — lock-on, then the name scatters into the void. */
+  const initiateWorldEntry = () => {
+    if (firing.current) return;
+    firing.current = true;
+
+    // Unlock audio on the user gesture — the sequence synthesizes its own
+    // rumble/crack/thud through this context.
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AC();
+      ctx.resume();
+      window.__entryAudio = ctx;
+    } catch {
+      /* sound is optional */
+    }
+
+    // Lock-on: border flash + INITIATING...
+    btnRef.current?.classList.add('entry-lockon');
+    setLabel('INITIATING...');
+
+    const tl = gsap.timeline({ onComplete: () => setPhase('dive') });
+    // The name scatters upward, character by character
+    try {
+      const split = new SplitText(nameRef.current, { type: 'chars' });
+      tl.to(
+        split.chars,
+        {
+          x: () => gsap.utils.random(-40, 40),
+          y: -80,
+          opacity: 0,
+          duration: 0.4,
+          stagger: 0.02,
+          ease: 'power2.in',
+        },
+        0.15
+      );
+    } catch {
+      tl.to(nameRef.current, { opacity: 0, y: -40, duration: 0.4 }, 0.15);
+    }
+    tl.to(taglineRef.current, { opacity: 0, y: -20, duration: 0.3 }, 0.15);
+    tl.to(badgeRef.current, { opacity: 0, duration: 0.2 }, 0.3);
+    tl.to(kickerRef.current, { opacity: 0, duration: 0.2 }, 0.35);
+    tl.to(btnRowRef.current, { opacity: 0, duration: 0.2 }, 0.4);
+    tl.to({}, { duration: 0.2 }); // beat of stillness before the dive clock starts
+  };
+
   return (
     <motion.div
       {...fade}
@@ -43,6 +103,7 @@ function NameCard() {
         className="relative flex flex-col items-center"
       >
         <motion.div
+          ref={badgeRef}
           variants={item}
           className="glass glass-glow mb-8 flex items-center gap-2.5 rounded-full px-5 py-2"
         >
@@ -53,6 +114,7 @@ function NameCard() {
         </motion.div>
 
         <motion.h1
+          ref={nameRef}
           variants={item}
           className="font-display text-5xl font-bold leading-[1.05] tracking-tight text-shadow-soft sm:text-7xl lg:text-8xl"
         >
@@ -61,7 +123,7 @@ function NameCard() {
           <span className="text-[var(--text-primary)]">Varghese</span>
         </motion.h1>
 
-        <motion.div variants={item} className="mt-6">
+        <motion.div ref={kickerRef} variants={item} className="mt-6">
           <AsciiGlitchRipple
             as="div"
             autoStart
@@ -73,22 +135,40 @@ function NameCard() {
         </motion.div>
 
         <motion.p
+          ref={taglineRef}
           variants={item}
           className="mt-4 max-w-xl text-base text-[var(--text-secondary)] text-shadow-soft sm:text-lg"
         >
           {identity.tagline}
         </motion.p>
 
-        {/* The handoff — leave orbit and drop onto the planet */}
-        <motion.div variants={item} className="pointer-events-auto mt-10">
+        {/* The portal — a targeting reticle, not a link */}
+        <motion.div
+          ref={btnRowRef}
+          variants={item}
+          className="pointer-events-auto mt-10 flex items-center gap-3"
+        >
           <button
-            onClick={() => setPhase('dive')}
-            className="group glass glass-glow flex items-center gap-3 rounded-full border border-[var(--gold)]/40 px-8 py-3.5 font-mono text-xs font-semibold tracking-[0.25em] text-[var(--gold)] transition-all duration-300 hover:scale-[1.05] hover:border-[var(--gold)]"
-            style={{ textShadow: '0 0 14px rgba(245,181,68,0.55)' }}
+            ref={btnRef}
+            onClick={initiateWorldEntry}
+            className="entry-btn group relative flex flex-col items-center justify-center border border-[#e8a040] bg-transparent transition-shadow duration-300 hover:shadow-[0_0_12px_rgba(232,160,64,0.4)]"
+            style={{ width: '280px', height: '52px' }}
           >
-            TRAVEL TO ALLEN&apos;S WORLD
-            <span className="transition-transform duration-300 group-hover:translate-x-1.5">→</span>
+            <span className="entry-corner tl" />
+            <span className="entry-corner tr" />
+            <span className="entry-corner bl" />
+            <span className="entry-corner br" />
+            <span className="font-mono text-[11px] font-semibold tracking-[0.2em] text-[#e8a040] transition-colors duration-200 group-hover:text-[#f0c060]">
+              {label}
+            </span>
+            <span
+              className="pointer-events-none absolute bottom-[5px] font-mono uppercase opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              style={{ fontSize: '7px', letterSpacing: '0.18em', color: '#3a5060' }}
+            >
+              INITIATE SEQUENCE
+            </span>
           </button>
+          <span className="entry-chevron font-mono text-lg text-[#e8a040]">›</span>
         </motion.div>
       </motion.div>
     </motion.div>

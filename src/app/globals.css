@@ -196,7 +196,50 @@ body {
   100% { transform: translate(-50%, -50%) scale(80); opacity: 0; }
 }
 .intro-shockwave {
-  animation: intro-shockwave 0.6s ease-out forwards;
+  animation: intro-shockwave 0.7s ease-out forwards;
+}
+.intro-shockwave-amber {
+  animation: intro-shockwave 0.9s ease-out forwards;
+  animation-delay: 0.1s;
+}
+
+/* ── The portal button (TRAVEL TO ALLEN'S WORLD) ───────────────────────── */
+@keyframes entry-breathe {
+  0%, 100% { transform: scale(0.95); }
+  50% { transform: scale(1); }
+}
+.entry-corner {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  animation: entry-breathe 2s ease-in-out infinite;
+  transition: transform 0.25s ease;
+}
+.entry-btn:hover .entry-corner {
+  animation: none;
+  transform: scale(1.05);
+}
+.entry-corner.tl { left: -1px; top: -1px; border-left: 2px solid #e8a040; border-top: 2px solid #e8a040; }
+.entry-corner.tr { right: -1px; top: -1px; border-right: 2px solid #e8a040; border-top: 2px solid #e8a040; }
+.entry-corner.bl { left: -1px; bottom: -1px; border-left: 2px solid #e8a040; border-bottom: 2px solid #e8a040; }
+.entry-corner.br { right: -1px; bottom: -1px; border-right: 2px solid #e8a040; border-bottom: 2px solid #e8a040; }
+
+@keyframes entry-chevron {
+  0%, 100% { transform: translateX(0); opacity: 0.6; }
+  50% { transform: translateX(6px); opacity: 1; }
+}
+.entry-chevron {
+  animation: entry-chevron 2s ease-in-out infinite;
+}
+
+/* click lock-on: border flashes white → amber → white */
+@keyframes entry-lockon {
+  0% { border-color: #ffffff; box-shadow: 0 0 16px rgba(255,255,255,0.6); }
+  50% { border-color: #e8a040; box-shadow: 0 0 16px rgba(232,160,64,0.6); }
+  100% { border-color: #ffffff; box-shadow: 0 0 20px rgba(255,255,255,0.7); }
+}
+.entry-lockon {
+  animation: entry-lockon 0.3s ease-in-out;
 }
 
 /* Intro Act 1 — slow bounce-down arrow under the scroll hint */
