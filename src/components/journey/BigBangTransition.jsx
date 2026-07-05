@@ -13,7 +13,7 @@ const MONO = { fontFamily: 'var(--font-jetbrains-mono), monospace' };
 
 /* Synthesized sound design (no audio files) — all through the AudioContext
    unlocked by the button click. Every call is defensive: sound is a bonus. */
-function rumble(dur = ENTRY.ACCEL_DUR) {
+function rumble(dur = 3) {
   try {
     const ctx = window.__entryAudio;
     if (!ctx) return;
@@ -74,11 +74,12 @@ function typeInto(tl, el, text, at, perChar = 0.04) {
 /**
  * The world-entry cinematic, DOM side. Triggered when the portal button sets
  * phase='dive' (after the lock-on + name scatter, ~0.8s post-click). The 3D
- * side (CameraRig / Rocket / EntryEffects) runs off the same ENTRY clock via
- * elapsed time, so both layers stay in lockstep.
+ * side (CameraRig / GalaxyVoyage / EntryEffects) runs off the same ENTRY
+ * clock via elapsed time, so both layers stay in lockstep.
  *
- * Act A — departure: stillness … the planet stirs (3D only until ACCEL)
- * Act B — the journey: vignette → heat → horizon line → THE FLASH
+ * Act A — departure: stillness … the camera retreats, the galaxy is revealed
+ * Act B — the crossing: the voyager launches, arcs across the system, makes
+ *         its final run — vignette + heat burn — then THE FLASH on contact
  * Act C — arrival: world materialises under letterbox, typewriter designation,
  *         bars iris out, the drop plays world-side, film intertitles, handoff.
  */
@@ -88,7 +89,6 @@ export default function BigBangTransition() {
 
   const vignetteRef = useRef(null);
   const heatRef = useRef(null);
-  const horizonRef = useRef(null);
   const flashRef = useRef(null);
   const shockRef = useRef(null);
   const shockAmberRef = useRef(null);
@@ -113,25 +113,19 @@ export default function BigBangTransition() {
     const tl = gsap.timeline();
     masterTl.current = tl;
 
-    /* ── ACT B — the journey ─────────────────────────────────────────── */
-    tl.addLabel('accel', ENTRY.ACCEL);
-    tl.call(() => rumble(), null, 'accel');
-    tl.to(vignetteRef.current, { opacity: 0.7, duration: 2.0 }, 'accel');
+    /* ── ACT B — the crossing ────────────────────────────────────────── */
+    tl.addLabel('launch', ENTRY.LAUNCH);
+    tl.call(() => rumble(ENTRY.FLASH - ENTRY.LAUNCH), null, 'launch');
 
-    tl.addLabel('heat', ENTRY.HEAT);
-    tl.to(heatRef.current, { opacity: 0.8, duration: ENTRY.FLASH - ENTRY.HEAT }, 'heat');
-    // the boundary between space and the world below
-    tl.fromTo(
-      horizonRef.current,
-      { opacity: 0, scaleX: 0 },
-      { opacity: 1, scaleX: 1, duration: 0.2, ease: 'power2.out' },
-      ENTRY.HORIZON
-    );
+    // the final run — edges darken and burn as the ship makes contact
+    tl.addLabel('approach', ENTRY.APPROACH);
+    tl.to(vignetteRef.current, { opacity: 0.6, duration: ENTRY.FLASH - ENTRY.APPROACH }, 'approach');
+    tl.to(heatRef.current, { opacity: 0.7, duration: ENTRY.FLASH - ENTRY.APPROACH }, 'approach');
 
     /* ── THE FLASH — one frame, no warning ───────────────────────────── */
     tl.addLabel('flash', ENTRY.FLASH);
     tl.set(flashRef.current, { opacity: 1 }, 'flash');
-    tl.set([vignetteRef.current, heatRef.current, horizonRef.current], { opacity: 0 }, 'flash');
+    tl.set([vignetteRef.current, heatRef.current], { opacity: 0 }, 'flash');
     tl.call(
       () => {
         crack();
@@ -214,13 +208,6 @@ export default function BigBangTransition() {
         className="pointer-events-none fixed inset-0 z-[201]"
         style={{ opacity: 0, background: 'radial-gradient(ellipse at center, transparent 46%, rgba(200,80,20,0.55) 86%, rgba(255,120,30,0.85) 100%)' }}
       />
-      {/* Act B — the horizon line */}
-      <div
-        ref={horizonRef}
-        className="pointer-events-none fixed left-0 right-0 top-1/2 z-[202]"
-        style={{ opacity: 0, height: '1px', background: 'linear-gradient(90deg, transparent, #e8a040 20%, #ffe7c2 50%, #e8a040 80%, transparent)', boxShadow: '0 0 18px rgba(232,160,64,0.8)' }}
-      />
-
       {/* THE FLASH */}
       <div ref={flashRef} className="pointer-events-none fixed inset-0 z-[210] bg-white" style={{ opacity: 0 }} />
       {/* shockwaves */}

@@ -20,7 +20,8 @@ import LaunchSmoke from './LaunchSmoke';
 import EngineeringStation from './EngineeringStation';
 import AsteroidBelt from './AsteroidBelt';
 import Nebula from './Nebula';
-import { WarpTunnel, PlanetStir, EntryDistortion } from './EntryEffects';
+import { EntryDistortion } from './EntryEffects';
+import { GalaxyScene, VoyagerRocket, VOYAGE_PATH, ALLENS_WORLD } from './GalaxyVoyage';
 import { useStore } from '@/lib/store';
 import { scrollState } from '@/lib/scrollState';
 import { ENTRY, entryState, resetEntryState } from '@/lib/entrySequence';
@@ -58,7 +59,17 @@ const FLIGHT_CAM = [
   { p: 1.0, pos: [0, 5.5, -41], tgt: [0, 5.5, -52] }, // into the asteroid field
 ];
 
+/** Hides chapter set-dressing while the galaxy sequence owns the frame. */
+function HideDuringDive({ children }) {
+  const phase = useStore((s) => s.phase);
+  return <group visible={phase !== 'dive'}>{children}</group>;
+}
+
 const PLANET_CENTER = new THREE.Vector3(0, 0.5, -11);
+// Galaxy-view staging: where the camera retreats to, and what it surveys.
+const OVERVIEW_POS = new THREE.Vector3(7, 6.5, 14);
+const GALAXY_CENTER = new THREE.Vector3(-5, 1.5, -24);
+const APPROACH_POS = new THREE.Vector3(2.2, 1.8, -4.6);
 
 function CameraRig() {
   const { camera, pointer } = useThree();
@@ -96,17 +107,15 @@ function CameraRig() {
       prevPhase.current = phase;
       entryT.current = t;
       if (phase === 'dive') {
-        // The gravity fall — not a straight zoom. A comet path: drift out and
-        // up first (weightless), then get pulled in, violently, at the end.
+        // Retreat path: the hero planet shrinks into a labeled solar system.
         resetEntryState();
         entryState.active = true;
         const s = camera.position.clone();
         diveCurve.current = new THREE.CatmullRomCurve3([
           s,
-          s.clone().add(new THREE.Vector3(-1.4, 0.9, -0.9)),
-          new THREE.Vector3(0.7, 0.9, -6.2),
-          new THREE.Vector3(0.18, 0.62, -9.0),
-          new THREE.Vector3(0, 0.5, -10.3), // inside the atmosphere shell
+          s.clone().add(new THREE.Vector3(1.2, 1.6, 4.5)),
+          new THREE.Vector3(5, 5, 10),
+          OVERVIEW_POS.clone(),
         ]);
       }
     }
@@ -115,30 +124,49 @@ function CameraRig() {
       const since = t - entryT.current;
       entryState.t = since;
 
-      // Act A — the planet stirs (equator ring, atmosphere charge, lens)
-      entryState.stir = THREE.MathUtils.clamp((since - ENTRY.STIR) / 0.8, 0, 1);
-      entryState.lens =
-        THREE.MathUtils.clamp((since - ENTRY.STIR) / 1.5, 0, 1) * 0.008 +
-        entryState.warp * 0.01;
+      // pull-back: the galaxy reveal (labels/orbits fade in with `pull`)
+      const pullK = THREE.MathUtils.clamp((since - ENTRY.PULL) / ENTRY.PULL_DUR, 0, 1);
+      entryState.pull = pullK * pullK * (3 - 2 * pullK); // smoothstep
+      // the crossing (drives the camera's gentle tracking of the voyager)
+      entryState.voyage = THREE.MathUtils.clamp((since - ENTRY.VOYAGE) / (ENTRY.FLASH - ENTRY.VOYAGE), 0, 1);
+      // final run: push back in with the ship
+      entryState.approach = THREE.MathUtils.clamp((since - ENTRY.APPROACH) / (ENTRY.FLASH - ENTRY.APPROACH), 0, 1);
+      entryState.heat = entryState.approach;
 
-      // Act B — the pull. power2.in: slow drift, then it has you.
-      const k = THREE.MathUtils.clamp((since - ENTRY.ACCEL) / ENTRY.ACCEL_DUR, 0, 1);
-      const e = k * k;
-      entryState.warp = Math.pow(k, 1.5);
-      entryState.heat = THREE.MathUtils.clamp((since - ENTRY.HEAT) / (ENTRY.FLASH - ENTRY.HEAT), 0, 1);
+      // where the voyager is right now (same curve + ease as the ship)
+      const vk = THREE.MathUtils.clamp((since - ENTRY.LAUNCH) / (ENTRY.FLASH - ENTRY.LAUNCH), 0, 1);
+      const ve = vk * vk * (3 - 2 * vk);
+      VOYAGE_PATH.getPoint(ve, tmpPos);
 
-      if (diveCurve.current && k > 0) diveCurve.current.getPoint(e, camera.position);
-      curTarget.current.lerp(PLANET_CENTER, 0.04 + entryState.stir * 0.1);
+      if (entryState.approach > 0) {
+        // final run — ride in behind the ship toward Allen's World
+        const a = entryState.approach * entryState.approach;
+        camera.position.lerpVectors(OVERVIEW_POS, APPROACH_POS, a);
+        tmpTgt.lerpVectors(tmpPos, ALLENS_WORLD, 0.6);
+        curTarget.current.lerp(tmpTgt, 0.16);
+      } else if (entryState.pull >= 1) {
+        // survey — hold the wide shot, gently tracking the crossing
+        camera.position.set(
+          OVERVIEW_POS.x + (tmpPos.x - OVERVIEW_POS.x) * 0.05,
+          OVERVIEW_POS.y + (tmpPos.y - OVERVIEW_POS.y) * 0.04,
+          OVERVIEW_POS.z
+        );
+        tmpTgt.lerpVectors(GALAXY_CENTER, tmpPos, 0.45);
+        curTarget.current.lerp(tmpTgt, 0.06);
+      } else {
+        // the retreat itself
+        diveCurve.current.getPoint(entryState.pull, camera.position);
+        tmpTgt.lerpVectors(PLANET_CENTER, GALAXY_CENTER, entryState.pull);
+        curTarget.current.lerp(tmpTgt, 0.1);
+      }
       camera.lookAt(curTarget.current);
-      // low-frequency rumble grows with the pull
-      camera.rotation.z += Math.sin(t * 47) * 0.004 * entryState.warp;
 
-      const fov = 50 + e * 24; // speed rush
-      camera.fov += (fov - camera.fov) * 0.2;
+      const fov = 50 + entryState.approach * 12; // slight rush on the final run
+      camera.fov += (fov - camera.fov) * 0.15;
       camera.updateProjectionMatrix();
 
       // ride the existing speed-reactive bloom + chromatic aberration
-      scrollState.velocity = entryState.warp * 1.1 + entryState.heat * 0.6;
+      scrollState.velocity = entryState.heat * 1.2;
     } else if (flying) {
       sample(flightKeys, scrollState.progress);
       // Production lerp is a soft 0.1 (cinematic trailing). Tooling can set
@@ -257,11 +285,15 @@ export default function SpaceExperience({ tier = 'full' }) {
         <Planet />
         <Rocket />
         <LaunchSmoke />
-        <EngineeringStation />
-        <AsteroidBelt />
-        {/* World-entry cinematic FX (inert until the dive) */}
-        <PlanetStir />
-        <WarpTunnel />
+        {/* Chapter set-dressing bows out at galaxy scale — it would read as
+            clutter floating between the planets */}
+        <HideDuringDive>
+          <EngineeringStation />
+          <AsteroidBelt />
+        </HideDuringDive>
+        {/* The galaxy + voyager (mounted only during the dive) */}
+        <GalaxyScene />
+        <VoyagerRocket />
       </Suspense>
 
       <CameraRig />

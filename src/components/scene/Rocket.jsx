@@ -9,8 +9,6 @@ import { ENTRY } from '@/lib/entrySequence';
 
 const PAD = new THREE.Vector3(0, -1.9, 1.5); // low on the launch pad (bottom of frame)
 const ROCKET_END = new THREE.Vector3(1.7, 3.3, -9); // climbs up-and-right into orbit, clear of the name card
-const DIVE_TARGET = new THREE.Vector3(0, 0.5, -11); // planet core — the Big Bang entry
-const UP = new THREE.Vector3(0, 1, 0);
 
 const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
@@ -106,8 +104,6 @@ export default function Rocket() {
   const phaseEntry = useRef(0);
   const lean = useRef(0); // smoothed bank, springs back when scrolling stops
   const pitch = useRef(0);
-  const diveFrom = useRef(new THREE.Vector3());
-  const diveQuat = useRef(new THREE.Quaternion());
 
   useFrame((state) => {
     const g = groupRef.current;
@@ -118,13 +114,7 @@ export default function Rocket() {
     if (prevPhase.current !== phase) {
       prevPhase.current = phase;
       phaseEntry.current = t;
-      if (phase === 'dive') {
-        // Capture launch point + the orientation that points the nose at the
-        // planet core (rocket's nose is its +Y axis).
-        diveFrom.current.copy(g.position);
-        const dir = DIVE_TARGET.clone().sub(g.position).normalize();
-        diveQuat.current.setFromUnitVectors(UP, dir);
-      }
+      if (phase !== 'dive') g.visible = true;
     }
     const since = t - phaseEntry.current;
 
@@ -169,14 +159,10 @@ export default function Rocket() {
       );
       g.rotation.z = Math.sin(t * 2) * 0.01;
     } else if (phase === 'dive') {
-      // Big Bang entry — hold through the stillness/stir, then nose over and
-      // plunge into the planet core at full burn, just ahead of the camera.
-      const noseOver = since > ENTRY.ACCEL - 0.4;
-      const k = THREE.MathUtils.clamp((since - ENTRY.ACCEL) / (ENTRY.ACCEL_DUR - 0.4), 0, 1);
-      const e = k * k; // accelerating
-      g.position.lerpVectors(diveFrom.current, DIVE_TARGET, e);
-      if (noseOver) g.quaternion.slerp(diveQuat.current, 0.1);
-      thrust = Math.min(1.3, 0.55 + e * 1.2);
+      // The galaxy voyage takes over — the hero rocket quietly bows out as
+      // the camera retreats (it would read as a stray speck at galaxy scale).
+      g.visible = since < ENTRY.PULL + 0.2;
+      thrust = 0;
     } else {
       // flight — rocket arcs up-and-right into orbit within the hero portion,
       // then parks there (the camera flies on through the chapters). It banks
