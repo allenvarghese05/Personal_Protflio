@@ -32,7 +32,7 @@ export const ENTRY = {
   REVEAL: 6.95, // white fades over 0.8s, world lights ramp
   TYPE: 8.0, // "ALLEN'S WORLD · SECTOR 01" typewriter
   BARS: 8.5, // letterbox dissolves (top, then bottom +0.15)
-  DROP_DELAY: 1.4, // world-side: fall starts this long after SWAP
+  DROP_DELAY: 0.15, // world-side: the drop begins the moment the bang hands over
   FALL_MAIN: 1.05, // gravity acceleration portion (power2.in)
   FALL_BOUNCE: 0.45, // landing bounce portion (bounce.out)
   WELCOME: 10.0, // film intertitles

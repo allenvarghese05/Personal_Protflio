@@ -44,6 +44,8 @@ export default function MemoryNode({ memory, variant = 'rock' }) {
 
   const setSelectedMemory = useStore((s) => s.setSelectedMemory);
   const selected = useStore((s) => s.selectedMemory);
+  const phase = useStore((s) => s.phase);
+  const activeChapter = useStore((s) => s.activeChapter);
   const isOpen = selected === memory.id;
   const scaleRef = useRef(1);
   const { camera, size } = useThree();
@@ -88,8 +90,13 @@ export default function MemoryNode({ memory, variant = 'rock' }) {
     }
   });
 
+  // At the name card (chapter 1) the hero moment owns the screen — station
+  // modules in the far background shouldn't light up or show label pills.
+  const muted = activeChapter === 1;
+
   const enter = (e) => {
     e.stopPropagation();
+    if (muted) return;
     setHovered(true);
     if (typeof document !== 'undefined') document.body.style.cursor = 'pointer';
   };
@@ -99,6 +106,7 @@ export default function MemoryNode({ memory, variant = 'rock' }) {
   };
   const click = (e) => {
     e.stopPropagation();
+    if (muted) return;
     const v = new THREE.Vector3(...memory.pos).project(camera);
     const origin = {
       x: (v.x * 0.5 + 0.5) * size.width,
@@ -108,6 +116,18 @@ export default function MemoryNode({ memory, variant = 'rock' }) {
   };
 
   const r = memory.size;
+
+  // The galaxy voyage owns the frame — no hover pills over the planets
+  // (drei Html ignores group visibility, so unmount instead).
+  if (phase === 'dive') {
+    if (typeof document !== 'undefined' && hovered) document.body.style.cursor = 'auto';
+    return null;
+  }
+  // If a hover was live when the journey reached the name card, drop it.
+  if (muted && hovered) {
+    setHovered(false);
+    if (typeof document !== 'undefined') document.body.style.cursor = 'auto';
+  }
 
   return (
     <group ref={groupRef} position={memory.pos}>

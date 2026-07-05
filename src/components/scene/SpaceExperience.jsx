@@ -69,7 +69,6 @@ const PLANET_CENTER = new THREE.Vector3(0, 0.5, -11);
 // Galaxy-view staging: where the camera retreats to, and what it surveys.
 const OVERVIEW_POS = new THREE.Vector3(7, 6.5, 14);
 const GALAXY_CENTER = new THREE.Vector3(-5, 1.5, -24);
-const APPROACH_POS = new THREE.Vector3(2.2, 1.8, -4.6);
 
 function CameraRig() {
   const { camera, pointer } = useThree();
@@ -82,6 +81,10 @@ function CameraRig() {
   const prevPhase = useRef(phase);
   const entryT = useRef(0);
   const diveCurve = useRef(null);
+  const tmpTan = useMemo(() => new THREE.Vector3(), []);
+  const tmpPos2 = useMemo(() => new THREE.Vector3(), []);
+  const chasePos = useMemo(() => new THREE.Vector3(), []);
+  const chaseLook = useMemo(() => new THREE.Vector3(), []);
 
   const flightKeys = useMemo(() => toKeys(FLIGHT_CAM), []);
 
@@ -137,27 +140,29 @@ function CameraRig() {
       const vk = THREE.MathUtils.clamp((since - ENTRY.LAUNCH) / (ENTRY.FLASH - ENTRY.LAUNCH), 0, 1);
       const ve = vk * vk * (3 - 2 * vk);
       VOYAGE_PATH.getPoint(ve, tmpPos);
+      VOYAGE_PATH.getTangent(ve, tmpTan).normalize();
 
-      if (entryState.approach > 0) {
-        // final run — ride in behind the ship toward Allen's World
-        const a = entryState.approach * entryState.approach;
-        camera.position.lerpVectors(OVERVIEW_POS, APPROACH_POS, a);
-        tmpTgt.lerpVectors(tmpPos, ALLENS_WORLD, 0.6);
-        curTarget.current.lerp(tmpTgt, 0.16);
-      } else if (entryState.pull >= 1) {
-        // survey — hold the wide shot, gently tracking the crossing
-        camera.position.set(
-          OVERVIEW_POS.x + (tmpPos.x - OVERVIEW_POS.x) * 0.05,
-          OVERVIEW_POS.y + (tmpPos.y - OVERVIEW_POS.y) * 0.04,
-          OVERVIEW_POS.z
-        );
-        tmpTgt.lerpVectors(GALAXY_CENTER, tmpPos, 0.45);
-        curTarget.current.lerp(tmpTgt, 0.06);
-      } else {
-        // the retreat itself
+      // once the crossing starts, the camera stops surveying and RIDES —
+      // a chase position behind and above the ship, looking down its path
+      const chaseK = THREE.MathUtils.clamp((since - ENTRY.VOYAGE) / 1.0, 0, 1);
+      const chaseMix = chaseK * chaseK * (3 - 2 * chaseK);
+      chasePos.copy(tmpPos).addScaledVector(tmpTan, -3.4);
+      chasePos.y += 1.1;
+      chaseLook.copy(tmpPos).addScaledVector(tmpTan, 5);
+
+      if (entryState.pull < 1 && chaseMix <= 0) {
+        // the retreat itself — hero planet shrinks into the system
         diveCurve.current.getPoint(entryState.pull, camera.position);
         tmpTgt.lerpVectors(PLANET_CENTER, GALAXY_CENTER, entryState.pull);
         curTarget.current.lerp(tmpTgt, 0.1);
+      } else {
+        // overview → chase blend, then locked on the ship all the way in
+        tmpPos2.lerpVectors(OVERVIEW_POS, chasePos, chaseMix);
+        camera.position.lerp(tmpPos2, 0.35);
+        tmpTgt.lerpVectors(GALAXY_CENTER, chaseLook, Math.max(chaseMix, entryState.pull * 0.25));
+        curTarget.current.lerp(tmpTgt, 0.2);
+        // gentle banking sway while riding
+        camera.rotation.z += Math.sin(t * 1.4) * 0.0035 * chaseMix;
       }
       camera.lookAt(curTarget.current);
 

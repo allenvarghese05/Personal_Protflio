@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
 import { SplitText } from 'gsap/SplitText';
@@ -37,12 +37,64 @@ function NameCard() {
   const setPhase = useStore((s) => s.setPhase);
   const [label, setLabel] = useState("TRAVEL TO ALLEN'S WORLD");
   const firing = useRef(false);
-  const badgeRef = useRef(null);
+  const cardRef = useRef(null);
   const nameRef = useRef(null);
   const kickerRef = useRef(null);
   const taglineRef = useRef(null);
   const btnRef = useRef(null);
   const btnRowRef = useRef(null);
+  const statusRef = useRef(null);
+  const splitRef = useRef(null);
+
+  // Interactive layer: split the name into hoverable characters, tilt the
+  // whole card with the pointer, and give the portal button a magnetic pull.
+  useEffect(() => {
+    // characters come alive under the cursor (CSS .hero-char)
+    const t = setTimeout(() => {
+      try {
+        splitRef.current = new SplitText(nameRef.current, { type: 'chars', charsClass: 'hero-char' });
+        // background-clip gradients don't survive nested char divs — re-apply
+        // the gradient to each character so "Allen Shaji" keeps its gold.
+        nameRef.current
+          ?.querySelectorAll('.text-gradient .hero-char')
+          .forEach((c) => c.classList.add('text-gradient'));
+      } catch {}
+    }, 900); // after the entrance animation settles
+
+    const rx = gsap.quickTo(cardRef.current, 'rotationX', { duration: 0.6, ease: 'power2.out' });
+    const ry = gsap.quickTo(cardRef.current, 'rotationY', { duration: 0.6, ease: 'power2.out' });
+    const bx = gsap.quickTo(btnRef.current, 'x', { duration: 0.4, ease: 'power2.out' });
+    const by = gsap.quickTo(btnRef.current, 'y', { duration: 0.4, ease: 'power2.out' });
+    gsap.set(cardRef.current, { transformPerspective: 900 });
+
+    const onMove = (e) => {
+      if (firing.current) return;
+      const nx = e.clientX / window.innerWidth - 0.5;
+      const ny = e.clientY / window.innerHeight - 0.5;
+      rx(ny * -5);
+      ry(nx * 6);
+      // magnetic button — pulls toward the cursor when it's close
+      const b = btnRef.current?.getBoundingClientRect();
+      if (b) {
+        const cx = b.left + b.width / 2;
+        const cy = b.top + b.height / 2;
+        const dx = e.clientX - cx;
+        const dy = e.clientY - cy;
+        const d = Math.hypot(dx, dy);
+        const pull = d < 140 ? (1 - d / 140) * 0.35 : 0;
+        bx(dx * pull);
+        by(dy * pull);
+      }
+    };
+    window.addEventListener('mousemove', onMove);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('mousemove', onMove);
+      try {
+        splitRef.current?.revert();
+      } catch {}
+    };
+  }, []);
 
   /** Beat 0 — lock-on, then the name scatters into the void. */
   const initiateWorldEntry = () => {
@@ -63,13 +115,16 @@ function NameCard() {
     // Lock-on: border flash + INITIATING...
     btnRef.current?.classList.add('entry-lockon');
     setLabel('INITIATING...');
+    gsap.to(cardRef.current, { rotationX: 0, rotationY: 0, duration: 0.3 });
 
     const tl = gsap.timeline({ onComplete: () => setPhase('dive') });
     // The name scatters upward, character by character
     try {
-      const split = new SplitText(nameRef.current, { type: 'chars' });
+      const chars = splitRef.current?.chars?.length
+        ? splitRef.current.chars
+        : new SplitText(nameRef.current, { type: 'chars' }).chars;
       tl.to(
-        split.chars,
+        chars,
         {
           x: () => gsap.utils.random(-40, 40),
           y: -80,
@@ -84,9 +139,8 @@ function NameCard() {
       tl.to(nameRef.current, { opacity: 0, y: -40, duration: 0.4 }, 0.15);
     }
     tl.to(taglineRef.current, { opacity: 0, y: -20, duration: 0.3 }, 0.15);
-    tl.to(badgeRef.current, { opacity: 0, duration: 0.2 }, 0.3);
     tl.to(kickerRef.current, { opacity: 0, duration: 0.2 }, 0.35);
-    tl.to(btnRowRef.current, { opacity: 0, duration: 0.2 }, 0.4);
+    tl.to([btnRowRef.current, statusRef.current], { opacity: 0, duration: 0.2 }, 0.4);
     tl.to({}, { duration: 0.2 }); // beat of stillness before the dive clock starts
   };
 
@@ -96,81 +150,83 @@ function NameCard() {
       className="pointer-events-none fixed inset-0 z-10 flex flex-col items-center justify-center px-6 text-center"
     >
       <div className="hero-scrim pointer-events-none absolute inset-0" />
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="relative flex flex-col items-center"
-      >
+      <div ref={cardRef} className="relative">
         <motion.div
-          ref={badgeRef}
-          variants={item}
-          className="glass glass-glow mb-8 flex items-center gap-2.5 rounded-full px-5 py-2"
+          variants={container}
+          initial="hidden"
+          animate="show"
+          className="relative flex flex-col items-center"
         >
-          <span className="text-sm text-[var(--gold)]">★</span>
-          <span className="font-mono text-xs tracking-wide text-[var(--text-secondary)]">
-            {identity.badge}
-          </span>
-        </motion.div>
-
-        <motion.h1
-          ref={nameRef}
-          variants={item}
-          className="font-display text-5xl font-bold leading-[1.05] tracking-tight text-shadow-soft sm:text-7xl lg:text-8xl"
-        >
-          <span className="text-gradient">Allen Shaji</span>
-          <br />
-          <span className="text-[var(--text-primary)]">Varghese</span>
-        </motion.h1>
-
-        <motion.div ref={kickerRef} variants={item} className="mt-6">
-          <AsciiGlitchRipple
-            as="div"
-            autoStart
-            spread={1.5}
-            className="font-mono text-sm tracking-[0.2em] text-[var(--gold)] text-shadow-soft sm:text-base"
+          <motion.h1
+            ref={nameRef}
+            variants={item}
+            className="font-display text-5xl font-bold leading-[1.05] tracking-tight text-shadow-soft sm:text-7xl lg:text-8xl"
           >
-            {identity.kicker}
-          </AsciiGlitchRipple>
-        </motion.div>
+            <span className="text-gradient">Allen Shaji</span>
+            <br />
+            <span className="text-[var(--text-primary)]">Varghese</span>
+          </motion.h1>
 
-        <motion.p
-          ref={taglineRef}
-          variants={item}
-          className="mt-4 max-w-xl text-base text-[var(--text-secondary)] text-shadow-soft sm:text-lg"
-        >
-          {identity.tagline}
-        </motion.p>
-
-        {/* The portal — a targeting reticle, not a link */}
-        <motion.div
-          ref={btnRowRef}
-          variants={item}
-          className="pointer-events-auto mt-10 flex items-center gap-3"
-        >
-          <button
-            ref={btnRef}
-            onClick={initiateWorldEntry}
-            className="entry-btn group relative flex flex-col items-center justify-center border border-[#e8a040] bg-transparent transition-shadow duration-300 hover:shadow-[0_0_12px_rgba(232,160,64,0.4)]"
-            style={{ width: '280px', height: '52px' }}
-          >
-            <span className="entry-corner tl" />
-            <span className="entry-corner tr" />
-            <span className="entry-corner bl" />
-            <span className="entry-corner br" />
-            <span className="font-mono text-[11px] font-semibold tracking-[0.2em] text-[#e8a040] transition-colors duration-200 group-hover:text-[#f0c060]">
-              {label}
-            </span>
-            <span
-              className="pointer-events-none absolute bottom-[5px] font-mono uppercase opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-              style={{ fontSize: '7px', letterSpacing: '0.18em', color: '#3a5060' }}
+          <motion.div ref={kickerRef} variants={item} className="mt-6">
+            <AsciiGlitchRipple
+              as="div"
+              autoStart
+              spread={1.5}
+              className="font-mono text-sm tracking-[0.2em] text-[var(--gold)] text-shadow-soft sm:text-base"
             >
-              INITIATE SEQUENCE
-            </span>
-          </button>
-          <span className="entry-chevron font-mono text-lg text-[#e8a040]">›</span>
+              {identity.kicker}
+            </AsciiGlitchRipple>
+          </motion.div>
+
+          <motion.p
+            ref={taglineRef}
+            variants={item}
+            className="mt-4 max-w-xl text-base text-[var(--text-secondary)] text-shadow-soft sm:text-lg"
+          >
+            {identity.tagline}
+          </motion.p>
+
+          {/* The portal — a targeting reticle, not a link */}
+          <motion.div
+            ref={btnRowRef}
+            variants={item}
+            className="pointer-events-auto mt-10 flex items-center gap-3"
+          >
+            <button
+              ref={btnRef}
+              onClick={initiateWorldEntry}
+              className="entry-btn group relative flex flex-col items-center justify-center border border-[#e8a040] bg-transparent transition-shadow duration-300 hover:shadow-[0_0_12px_rgba(232,160,64,0.4)]"
+              style={{ width: '280px', height: '52px' }}
+            >
+              <span className="entry-corner tl" />
+              <span className="entry-corner tr" />
+              <span className="entry-corner bl" />
+              <span className="entry-corner br" />
+              <span className="font-mono text-[11px] font-semibold tracking-[0.2em] text-[#e8a040] transition-colors duration-200 group-hover:text-[#f0c060]">
+                {label}
+              </span>
+              <span
+                className="pointer-events-none absolute bottom-[5px] font-mono uppercase opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                style={{ fontSize: '7px', letterSpacing: '0.18em', color: '#3a5060' }}
+              >
+                INITIATE SEQUENCE
+              </span>
+            </button>
+            <span className="entry-chevron font-mono text-lg text-[#e8a040]">›</span>
+          </motion.div>
+
+          {/* live telemetry — the world is waiting */}
+          <motion.div
+            ref={statusRef}
+            variants={item}
+            className="mt-5 flex items-center gap-2 font-mono uppercase"
+            style={{ fontSize: '9px', letterSpacing: '0.25em', color: 'var(--text-dim)' }}
+          >
+            <span className="pulse-soft h-1.5 w-1.5 rounded-full bg-[#5affa0]" style={{ boxShadow: '0 0 8px #5affa0' }} />
+            ORBIT STABLE · AWAITING COMMAND
+          </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
