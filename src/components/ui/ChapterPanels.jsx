@@ -167,31 +167,34 @@ function NameCard() {
             <span className="text-[var(--text-primary)]">Varghese</span>
           </motion.h1>
 
-          <motion.div ref={kickerRef} variants={item} className="mt-6">
-            <AsciiGlitchRipple
-              as="div"
-              autoStart
-              spread={1.5}
-              className="font-mono text-sm tracking-[0.2em] text-[var(--gold)] text-shadow-soft sm:text-base"
-            >
-              {identity.kicker}
-            </AsciiGlitchRipple>
+          {/* gsap scatter-fade targets are plain inner elements — framer motion
+              re-applies its own opacity to motion elements on any re-render,
+              which resurrected the kicker + tagline mid-departure */}
+          <motion.div variants={item} className="mt-6">
+            <div ref={kickerRef}>
+              <AsciiGlitchRipple
+                as="div"
+                autoStart
+                spread={1.5}
+                className="font-mono text-sm tracking-[0.2em] text-[var(--gold)] text-shadow-soft sm:text-base"
+              >
+                {identity.kicker}
+              </AsciiGlitchRipple>
+            </div>
           </motion.div>
 
-          <motion.p
-            ref={taglineRef}
-            variants={item}
-            className="mt-4 max-w-xl text-base text-[var(--text-secondary)] text-shadow-soft sm:text-lg"
-          >
-            {identity.tagline}
-          </motion.p>
+          <motion.div variants={item} className="mt-4">
+            <p
+              ref={taglineRef}
+              className="max-w-xl text-base text-[var(--text-secondary)] text-shadow-soft sm:text-lg"
+            >
+              {identity.tagline}
+            </p>
+          </motion.div>
 
           {/* The portal — a targeting reticle, not a link */}
-          <motion.div
-            ref={btnRowRef}
-            variants={item}
-            className="pointer-events-auto mt-10 flex items-center gap-3"
-          >
+          <motion.div variants={item} className="pointer-events-auto mt-10">
+          <div ref={btnRowRef} className="flex items-center gap-3">
             <button
               ref={btnRef}
               onClick={initiateWorldEntry}
@@ -213,17 +216,19 @@ function NameCard() {
               </span>
             </button>
             <span className="entry-chevron font-mono text-lg text-[#e8a040]">›</span>
+          </div>
           </motion.div>
 
           {/* live telemetry — the world is waiting */}
-          <motion.div
-            ref={statusRef}
-            variants={item}
-            className="mt-5 flex items-center gap-2 font-mono uppercase"
-            style={{ fontSize: '9px', letterSpacing: '0.25em', color: 'var(--text-dim)' }}
-          >
-            <span className="pulse-soft h-1.5 w-1.5 rounded-full bg-[#5affa0]" style={{ boxShadow: '0 0 8px #5affa0' }} />
-            ORBIT STABLE · AWAITING COMMAND
+          <motion.div variants={item} className="mt-5">
+            <div
+              ref={statusRef}
+              className="flex items-center gap-2 font-mono uppercase"
+              style={{ fontSize: '9px', letterSpacing: '0.25em', color: 'var(--text-dim)' }}
+            >
+              <span className="pulse-soft h-1.5 w-1.5 rounded-full bg-[#5affa0]" style={{ boxShadow: '0 0 8px #5affa0' }} />
+              ORBIT STABLE · AWAITING COMMAND
+            </div>
           </motion.div>
         </motion.div>
       </div>

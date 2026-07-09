@@ -23,6 +23,45 @@ const DUST = [
 ];
 const DUST_LIFE = 0.8;
 
+/** The arrival bang — a deep sub boom layered under a thunder crack. */
+function bang() {
+  try {
+    const ctx = window.__entryAudio;
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    // sub boom
+    const osc = ctx.createOscillator();
+    const og = ctx.createGain();
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(30, now + 0.8);
+    og.gain.setValueAtTime(0.5, now);
+    og.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+    osc.connect(og);
+    og.connect(ctx.destination);
+    osc.start();
+    osc.stop(now + 1.1);
+    // thunder — decaying noise rolled off from bright to rumble
+    const dur = 1.0;
+    const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++)
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(3200, now);
+    lp.frequency.exponentialRampToValueAtTime(300, now + dur);
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.45, now);
+    ng.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    src.connect(lp);
+    lp.connect(ng);
+    ng.connect(ctx.destination);
+    src.start();
+  } catch {}
+}
+
 function thud() {
   try {
     const ctx = window.__entryAudio;
@@ -43,6 +82,8 @@ function thud() {
 export default function LandingDirector() {
   const streakRef = useRef();
   const rippleRef = useRef();
+  const boltRef = useRef();
+  const flashV = useRef({ v: 0 });
   const dustRefs = useRef([]);
   const dustMats = useRef([]);
   const dustT = useRef(-1); // <0 = inactive; else seconds since impact
@@ -69,6 +110,14 @@ export default function LandingDirector() {
     // The world materialises out of the dark
     const reveal = gsap.to(worldState, { reveal: 1, duration: 1.2, ease: 'power2.out' });
 
+    // The arrival splits the sky — a double lightning strike + thunder bang
+    bang();
+    const storm = gsap.timeline({ delay: 0.08 });
+    storm.to(flashV.current, { v: 1, duration: 0.05 });
+    storm.to(flashV.current, { v: 0, duration: 0.22, ease: 'power2.out' });
+    storm.to(flashV.current, { v: 0.85, duration: 0.04 }, '+=0.18');
+    storm.to(flashV.current, { v: 0, duration: 0.4, ease: 'power2.out' });
+
     // The drop — gravity, then the bounce. Two eases, chained.
     const drop = gsap.timeline({ delay: ENTRY.DROP_DELAY });
     drop.to(worldState, { altitude: 2.2, duration: ENTRY.FALL_MAIN, ease: 'power2.in' });
@@ -91,12 +140,15 @@ export default function LandingDirector() {
     return () => {
       reveal.kill();
       drop.kill();
+      storm.kill();
       worldState.reveal = 1;
       worldState.altitude = 0;
     };
   }, []);
 
   useFrame((state, delta) => {
+    // Lightning — a full-scene strobe from high in the sky
+    if (boltRef.current) boltRef.current.intensity = flashV.current.v * 3.5;
     // Re-entry streak — the astronaut materialises out of a falling star
     if (streakRef.current) {
       const alt = worldState.altitude;
@@ -149,6 +201,9 @@ export default function LandingDirector() {
 
   return (
     <group>
+      {/* lightning strikes as the world is born */}
+      <directionalLight ref={boltRef} position={[18, 40, -12]} intensity={0} color="#e6ecff" />
+
       {/* re-entry contrail above the falling astronaut */}
       <mesh ref={streakRef} visible={false}>
         <cylinderGeometry args={[0.02, 0.09, 8, 8, 1, true]} />

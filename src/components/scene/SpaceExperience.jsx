@@ -21,7 +21,7 @@ import EngineeringStation from './EngineeringStation';
 import AsteroidBelt from './AsteroidBelt';
 import Nebula from './Nebula';
 import { EntryDistortion } from './EntryEffects';
-import { GalaxyScene, VoyagerRocket, VOYAGE_PATH, ALLENS_WORLD } from './GalaxyVoyage';
+import { GalaxyScene, VoyagerRocket, voyagePose } from './GalaxyVoyage';
 import { useStore } from '@/lib/store';
 import { scrollState } from '@/lib/scrollState';
 import { ENTRY, entryState, resetEntryState } from '@/lib/entrySequence';
@@ -136,11 +136,8 @@ function CameraRig() {
       entryState.approach = THREE.MathUtils.clamp((since - ENTRY.APPROACH) / (ENTRY.FLASH - ENTRY.APPROACH), 0, 1);
       entryState.heat = entryState.approach;
 
-      // where the voyager is right now (same curve + ease as the ship)
-      const vk = THREE.MathUtils.clamp((since - ENTRY.LAUNCH) / (ENTRY.FLASH - ENTRY.LAUNCH), 0, 1);
-      const ve = vk * vk * (3 - 2 * vk);
-      VOYAGE_PATH.getPoint(ve, tmpPos);
-      VOYAGE_PATH.getTangent(ve, tmpTan).normalize();
+      // where the voyager is right now (shared sampler — can't drift)
+      voyagePose(since, tmpPos, tmpTan);
 
       // once the crossing starts, the camera stops surveying and RIDES —
       // a chase position behind and above the ship, looking down its path

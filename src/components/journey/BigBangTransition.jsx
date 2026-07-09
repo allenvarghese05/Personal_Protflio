@@ -280,7 +280,7 @@ export function ControlHint() {
         padding: '6px 12px',
       }}
     >
-      CLICK TO EXPLORE · WASD TO MOVE
+      CLICK TO EXPLORE · WASD / ARROWS TO MOVE
     </div>
   );
 }

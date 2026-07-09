@@ -361,6 +361,31 @@ const EXHAUST_COUNT = 240;
 const EXHAUST_LIFE = 0.8;
 const UP = new THREE.Vector3(0, 1, 0);
 
+// The hero planet's surface (radius 4 + a touch of atmosphere). The voyage is
+// reparameterized so the nose touches this line EXACTLY at ENTRY.FLASH — the
+// bang fires the instant the ship enters, and it is never seen inside.
+const PLANET_R = 4.05;
+const E_SURF = (() => {
+  const p = new THREE.Vector3();
+  for (let i = 1000; i >= 0; i--) {
+    VOYAGE_PATH.getPoint(i / 1000, p);
+    if (p.distanceTo(ALLENS_WORLD) >= PLANET_R) return Math.min(1, (i + 1) / 1000);
+  }
+  return 1;
+})();
+
+/**
+ * Shared voyage sampler — the rocket and the chase camera both read this so
+ * they can never disagree about where the ship is. Returns raw progress k.
+ */
+export function voyagePose(t, pos, tan) {
+  const k = THREE.MathUtils.clamp((t - ENTRY.LAUNCH) / (ENTRY.FLASH - ENTRY.LAUNCH), 0, 1);
+  const e = k * k * (3 - 2 * k) * E_SURF;
+  pos && VOYAGE_PATH.getPoint(e, pos);
+  tan && VOYAGE_PATH.getTangent(e, tan).normalize();
+  return k;
+}
+
 export function VoyagerRocket() {
   const phase = useStore((s) => s.phase);
   const group = useRef();
@@ -392,15 +417,18 @@ export function VoyagerRocket() {
     g.visible = true;
 
     // progress along the crossing — ease in/out so the launch feels like a
-    // climb and the final run accelerates
-    const k = THREE.MathUtils.clamp((entryState.t - ENTRY.LAUNCH) / (ENTRY.FLASH - ENTRY.LAUNCH), 0, 1);
-    const e = k * k * (3 - 2 * k);
-    VOYAGE_PATH.getPoint(e, g.position);
-    VOYAGE_PATH.getTangent(e, tangent).normalize();
+    // climb; contact with the surface lands exactly on the FLASH beat
+    const k = voyagePose(entryState.t, g.position, tangent);
+    // safety: past contact the ship belongs to the planet — never render it
+    if (k >= 1 || g.position.distanceTo(ALLENS_WORLD) < PLANET_R - 0.1) {
+      g.visible = false;
+      if (engineLight.current) engineLight.current.intensity = 0;
+      return;
+    }
     quat.setFromUnitVectors(UP, tangent);
     g.quaternion.slerp(quat, 0.25);
 
-    const thrust = 0.7 + Math.sin(state.clock.elapsedTime * 30) * 0.15 + e * 0.5;
+    const thrust = 0.7 + Math.sin(state.clock.elapsedTime * 30) * 0.15 + k * 0.5;
     if (engineLight.current) engineLight.current.intensity = thrust * 4;
 
     // exhaust — recycled particles streaming back from the nozzles

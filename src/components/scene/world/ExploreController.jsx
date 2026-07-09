@@ -22,6 +22,37 @@ const lerpAngle = (a, b, t) => {
   return a + d * t;
 };
 
+/** Clamp a step so it can't cross into any district's trigger sphere. */
+function resolveStep(px, pz, nx, nz) {
+  let blocked = false;
+  for (const z of zones) {
+    const r = z.stopRadius || z.enterRadius;
+    let ex = nx - z.position[0];
+    let ez = nz - z.position[2];
+    let ed = Math.hypot(ex, ez);
+    if (ed < r) {
+      // walking into the sphere — clamp to its edge along the approach
+      if (ed < 0.0001) {
+        ex = px - z.position[0];
+        ez = pz - z.position[2];
+        ed = Math.hypot(ex, ez) || 1;
+      }
+      nx = z.position[0] + (ex / ed) * r;
+      nz = z.position[2] + (ez / ed) * r;
+      blocked = true;
+    }
+  }
+  return { x: nx, z: nz, blocked };
+}
+
+// keyboard movement — WASD and the arrow keys are equivalent
+const KEYMAP = {
+  w: 'f', arrowup: 'f',
+  s: 'b', arrowdown: 'b',
+  a: 'l', arrowleft: 'l',
+  d: 'r', arrowright: 'r',
+};
+
 /**
  * Click-to-move astronaut controller with a third-person follow camera.
  *  - Tap/click the ground → walk there (raycast the y=0 plane).
@@ -42,6 +73,7 @@ export default function ExploreController({ astronautRef, moving }) {
   const ndc = useRef(new THREE.Vector2());
   const plane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
   const hit = useRef(new THREE.Vector3());
+  const keys = useRef({ f: false, b: false, l: false, r: false });
 
   // Pointer: distinguish a click (walk-to) from a drag (orbit camera)
   useEffect(() => {
@@ -89,10 +121,31 @@ export default function ExploreController({ astronautRef, moving }) {
       if (s.nearZone && !s.enteredZone) s.setEnteredZone(s.nearZone);
     };
 
+    // Hold WASD / arrows to walk (camera-relative). Arrows are captured so
+    // they never scroll the page under the canvas.
+    const onKeyDown = (e) => {
+      const dir = KEYMAP[e.key.toLowerCase()];
+      if (!dir) return;
+      const s = useStore.getState();
+      if (s.journeyPhase !== 'world' || s.enteredZone) return;
+      if (e.key.startsWith('Arrow')) e.preventDefault();
+      keys.current[dir] = true;
+    };
+    const onKeyUp = (e) => {
+      const dir = KEYMAP[e.key.toLowerCase()];
+      if (dir) keys.current[dir] = false;
+    };
+    const onBlur = () => {
+      keys.current.f = keys.current.b = keys.current.l = keys.current.r = false;
+    };
+
     el.addEventListener('pointerdown', onDown);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
     // Test hooks — deterministic positioning for screenshots
     window.__walkTo = (x, z) => {
       worldState.target.set(x, 0, z);
@@ -103,11 +156,15 @@ export default function ExploreController({ astronautRef, moving }) {
       worldState.target.set(x, 0, z);
       worldState.hasTarget = false;
     };
+    window.__pos = () => [worldState.pos.x, worldState.pos.z];
     return () => {
       el.removeEventListener('pointerdown', onDown);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
     };
   }, [camera, gl]);
 
@@ -115,39 +172,47 @@ export default function ExploreController({ astronautRef, moving }) {
     const p = worldState.pos;
     const dt = Math.min(delta, 0.05);
 
-    // Move toward target, halting at the edge of any trigger sphere so the
-    // astronaut never walks through the buildings.
-    if (worldState.hasTarget) {
+    // Keyboard movement (WASD / arrows) — camera-relative, overrides any
+    // click target the moment a key is held.
+    const kk = keys.current;
+    const ix = (kk.r ? 1 : 0) - (kk.l ? 1 : 0);
+    const iy = (kk.f ? 1 : 0) - (kk.b ? 1 : 0);
+    const grounded = worldState.altitude < 0.01;
+    if ((ix || iy) && grounded && !useStore.getState().enteredZone) {
+      worldState.hasTarget = false;
+      const az = worldState.azimuth;
+      // forward = away from the camera; right = screen right
+      let mx = -Math.sin(az) * iy + Math.cos(az) * ix;
+      let mz = -Math.cos(az) * iy - Math.sin(az) * ix;
+      const ml = Math.hypot(mx, mz) || 1;
+      mx /= ml;
+      mz /= ml;
+      let nx = p.x + mx * SPEED * dt;
+      let nz = p.z + mz * SPEED * dt;
+      const dw = Math.hypot(nx, nz);
+      if (dw > WORLD_R) {
+        nx *= WORLD_R / dw;
+        nz *= WORLD_R / dw;
+      }
+      const res = resolveStep(p.x, p.z, nx, nz);
+      worldState.moving = Math.hypot(res.x - p.x, res.z - p.z) > 0.001;
+      p.x = res.x;
+      p.z = res.z;
+      worldState.heading = Math.atan2(mx, mz);
+    } else if (worldState.hasTarget) {
+      // Click-to-move: walk toward the target, halting at the edge of any
+      // trigger sphere so the astronaut never walks through the buildings.
       const dx = worldState.target.x - p.x;
       const dz = worldState.target.z - p.z;
       const dist = Math.hypot(dx, dz);
       if (dist > 0.18) {
         const step = Math.min(dist, SPEED * dt);
-        let nx = p.x + (dx / dist) * step;
-        let nz = p.z + (dz / dist) * step;
-        let blocked = false;
-        for (const z of zones) {
-          const r = z.stopRadius || z.enterRadius;
-          let ex = nx - z.position[0];
-          let ez = nz - z.position[2];
-          let ed = Math.hypot(ex, ez);
-          if (ed < r) {
-            // walking into the sphere — clamp to its edge along the approach
-            if (ed < 0.0001) {
-              ex = p.x - z.position[0];
-              ez = p.z - z.position[2];
-              ed = Math.hypot(ex, ez) || 1;
-            }
-            nx = z.position[0] + (ex / ed) * r;
-            nz = z.position[2] + (ez / ed) * r;
-            blocked = true;
-          }
-        }
-        p.x = nx;
-        p.z = nz;
+        const res = resolveStep(p.x, p.z, p.x + (dx / dist) * step, p.z + (dz / dist) * step);
+        p.x = res.x;
+        p.z = res.z;
         worldState.heading = Math.atan2(dx, dz);
-        worldState.moving = !blocked;
-        if (blocked) worldState.hasTarget = false;
+        worldState.moving = !res.blocked;
+        if (res.blocked) worldState.hasTarget = false;
       } else {
         worldState.moving = false;
         worldState.hasTarget = false;
@@ -216,12 +281,16 @@ export default function ExploreController({ astronautRef, moving }) {
       a.rotation.y = lerpAngle(a.rotation.y, worldState.heading, 0.18);
     }
 
-    // Follow camera (orbit by azimuth)
+    // Follow camera (orbit by azimuth). During the arrival drop the camera
+    // sits low near the ground, craned up at the sky, and follows the
+    // astronaut all the way down.
+    const dropping = worldState.altitude > 0.01;
     const az = worldState.azimuth;
     const desiredX = p.x + Math.sin(az) * CAM_DIST;
     const desiredZ = p.z + Math.cos(az) * CAM_DIST;
+    const camY = dropping ? 2.1 : CAM_HEIGHT;
     camera.position.x += (desiredX - camera.position.x) * camK;
-    camera.position.y += (CAM_HEIGHT - camera.position.y) * camK;
+    camera.position.y += (camY - camera.position.y) * (dropping ? 0.2 : camK);
     camera.position.z += (desiredZ - camera.position.z) * camK;
 
     // Look target: the astronaut normally; biased toward the district (and up
