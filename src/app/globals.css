@@ -1,26 +1,319 @@
 @import "tailwindcss";
 
+/* ============================================================
+   MISSION ALLEN — Space Odyssey Design System
+   ============================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core space palette — "Mission Amber" (NASA warm) */
+  --void: #060913;
+  --deep-navy: #0b1322;
+  --amber: #ff8a3d;
+  --amber-bright: #ffa75c;
+  --gold: #f5b544;
+  --steel: #4a90d9;
+  --steel-bright: #6fb0ee;
+
+  /* Text — warm off-white for readability */
+  --text-primary: #f2ecdd;
+  --text-secondary: #c9c2b2;
+  --text-dim: #8a8475;
+
+  /* Surfaces */
+  --bg-primary: var(--void);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--void);
+  color: var(--text-primary);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--void);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(245, 181, 68, 0.4);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 181, 68, 0.7);
+}
+
+::selection {
+  background-color: var(--amber);
+  color: var(--void);
+}
+
+/* ============================================================
+   Utility classes
+   ============================================================ */
+
+/* Glassmorphism panel — darker tint so light text stays readable on top */
+.glass {
+  background: rgba(11, 19, 34, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(245, 181, 68, 0.18);
+  border-radius: 1rem;
+}
+
+.glass-glow {
+  box-shadow: 0 0 40px rgba(255, 138, 61, 0.22),
+    inset 0 0 30px rgba(74, 144, 217, 0.06);
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(120deg, var(--gold), var(--amber-bright));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Legibility helpers for text over the bright 3D scene */
+.text-shadow-soft {
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7), 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Radial dark scrim placed behind hero content */
+.hero-scrim {
+  background: radial-gradient(
+    ellipse 68% 56% at 50% 50%,
+    rgba(6, 9, 19, 0.92) 0%,
+    rgba(6, 9, 19, 0.68) 42%,
+    rgba(6, 9, 19, 0) 78%
+  );
+}
+
+.font-display {
+  font-family: var(--font-space-grotesk), sans-serif;
+}
+.font-mono {
+  font-family: var(--font-jetbrains-mono), monospace;
+}
+
+/* Subtle pulse for status dots / blinking cursor */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Mission Control monospace voice — cascades to every child */
+.mc-root {
+  font-family: var(--font-jetbrains-mono), 'Courier New', monospace;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.mc-root * {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* GPS concentric-ring pulse (bento Panel 2) — animates SVG stroke opacity */
+@keyframes gps-ring {
+  0%, 100% { stroke-opacity: 0.4; }
+  50% { stroke-opacity: 1; }
+}
+.gps-ring {
+  animation: gps-ring 2.5s ease-in-out infinite;
+}
+
+/* Approval-chain connector: a dot travelling down through the tiers */
+@keyframes chain-dot {
+  0% { transform: translateY(-2px); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(12px); opacity: 0; }
+}
+.chain-dot {
+  animation: chain-dot 2s linear infinite;
+}
+
+/* LearnFlow — pipeline dashes flowing left → right into the context engine */
+@keyframes pipe-dash {
+  to { stroke-dashoffset: -24; }
+}
+.pipe-dash {
+  stroke-dasharray: 4 4;
+  animation: pipe-dash 1s linear infinite;
+}
+
+/* LearnFlow — deployment "LIVE" green dot pulse */
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+.live-pulse {
+  animation: live-pulse 1.5s ease-in-out infinite;
+}
+
+/* LearnFlow — blinking terminal cursor for the LAUNCH MISSION button */
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.blink-cursor {
+  animation: blink-cursor 0.8s step-end infinite;
+}
+
+/* LearnFlow — performance bar fills to 85% on mount */
+@keyframes perf-fill {
+  from { width: 0; }
+  to { width: 85%; }
+}
+.perf-fill {
+  animation: perf-fill 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Intro Act 3 — shockwave ring expanding through the white flash */
+@keyframes intro-shockwave {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(80); opacity: 0; }
+}
+.intro-shockwave {
+  animation: intro-shockwave 0.7s ease-out forwards;
+}
+.intro-shockwave-amber {
+  animation: intro-shockwave 0.9s ease-out forwards;
+  animation-delay: 0.1s;
+}
+
+/* ── The portal button (TRAVEL TO ALLEN'S WORLD) ───────────────────────── */
+@keyframes entry-breathe {
+  0%, 100% { transform: scale(0.95); }
+  50% { transform: scale(1); }
+}
+.entry-corner {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  animation: entry-breathe 2s ease-in-out infinite;
+  transition: transform 0.25s ease;
+}
+.entry-btn:hover .entry-corner {
+  animation: none;
+  transform: scale(1.05);
+}
+.entry-corner.tl { left: -1px; top: -1px; border-left: 2px solid #e8a040; border-top: 2px solid #e8a040; }
+.entry-corner.tr { right: -1px; top: -1px; border-right: 2px solid #e8a040; border-top: 2px solid #e8a040; }
+.entry-corner.bl { left: -1px; bottom: -1px; border-left: 2px solid #e8a040; border-bottom: 2px solid #e8a040; }
+.entry-corner.br { right: -1px; bottom: -1px; border-right: 2px solid #e8a040; border-bottom: 2px solid #e8a040; }
+
+@keyframes entry-chevron {
+  0%, 100% { transform: translateX(0); opacity: 0.6; }
+  50% { transform: translateX(6px); opacity: 1; }
+}
+.entry-chevron {
+  animation: entry-chevron 2s ease-in-out infinite;
+}
+
+/* click lock-on: border flashes white → amber → white */
+@keyframes entry-lockon {
+  0% { border-color: #ffffff; box-shadow: 0 0 16px rgba(255,255,255,0.6); }
+  50% { border-color: #e8a040; box-shadow: 0 0 16px rgba(232,160,64,0.6); }
+  100% { border-color: #ffffff; box-shadow: 0 0 20px rgba(255,255,255,0.7); }
+}
+.entry-lockon {
+  animation: entry-lockon 0.3s ease-in-out;
+}
+
+/* Hero name characters — alive under the cursor (split on mount) */
+.hero-char {
+  transition: transform 0.18s ease, text-shadow 0.18s ease;
+  will-change: transform;
+}
+.hero-char:hover {
+  transform: translateY(-7px) scale(1.06);
+  text-shadow: 0 0 22px rgba(245, 181, 68, 0.85);
+}
+
+/* Intro Act 1 — slow bounce-down arrow under the scroll hint */
+@keyframes intro-arrow-bob {
+  0%, 100% { transform: translateY(0); opacity: 0.7; }
+  50% { transform: translateY(5px); opacity: 1; }
+}
+.intro-arrow-bob {
+  animation: intro-arrow-bob 1.6s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Gentle float */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.float-y {
+  animation: float-y 4s ease-in-out infinite;
+}
+
+/* Scroll prompt bounce */
+@keyframes scroll-bob {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(6px); opacity: 1; }
+}
+.scroll-bob {
+  animation: scroll-bob 1.8s ease-in-out infinite;
+}
+
+/* ============================================================
+   Lenis smooth scroll
+   ============================================================ */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* ============================================================
+   Reduced-motion guard — kill all motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
