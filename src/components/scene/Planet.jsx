@@ -3,6 +3,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame, extend } from '@react-three/fiber';
 import { shaderMaterial } from '@react-three/drei';
 import * as THREE from 'three';
+import { PALETTE } from '@/lib/palette';
 
 /* ------------------------------------------------------------------
    Shared 3D simplex noise (Ashima) — used by the surface FBM.
@@ -75,7 +76,7 @@ const PlanetSurfaceMaterial = shaderMaterial(
     uColorDeep: new THREE.Color('#081522'),
     uColorMid: new THREE.Color('#2a5a8a'),
     uColorBright: new THREE.Color('#6fb0ee'),
-    uRim: new THREE.Color('#ff8a3d'),
+    uRim: new THREE.Color(PALETTE.accent),
     uLightDir: new THREE.Vector3(0.6, 0.4, 0.8),
     uBrightness: 1.0,
   },

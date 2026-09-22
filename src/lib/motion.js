@@ -2,6 +2,7 @@
  * Centralised animation tokens so timings/easings are tuned in one place.
  * Used by the Mission Control transition, card stagger, and the force graph.
  */
+import { KIND_ACCENT } from './palette';
 
 // Easings (framer-motion cubic-bezier arrays)
 export const EASE_OUT = [0.16, 1, 0.3, 1]; // cinematic slide-up
@@ -28,19 +29,5 @@ export const GRAPH = {
 
 export const CAMERA_PIVOT_S = 0.8; // GSAP pivot-to-face-buildings on trigger
 
-// Card / badge accent colours (also the graph palette)
-export const ACCENTS = {
-  signature: '#e8a040', // amber
-  current: '#30c0a0', // teal
-  project: '#4090e0', // blue
-  classified: '#303040', // dark grey
-};
-
-// Force-graph node palette
-export const NODE_COLOR = {
-  amber: '#e8a040',
-  teal: '#30c0a0',
-  blue: '#4090e0',
-  purple: '#9060e0',
-  grey: '#608090',
-};
+// Card / badge accent colours (also the graph palette) — see lib/palette.js
+export const ACCENTS = KIND_ACCENT;

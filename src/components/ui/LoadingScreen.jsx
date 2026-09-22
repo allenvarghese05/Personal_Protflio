@@ -65,7 +65,7 @@ function Reticle({ show }) {
       animate={{ opacity: show ? 1 : 0, scale: show ? 1 : 1.15 }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       className="pointer-events-none absolute left-1/2 top-[58%] h-44 w-44 -translate-x-1/2 -translate-y-1/2 sm:h-52 sm:w-52"
-      style={{ filter: 'drop-shadow(0 0 8px rgba(245,181,68,0.35))' }}
+      style={{ filter: 'drop-shadow(0 0 8px color-mix(in srgb, var(--accent-hi) 35%, transparent))' }}
     >
       {corner('tl')}
       {corner('tr')}
@@ -174,8 +174,8 @@ export default function LoadingScreen() {
             </div>
             <div className="mt-1.5 flex items-center gap-2 font-mono text-[11px] tracking-[0.2em] text-[var(--steel-bright)]">
               <span
-                className="pulse-soft h-1.5 w-1.5 rounded-full bg-[#5affa0]"
-                style={{ boxShadow: '0 0 8px #5affa0' }}
+                className="pulse-soft h-1.5 w-1.5 rounded-full bg-live"
+                style={{ boxShadow: '0 0 8px var(--live)' }}
               />
               <MissionClock />
             </div>
@@ -188,7 +188,7 @@ export default function LoadingScreen() {
               autoStart
               spread={1.3}
               className="font-mono text-[10px] tracking-[0.4em] text-[var(--gold)]"
-              style={{ textShadow: '0 0 12px rgba(245,181,68,0.55)' }}
+              style={{ textShadow: '0 0 12px color-mix(in srgb, var(--accent-hi) 55%, transparent)' }}
             >
               FLIGHT TELEMETRY
             </AsciiGlitchRipple>
@@ -198,10 +198,10 @@ export default function LoadingScreen() {
                 <div
                   key={i}
                   style={{
-                    color: l.hot ? '#ffb259' : '#e6c483',
+                    color: l.hot ? 'var(--accent)' : 'var(--accent-hi)',
                     textShadow: l.hot
-                      ? '0 0 10px rgba(255,138,61,0.6)'
-                      : '0 0 8px rgba(245,181,68,0.4)',
+                      ? '0 0 10px color-mix(in srgb, var(--accent) 60%, transparent)'
+                      : '0 0 8px color-mix(in srgb, var(--accent-hi) 40%, transparent)',
                   }}
                 >
                   {l.text}
@@ -225,7 +225,7 @@ export default function LoadingScreen() {
               >
                 <span
                   className="pulse-soft font-mono text-xs font-semibold tracking-[0.25em]"
-                  style={{ color: '#ffd27a', textShadow: '0 0 14px rgba(255,170,80,0.65)' }}
+                  style={{ color: 'var(--accent-hi)', textShadow: '0 0 14px color-mix(in srgb, var(--accent) 65%, transparent)' }}
                 >
                   SCROLL TO INITIATE ASCENT
                 </span>

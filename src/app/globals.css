@@ -5,22 +5,90 @@
    ============================================================ */
 
 :root {
-  /* Core space palette — "Mission Amber" (NASA warm) */
-  --void: #060913;
-  --deep-navy: #0b1322;
-  --amber: #ff8a3d;
-  --amber-bright: #ffa75c;
-  --gold: #f5b544;
-  --steel: #4a90d9;
-  --steel-bright: #6fb0ee;
+  /* ── "Signal Amber" — the one palette. Mirrored in src/lib/palette.js ── */
 
-  /* Text — warm off-white for readability */
-  --text-primary: #f2ecdd;
-  --text-secondary: #c9c2b2;
-  --text-dim: #8a8475;
+  /* Surfaces — near-black, cool cast, stepped for elevation */
+  --void: #07080c;
+  --surface: #0d0f15;
+  --surface-2: #141821;
+  --raised: #1b202b;
+  --line: #232834;
+  --line-hi: #313848;
 
-  /* Surfaces */
+  /* Ink — warm off-white ramp (subtle ≥4.5:1 on every surface) */
+  --ink: #f3eee4;
+  --ink-muted: #b8b2a6;
+  --ink-subtle: #8c877f;
+  --ink-faint: #5e5a55; /* decorative only — never body text */
+
+  /* The single brand accent + tints */
+  --accent: #ff9a3c;
+  --accent-hi: #ffc27a;
+  --accent-lo: #c9702a;
+
+  /* Supporting hues — data, categories, links (sparingly) */
+  --ice: #9cc3ff;
+  --jade: #5fd0b0;
+  --sand: #e6c9a0;
+  --lilac: #b9a6f5;
+  --slate: #8c95a8;
+
+  /* Status */
+  --live: #3ddc97;
+  --alert: #ff6b5c;
+
+  /* Legacy aliases — older components read these; they now resolve into the
+     palette above so the whole site speaks one colour language. */
+  --deep-navy: var(--surface);
+  --amber: var(--accent);
+  --amber-bright: var(--accent-hi);
+  --gold: var(--accent-hi);
+  --steel: var(--ice);
+  --steel-bright: var(--ice);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-muted);
+  --text-dim: var(--ink-subtle);
   --bg-primary: var(--void);
+}
+
+/* Tailwind v4 tokens → utilities: bg-surface, text-ink-muted, border-line,
+   text-accent, text-micro, rounded-panel … */
+@theme inline {
+  --color-void: var(--void);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-hi: var(--line-hi);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-ink-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-hi: var(--accent-hi);
+  --color-accent-lo: var(--accent-lo);
+  --color-ice: var(--ice);
+  --color-jade: var(--jade);
+  --color-sand: var(--sand);
+  --color-lilac: var(--lilac);
+  --color-slate: var(--slate);
+  --color-live: var(--live);
+  --color-alert: var(--alert);
+
+  /* Type scale — nothing smaller than 11px */
+  --text-micro: 0.6875rem; /* 11px — mono labels, badges */
+  --text-micro--line-height: 1.4;
+  --text-label: 0.75rem; /* 12px — chips, meta */
+  --text-label--line-height: 1.5;
+  --text-body: 0.9375rem; /* 15px — reading text */
+  --text-body--line-height: 1.7;
+
+  --radius-chip: 4px;
+  --radius-panel: 10px;
+
+  --font-display: var(--font-space-grotesk), sans-serif;
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
 * {
@@ -52,11 +120,11 @@ body {
   background: var(--void);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(245, 181, 68, 0.4);
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 181, 68, 0.7);
+  background: color-mix(in srgb, var(--accent) 70%, transparent);
 }
 
 ::selection {
@@ -70,21 +138,21 @@ body {
 
 /* Glassmorphism panel — darker tint so light text stays readable on top */
 .glass {
-  background: rgba(11, 19, 34, 0.45);
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(245, 181, 68, 0.18);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
   border-radius: 1rem;
 }
 
 .glass-glow {
-  box-shadow: 0 0 40px rgba(255, 138, 61, 0.22),
-    inset 0 0 30px rgba(74, 144, 217, 0.06);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--accent) 22%, transparent),
+    inset 0 0 30px color-mix(in srgb, var(--ice) 6%, transparent);
 }
 
 /* Gradient text */
 .text-gradient {
-  background: linear-gradient(120deg, var(--gold), var(--amber-bright));
+  background: linear-gradient(120deg, var(--accent-hi), var(--accent));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -100,9 +168,9 @@ body {
 .hero-scrim {
   background: radial-gradient(
     ellipse 68% 56% at 50% 50%,
-    rgba(6, 9, 19, 0.92) 0%,
-    rgba(6, 9, 19, 0.68) 42%,
-    rgba(6, 9, 19, 0) 78%
+    color-mix(in srgb, var(--void) 92%, transparent) 0%,
+    color-mix(in srgb, var(--void) 68%, transparent) 42%,
+    transparent 78%
   );
 }
 
@@ -122,15 +190,83 @@ body {
   animation: pulse-soft 2s ease-in-out infinite;
 }
 
-/* Mission Control monospace voice — cascades to every child */
+/* ============================================================
+   Mission Control — component primitives
+   Sans for anything read; mono only for labels, data and chrome.
+   ============================================================ */
 .mc-root {
-  font-family: var(--font-jetbrains-mono), 'Courier New', monospace;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 .mc-root * {
   overflow-wrap: break-word;
-  word-break: break-word;
+}
+.mc-root :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Elevated panel — one surface style for every block in the brief */
+.mc-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  padding: 18px;
+}
+
+/* Micro label — the mono "instrument" voice */
+.mc-label {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-subtle);
+}
+
+/* Chips — neutral by default; set --chip for an accented chip */
+.mc-chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1;
+  padding: 6px 10px;
+  border-radius: var(--radius-chip);
+  color: var(--ink-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.mc-chip--accent {
+  color: var(--chip);
+  background: color-mix(in srgb, var(--chip) 10%, transparent);
+  border-color: color-mix(in srgb, var(--chip) 32%, transparent);
+}
+
+/* Quiet text button (nav, carousel, zoom) */
+.mc-ghost-btn {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--ink-subtle);
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+.mc-ghost-btn:hover {
+  color: var(--ink);
+}
+
+/* Project card — lifts and warms on hover */
+.mc-card {
+  background: var(--surface);
+  transition: background-color 0.25s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s ease;
+}
+.mc-card:not([aria-disabled="true"]):hover {
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--card-accent) 35%, transparent);
 }
 
 /* GPS concentric-ring pulse (bento Panel 2) — animates SVG stroke opacity */
@@ -164,9 +300,9 @@ body {
 
 /* LearnFlow — deployment "LIVE" green dot pulse */
 @keyframes live-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
-  70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--live) 50%, transparent); }
+  70% { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 .live-pulse {
   animation: live-pulse 1.5s ease-in-out infinite;
@@ -219,10 +355,10 @@ body {
   animation: none;
   transform: scale(1.05);
 }
-.entry-corner.tl { left: -1px; top: -1px; border-left: 2px solid #e8a040; border-top: 2px solid #e8a040; }
-.entry-corner.tr { right: -1px; top: -1px; border-right: 2px solid #e8a040; border-top: 2px solid #e8a040; }
-.entry-corner.bl { left: -1px; bottom: -1px; border-left: 2px solid #e8a040; border-bottom: 2px solid #e8a040; }
-.entry-corner.br { right: -1px; bottom: -1px; border-right: 2px solid #e8a040; border-bottom: 2px solid #e8a040; }
+.entry-corner.tl { left: -1px; top: -1px; border-left: 2px solid var(--accent); border-top: 2px solid var(--accent); }
+.entry-corner.tr { right: -1px; top: -1px; border-right: 2px solid var(--accent); border-top: 2px solid var(--accent); }
+.entry-corner.bl { left: -1px; bottom: -1px; border-left: 2px solid var(--accent); border-bottom: 2px solid var(--accent); }
+.entry-corner.br { right: -1px; bottom: -1px; border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent); }
 
 @keyframes entry-chevron {
   0%, 100% { transform: translateX(0); opacity: 0.6; }
@@ -234,9 +370,9 @@ body {
 
 /* click lock-on: border flashes white → amber → white */
 @keyframes entry-lockon {
-  0% { border-color: #ffffff; box-shadow: 0 0 16px rgba(255,255,255,0.6); }
-  50% { border-color: #e8a040; box-shadow: 0 0 16px rgba(232,160,64,0.6); }
-  100% { border-color: #ffffff; box-shadow: 0 0 20px rgba(255,255,255,0.7); }
+  0% { border-color: var(--ink); box-shadow: 0 0 16px color-mix(in srgb, var(--ink) 60%, transparent); }
+  50% { border-color: var(--accent); box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 60%, transparent); }
+  100% { border-color: var(--ink); box-shadow: 0 0 20px color-mix(in srgb, var(--ink) 70%, transparent); }
 }
 .entry-lockon {
   animation: entry-lockon 0.3s ease-in-out;
@@ -249,7 +385,7 @@ body {
 }
 .hero-char:hover {
   transform: translateY(-7px) scale(1.06);
-  text-shadow: 0 0 22px rgba(245, 181, 68, 0.85);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--accent-hi) 85%, transparent);
 }
 
 /* Intro Act 1 — slow bounce-down arrow under the scroll hint */

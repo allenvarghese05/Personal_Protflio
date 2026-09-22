@@ -6,6 +6,7 @@ import { useStore } from '@/lib/store';
 import { scrollState } from '@/lib/scrollState';
 import { HERO_END } from '@/lib/journey';
 import { ENTRY } from '@/lib/entrySequence';
+import { PALETTE } from '@/lib/palette';
 
 const PAD = new THREE.Vector3(0, -1.9, 1.5); // low on the launch pad (bottom of frame)
 const ROCKET_END = new THREE.Vector3(1.7, 3.3, -9); // climbs up-and-right into orbit, clear of the name card
@@ -225,7 +226,7 @@ export default function Rocket() {
       {/* Nose cone */}
       <mesh position={[0, 0.95, 0]}>
         <coneGeometry args={[0.32, 0.55, 24]} />
-        <meshStandardMaterial color="#ff8a3d" metalness={0.5} roughness={0.35} />
+        <meshStandardMaterial color={PALETTE.accent} metalness={0.5} roughness={0.35} />
       </mesh>
 
       {/* Window — lights up with the engine (dark during boot) */}

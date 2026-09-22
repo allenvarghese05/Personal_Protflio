@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '@/lib/store';
 import { ENTRY, entryState } from '@/lib/entrySequence';
+import { PALETTE } from '@/lib/palette';
 
 /**
  * The galaxy revealed when the camera pulls back from the hero planet, and
@@ -57,9 +58,9 @@ function makeLabelTexture(text) {
   ctx.font = font;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.shadowColor = '#e8a040';
+  ctx.shadowColor = PALETTE.accent;
   ctx.shadowBlur = 26;
-  ctx.fillStyle = '#e8a040';
+  ctx.fillStyle = PALETTE.accent;
   ctx.fillText(spaced, w / 2, h / 2);
   ctx.shadowBlur = 12;
   ctx.fillStyle = '#ffffff';
@@ -199,7 +200,7 @@ function OrbitRing({ planetPos, amber = false }) {
   });
   return (
     <line ref={ref} geometry={geo}>
-      <lineBasicMaterial color={amber ? '#e8a040' : '#ffffff'} transparent opacity={0} depthWrite={false} />
+      <lineBasicMaterial color={amber ? PALETTE.accent : '#ffffff'} transparent opacity={0} depthWrite={false} />
     </line>
   );
 }
@@ -313,11 +314,11 @@ function AllensWorldMark() {
         <spriteMaterial map={tex} transparent opacity={0} depthWrite={false} toneMapped={false} />
       </sprite>
       <line ref={lineRef} geometry={lineGeo}>
-        <lineBasicMaterial color="#e8a040" transparent opacity={0} depthWrite={false} />
+        <lineBasicMaterial color={PALETTE.accent} transparent opacity={0} depthWrite={false} />
       </line>
       <mesh ref={haloRef} rotation={[Math.PI / 2.4, 0.2, 0]}>
         <torusGeometry args={[5.1, 0.045, 8, 96]} />
-        <meshBasicMaterial color="#e8a040" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color={PALETTE.accent} transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -492,7 +493,7 @@ export function VoyagerRocket() {
             </mesh>
           </group>
         ))}
-        <pointLight ref={engineLight} position={[0, -0.55, 0]} color="#e8a040" intensity={0} distance={6} decay={2} />
+        <pointLight ref={engineLight} position={[0, -0.55, 0]} color={PALETTE.accent} intensity={0} distance={6} decay={2} />
       </group>
 
       {/* exhaust lives in world space so it trails properly */}

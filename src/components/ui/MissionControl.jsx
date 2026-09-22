@@ -12,55 +12,38 @@ import DeploymentStatusStrip from './DeploymentStatusStrip';
 const accentFor = (kind) => ACCENTS[kind] || ACCENTS.project;
 const badgeWord = (kind) =>
   ({ signature: 'SIGNATURE', current: 'CURRENT', project: 'PROJECT', classified: 'CLASSIFIED' }[kind] || 'PROJECT');
-const railGradient = (kind) => `linear-gradient(90deg, ${accentFor(kind)} 0%, transparent 70%)`;
+const railGradient = (accent) => `linear-gradient(90deg, ${accent} 0%, transparent 70%)`;
 
 /* ───────────────────────────── TOP NAV BAR ────────────────────────────── */
 
 function NavBar({ zone, project, onBack, onExit }) {
-  const segSep = <span style={{ color: '#1c2535' }}> · </span>;
+  const sep = <span className="text-ink-faint"> · </span>;
   return (
-    <div
-      className="relative flex shrink-0 items-center"
-      style={{ height: '48px', background: '#040609', borderBottom: '0.5px solid #151c28' }}
+    <nav
+      aria-label="Mission Control"
+      className="relative flex h-14 shrink-0 items-center justify-between border-b border-line bg-void px-4 sm:px-6"
     >
-      {/* LEFT — back */}
-      <button
-        onClick={onBack}
-        className="absolute left-6 font-mono transition-colors"
-        style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#304050' }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = '#6080a0')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = '#304050')}
-      >
-        ← BACK
+      <button onClick={onBack} className="mc-ghost-btn uppercase">
+        ← Back
       </button>
 
-      {/* CENTER — absolutely-centered breadcrumb */}
-      <div
-        className="absolute font-mono whitespace-nowrap"
-        style={{ left: '50%', transform: 'translateX(-50%)', fontSize: '11px', letterSpacing: '0.14em' }}
-      >
-        <span style={{ color: '#304050' }}>MISSION CONTROL</span>
-        {segSep}
-        <span style={{ color: '#304050' }}>{(zone?.label || 'ENGINEERING DISTRICT').toUpperCase()}</span>
+      {/* breadcrumb — hidden on narrow screens, where it can't fit */}
+      <div className="absolute left-1/2 hidden -translate-x-1/2 whitespace-nowrap font-mono text-micro uppercase tracking-[0.14em] md:block">
+        <span className="text-ink-subtle">Mission Control</span>
+        {sep}
+        <span className="text-ink-subtle">{zone?.label || 'Engineering District'}</span>
         {project && (
           <>
-            {segSep}
-            <span style={{ color: '#e8a040' }}>{project.label}</span>
+            {sep}
+            <span className="text-accent">{project.label}</span>
           </>
         )}
       </div>
 
-      {/* RIGHT — exit */}
-      <button
-        onClick={onExit}
-        className="absolute right-6 font-mono transition-colors"
-        style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#304050' }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = '#6080a0')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = '#304050')}
-      >
-        EXIT × ESC
+      <button onClick={onExit} className="mc-ghost-btn uppercase">
+        Exit <span className="ml-1 rounded-[3px] border border-line px-1.5 py-0.5 text-[10px] tracking-normal">ESC</span>
       </button>
-    </div>
+    </nav>
   );
 }
 
@@ -72,6 +55,17 @@ const cardVariant = {
   show: { opacity: 1, y: 0, transition: { duration: DUR.cardFade, ease: EASE_STD } },
 };
 
+function Badge({ accent, children, className = '' }) {
+  return (
+    <span
+      className={`mc-chip mc-chip--accent w-fit font-medium uppercase tracking-[0.18em] ${className}`}
+      style={{ '--chip': accent }}
+    >
+      {children}
+    </span>
+  );
+}
+
 function ProjectCard({ project, onSelect }) {
   const accent = accentFor(project.kind);
   const locked = project.locked;
@@ -79,57 +73,38 @@ function ProjectCard({ project, onSelect }) {
     <motion.button
       variants={cardVariant}
       onClick={() => !locked && onSelect(project.id)}
-      className={`group relative flex flex-col text-left transition-colors duration-200 ${
-        locked ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-[#0d1218]'
-      }`}
-      style={{ background: '#090c12', padding: '24px' }}
+      aria-disabled={locked || undefined}
+      aria-label={locked ? 'Classified project — locked' : `Open brief: ${project.label}`}
+      className={`mc-card group relative flex flex-col p-6 text-left ${locked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+      style={{ '--card-accent': accent }}
     >
-      {/* 3px gradient top accent */}
-      <span className="pointer-events-none absolute inset-x-0 top-0" style={{ height: '3px', background: railGradient(project.kind) }} />
+      {/* accent rail */}
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-[3px]" style={{ background: railGradient(accent) }} />
 
-      {/* Badge */}
-      <span
-        className="w-fit rounded-[3px] uppercase"
-        style={{ fontSize: '8px', fontWeight: 500, letterSpacing: '0.2em', color: accent, border: `0.5px solid ${accent}40`, background: `${accent}14`, padding: '4px 8px' }}
-      >
-        {badgeWord(project.kind)}
-      </span>
+      <Badge accent={accent}>{badgeWord(project.kind)}</Badge>
 
-      {/* Name */}
       <div
-        className={locked ? 'select-none blur-[5px]' : ''}
-        style={{ marginTop: '16px', fontSize: '18px', fontWeight: 700, color: '#c8d4e0', lineHeight: 1.3 }}
+        className={`font-display mt-4 text-xl font-semibold leading-snug text-ink ${locked ? 'select-none blur-[5px]' : ''}`}
       >
         {project.label}
       </div>
 
-      {/* Subtitle */}
-      <div
-        className="line-clamp-2"
-        style={{ marginTop: '8px', fontSize: '12px', color: '#4a6070', lineHeight: 1.6 }}
-      >
-        {project.subtitle}
-      </div>
+      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-muted">{project.subtitle}</p>
 
-      {/* Tags */}
-      <div className="flex flex-wrap" style={{ marginTop: '16px', gap: '6px' }}>
+      <div className="mt-4 flex flex-wrap gap-1.5">
         {(project.tags || project.secondaryStack || []).slice(0, 5).map((t) => (
-          <span
-            key={t}
-            className="rounded-[3px]"
-            style={{ fontSize: '9px', fontWeight: 500, color: '#304050', background: '#0c1018', border: '0.5px solid #1a2530', padding: '4px 8px' }}
-          >
+          <span key={t} className="mc-chip">
             {t}
           </span>
         ))}
       </div>
 
-      {/* CTA */}
       <span
-        className={`font-mono uppercase transition-colors duration-200 ${locked ? '' : 'group-hover:text-[#e8a040]'}`}
-        style={{ marginTop: '20px', fontSize: '10px', letterSpacing: '0.14em', color: '#304050' }}
+        className={`mt-auto pt-6 font-mono text-micro uppercase tracking-[0.14em] transition-colors duration-200 ${
+          locked ? 'text-ink-subtle' : 'text-ink-subtle group-hover:text-[var(--card-accent)]'
+        }`}
       >
-        {locked ? 'LOCKED ◍' : 'OPEN BRIEF →'}
+        {locked ? 'Locked ◍' : 'Open brief →'}
       </span>
     </motion.button>
   );
@@ -142,15 +117,21 @@ function Wall({ projects, onSelect }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.2 } }}
-      className="w-full"
-      style={{ maxWidth: '1200px' }}
+      className="w-full max-w-[1200px]"
     >
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <div className="mc-label">Engineering District</div>
+          <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Selected work</h1>
+        </div>
+        <div className="mc-label hidden sm:block">{String(projects.length).padStart(2, '0')} files</div>
+      </div>
+
       <motion.div
         variants={wallContainer}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-        style={{ gap: '1px', background: '#111820', border: '1px solid #111820' }}
+        className="grid grid-cols-1 gap-px overflow-hidden rounded-panel border border-line bg-line sm:grid-cols-2 lg:grid-cols-3"
       >
         {projects.map((p) => (
           <ProjectCard key={p.id} project={p} onSelect={onSelect} />
@@ -162,97 +143,75 @@ function Wall({ projects, onSelect }) {
 
 /* ───────────────────────────── PROJECT BRIEF ──────────────────────────── */
 
-function MetricStrip({ metrics }) {
+function MetricStrip({ metrics, accent }) {
   if (!metrics?.length) return null;
   return (
-    <div className="flex flex-wrap justify-center">
+    <div className="grid grid-cols-2 gap-y-6 sm:flex sm:flex-wrap sm:justify-center">
       {metrics.map((m, i) => (
         <div
           key={m.label}
-          className="flex flex-col items-center"
-          style={{ padding: '0 40px', borderLeft: i > 0 ? '1px solid #151c28' : 'none' }}
+          className={`flex flex-col items-center px-6 sm:px-10 ${i > 0 ? 'sm:border-l sm:border-line' : ''}`}
         >
-          <span style={{ fontSize: '32px', fontWeight: 800, color: '#e8a040', letterSpacing: '-0.02em', lineHeight: 1 }}>
+          <span className="font-display text-4xl font-bold leading-none tracking-tight" style={{ color: accent }}>
             {m.value}
           </span>
-          <span className="uppercase text-center" style={{ marginTop: '6px', fontSize: '8px', fontWeight: 500, letterSpacing: '0.16em', color: '#304050', lineHeight: 1.4 }}>
-            {m.label}
-          </span>
+          <span className="mc-label mt-2 max-w-[16ch] text-center leading-snug tracking-[0.14em]">{m.label}</span>
         </div>
       ))}
     </div>
   );
 }
 
-function BuildTimeline({ items }) {
+function BuildTimeline({ items, accent }) {
   if (!items?.length) return null;
   return (
-    <div style={{ marginTop: '32px' }}>
-      <div className="font-mono uppercase" style={{ fontSize: '9px', letterSpacing: '0.2em', color: '#3a5060', marginBottom: '20px' }}>
-        Build Timeline
-      </div>
-      <div>
+    <div className="mt-10">
+      <div className="mc-label mb-5">Build timeline</div>
+      <ol>
         {items.map((it, i) => (
-          <div key={it.week} className="flex" style={{ gap: '16px' }}>
+          <li key={it.week} className="flex gap-4">
             {/* dot + connector rail */}
-            <div className="flex flex-col items-center" style={{ paddingTop: '2px' }}>
+            <div className="flex flex-col items-center pt-1">
               <span
-                className="shrink-0 rounded-full"
-                style={{ width: '8px', height: '8px', background: it.done ? '#e8a040' : '#1a2535' }}
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={it.done ? { background: accent } : { background: 'var(--raised)', boxShadow: 'inset 0 0 0 1px var(--line-hi)' }}
               />
-              {i < items.length - 1 && (
-                <span style={{ flex: 1, width: 0, borderLeft: '1px dashed #1a2535', marginTop: '3px', minHeight: '16px' }} />
-              )}
+              {i < items.length - 1 && <span className="mt-1 min-h-4 w-0 flex-1 border-l border-dashed border-line-hi" />}
             </div>
-            {/* content */}
-            <div style={{ paddingBottom: i < items.length - 1 ? '16px' : '0' }}>
-              <div className="font-mono uppercase" style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.12em', color: '#3a5060', marginBottom: '4px' }}>
-                {it.week}
-              </div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#8aa0b8', marginBottom: '4px' }}>{it.title}</div>
-              <div style={{ fontSize: '11px', color: '#3a5060', lineHeight: 1.6 }}>{it.desc}</div>
+            <div className={i < items.length - 1 ? 'pb-5' : ''}>
+              <div className="font-mono text-micro font-semibold uppercase tracking-[0.12em] text-ink-subtle">{it.week}</div>
+              <div className="mt-1 text-sm font-semibold text-ink">{it.title}</div>
+              <div className="mt-1 text-sm leading-relaxed text-ink-muted">{it.desc}</div>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ol>
     </div>
   );
 }
 
-function MicroLabel({ children, mb = 12 }) {
+function StackChips({ primary, secondary, accent }) {
   return (
-    <div className="uppercase" style={{ marginBottom: `${mb}px`, fontSize: '8px', fontWeight: 500, letterSpacing: '0.2em', color: '#304050' }}>
-      {children}
-    </div>
-  );
-}
-
-function StackChips({ primary, secondary, accent = '#e8a040' }) {
-  const chip = (name, isPrimary) => (
-    <span
-      key={name}
-      className="rounded-[3px] font-mono"
-      style={
-        isPrimary
-          ? { fontSize: '9px', padding: '5px 10px', color: accent, background: `${accent}14`, border: `0.5px solid ${accent}33` }
-          : { fontSize: '9px', padding: '5px 10px', color: '#4a6070', background: '#0a0e14', border: '0.5px solid #1a2530' }
-      }
-    >
-      {name}
-    </span>
-  );
-  return (
-    <div className="flex flex-wrap" style={{ gap: '6px' }}>
-      {(primary || []).map((n) => chip(n, true))}
-      {(secondary || []).map((n) => chip(n, false))}
+    <div className="flex flex-wrap gap-1.5">
+      {(primary || []).map((n) => (
+        <span key={n} className="mc-chip mc-chip--accent" style={{ '--chip': accent }}>
+          {n}
+        </span>
+      ))}
+      {(secondary || []).map((n) => (
+        <span key={n} className="mc-chip">
+          {n}
+        </span>
+      ))}
     </div>
   );
 }
 
 function Brief({ project }) {
   const accent = accentFor(project.kind);
+  const meta = [project.role, project.company, project.dateRange, project.location].filter(Boolean);
   return (
-    <motion.div
+    <motion.article
       key="brief"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, transition: { duration: DUR.briefFade, ease: EASE_STD } }}
@@ -260,69 +219,69 @@ function Brief({ project }) {
       className="w-full"
     >
       {/* HEADER */}
-      <div className="text-center" style={{ padding: '48px 64px 40px 64px', borderBottom: '0.5px solid #151c28', background: '#06080c' }}>
-        <span
-          className="inline-block uppercase"
-          style={{ fontSize: '9px', letterSpacing: '0.2em', color: accent, background: `${accent}14`, border: `0.5px solid ${accent}40`, padding: '5px 14px', borderRadius: '3px', marginBottom: '20px' }}
-        >
+      <header
+        className="relative overflow-hidden border-b border-line px-6 pb-10 pt-12 text-center sm:px-16"
+        style={{ background: `radial-gradient(70% 120% at 50% 0%, color-mix(in srgb, ${accent} 9%, transparent) 0%, transparent 70%), var(--void)` }}
+      >
+        <Badge accent={accent} className="mb-5">
           {project.badge}
-        </span>
-        <h2 style={{ fontSize: '44px', fontWeight: 800, color: '#dde6f0', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: '16px' }}>
+        </Badge>
+        <h2 className="font-display mx-auto max-w-4xl text-4xl font-bold leading-[1.08] tracking-tight text-ink sm:text-5xl">
           {project.label}
         </h2>
-        <div className="flex flex-wrap justify-center font-mono" style={{ fontSize: '11px', letterSpacing: '0.06em', color: '#4a6070', marginBottom: '32px', gap: '0' }}>
-          {[project.role, project.company, project.dateRange, project.location].filter(Boolean).map((seg, i, arr) => (
+        <div className="mx-auto mb-10 mt-4 flex max-w-3xl flex-wrap justify-center gap-x-2 font-mono text-label text-ink-muted">
+          {meta.map((seg, i) => (
             <span key={seg}>
               {seg}
-              {i < arr.length - 1 && <span style={{ color: '#1c2535' }}> · </span>}
+              {i < meta.length - 1 && <span className="ml-2 text-ink-faint">·</span>}
             </span>
           ))}
         </div>
-        <MetricStrip metrics={project.metrics} />
-      </div>
+        <MetricStrip metrics={project.metrics} accent={accent} />
+      </header>
 
       {/* BODY — two columns */}
       <div className="grid grid-cols-1 lg:grid-cols-[38fr_62fr]">
         {/* LEFT */}
-        <div className="min-w-0" style={{ padding: '40px 32px 40px 48px' }}>
-          <MicroLabel mb={12}>Context</MicroLabel>
-          <p style={{ fontSize: '13px', color: '#4a6070', lineHeight: 1.8, marginBottom: '32px' }}>
-            {project.description}
-          </p>
+        <div className="min-w-0 px-6 py-10 sm:px-12">
+          <div className="mc-label mb-3">Context</div>
+          <p className="mb-10 text-body text-ink-muted">{project.description}</p>
 
-          <MicroLabel mb={10}>Stack</MicroLabel>
-          <div>
-            <StackChips primary={project.primaryStack} secondary={project.secondaryStack} accent={accent} />
-          </div>
-          {/* Key Decisions now live in the architecture bento (Panel 4). */}
-          <BuildTimeline items={project.timeline} />
+          <div className="mc-label mb-3">Stack</div>
+          <StackChips primary={project.primaryStack} secondary={project.secondaryStack} accent={accent} />
+
+          {/* Key Decisions live in the architecture bento (Panel 4). */}
+          <BuildTimeline items={project.timeline} accent={accent} />
         </div>
 
         {/* RIGHT */}
-        <div className="min-w-0" style={{ padding: '32px 40px 32px 32px', borderLeft: '0.5px solid #111820' }}>
+        <div className="min-w-0 border-line px-6 py-8 sm:px-10 lg:border-l">
           <BentoPanels project={project} accent={accent} />
 
           {project.deployment && (
-            <div style={{ marginTop: '32px' }}>
+            <div className="mt-8">
               <DeploymentStatusStrip deployment={project.deployment} />
             </div>
           )}
 
-          <div style={{ marginTop: '32px' }}>
-            <MicroLabel mb={12}>System Architecture</MicroLabel>
-            <div style={{ height: '360px', borderRadius: '6px', border: '0.5px solid #151c28', overflow: 'hidden' }}>
+          <div className="mt-8">
+            <div className="mc-label mb-3">System architecture</div>
+            <div className="h-[380px] overflow-hidden rounded-panel border border-line">
               {project.architectureGraph ? (
-                <ArchitectureGraph nodes={project.architectureGraph.nodes} edges={project.architectureGraph.edges} categoryColors={project.graphColors} accent={accent} />
+                <ArchitectureGraph
+                  nodes={project.architectureGraph.nodes}
+                  edges={project.architectureGraph.edges}
+                  categoryColors={project.graphColors}
+                  accent={accent}
+                />
               ) : (
-                <div className="flex h-full items-center justify-center font-mono" style={{ fontSize: '11px', color: '#304050' }}>
-                  NO DIAGRAM
-                </div>
+                <div className="mc-label flex h-full items-center justify-center">No diagram</div>
               )}
             </div>
           </div>
         </div>
       </div>
-    </motion.div>
+    </motion.article>
   );
 }
 
@@ -359,8 +318,10 @@ export default function MissionControl() {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="mc-root fixed inset-0 z-40 flex flex-col"
-          style={{ background: '#06080c' }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mission Control — engineering projects"
+          className="mc-root fixed inset-0 z-40 flex flex-col bg-void"
           initial={{ y: '100%' }}
           animate={{ y: 0, transition: { duration: DUR.slideIn, ease: EASE_OUT } }}
           exit={{ y: '100%', transition: { duration: DUR.slideOut, ease: EASE_OUT } }}
@@ -370,8 +331,8 @@ export default function MissionControl() {
             aria-hidden
             className="pointer-events-none absolute inset-0"
             style={{
-              opacity: 0.5,
-              backgroundImage: 'radial-gradient(rgba(120,150,220,0.10) 1px, transparent 1px)',
+              opacity: 0.6,
+              backgroundImage: 'radial-gradient(color-mix(in srgb, var(--ink) 7%, transparent) 1px, transparent 1px)',
               backgroundSize: '26px 26px',
               maskImage: 'radial-gradient(90% 80% at 50% 35%, #000 30%, transparent 85%)',
             }}
@@ -383,7 +344,7 @@ export default function MissionControl() {
           <div className="relative flex-1 overflow-y-auto">
             <AnimatePresence mode="wait" initial={false}>
               {!project ? (
-                <div key="wall" className="flex min-h-full items-center justify-center" style={{ padding: '48px' }}>
+                <div key="wall" className="flex min-h-full items-center justify-center p-6 sm:p-12">
                   <Wall projects={projects} onSelect={setSelected} />
                 </div>
               ) : (

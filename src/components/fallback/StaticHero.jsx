@@ -15,7 +15,7 @@ export default function StaticHero() {
       className="relative flex min-h-screen flex-col items-center justify-center px-6 text-center"
       style={{
         background:
-          'radial-gradient(circle at 50% 120%, #14233a 0%, #0b1322 40%, #060913 100%)',
+          'radial-gradient(circle at 50% 120%, var(--raised) 0%, var(--surface) 40%, var(--void) 100%)',
       }}
     >
       <div className="glass glass-glow mb-8 flex items-center gap-2.5 rounded-full px-5 py-2">

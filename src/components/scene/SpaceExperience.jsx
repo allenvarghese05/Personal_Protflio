@@ -17,14 +17,13 @@ import StarField from './StarField';
 import Planet from './Planet';
 import Rocket from './Rocket';
 import LaunchSmoke from './LaunchSmoke';
-import EngineeringStation from './EngineeringStation';
-import AsteroidBelt from './AsteroidBelt';
 import Nebula from './Nebula';
 import { EntryDistortion } from './EntryEffects';
 import { GalaxyScene, VoyagerRocket, voyagePose } from './GalaxyVoyage';
 import { useStore } from '@/lib/store';
 import { scrollState } from '@/lib/scrollState';
 import { ENTRY, entryState, resetEntryState } from '@/lib/entrySequence';
+import { PALETTE } from '@/lib/palette';
 
 const smooth = (a, b, t) => {
   const x = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1);
@@ -58,12 +57,6 @@ const FLIGHT_CAM = [
   { p: 0.9, pos: [2, 5.2, -34], tgt: [0, 5.4, -46] }, // transit
   { p: 1.0, pos: [0, 5.5, -41], tgt: [0, 5.5, -52] }, // into the asteroid field
 ];
-
-/** Hides chapter set-dressing while the galaxy sequence owns the frame. */
-function HideDuringDive({ children }) {
-  const phase = useStore((s) => s.phase);
-  return <group visible={phase !== 'dive'}>{children}</group>;
-}
 
 const PLANET_CENTER = new THREE.Vector3(0, 0.5, -11);
 // Galaxy-view staging: where the camera retreats to, and what it surveys.
@@ -101,10 +94,6 @@ function CameraRig() {
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     const flying = phase === 'flight';
-    if (typeof window !== 'undefined') {
-      window.__cam = camera;
-      window.__phase = phase;
-    }
 
     if (prevPhase.current !== phase) {
       prevPhase.current = phase;
@@ -274,10 +263,10 @@ export default function SpaceExperience({ tier = 'full' }) {
       dpr={isFull ? [1, 2] : [1, 1.5]}
       gl={{ antialias: true, powerPreference: 'high-performance', alpha: false }}
       camera={{ position: [0, 0.8, 5.2], fov: 50, near: 0.1, far: 200 }}
-      onCreated={({ gl }) => gl.setClearColor('#060913', 1)}
+      onCreated={({ gl }) => gl.setClearColor(PALETTE.void, 1)}
     >
       {/* Atmospheric depth — distant objects haze into the void */}
-      <fogExp2 attach="fog" args={['#060913', 0.006]} />
+      <fogExp2 attach="fog" args={[PALETTE.void, 0.006]} />
 
       <LightingRig />
 
@@ -287,12 +276,6 @@ export default function SpaceExperience({ tier = 'full' }) {
         <Planet />
         <Rocket />
         <LaunchSmoke />
-        {/* Chapter set-dressing bows out at galaxy scale — it would read as
-            clutter floating between the planets */}
-        <HideDuringDive>
-          <EngineeringStation />
-          <AsteroidBelt />
-        </HideDuringDive>
         {/* The galaxy + voyager (mounted only during the dive) */}
         <GalaxyScene />
         <VoyagerRocket />

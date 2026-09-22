@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 import { worldState } from '@/lib/worldState';
 import { ENTRY } from '@/lib/entrySequence';
+import { getAudio } from '@/lib/audio';
 
 /**
  * World-side beats of the arrival (mounted the moment the white flash hands
@@ -26,7 +27,7 @@ const DUST_LIFE = 0.8;
 /** The arrival bang — a deep sub boom layered under a thunder crack. */
 function bang() {
   try {
-    const ctx = window.__entryAudio;
+    const ctx = getAudio();
     if (!ctx) return;
     const now = ctx.currentTime;
     // sub boom
@@ -64,7 +65,7 @@ function bang() {
 
 function thud() {
   try {
-    const ctx = window.__entryAudio;
+    const ctx = getAudio();
     if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();

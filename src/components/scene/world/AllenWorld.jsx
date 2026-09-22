@@ -7,6 +7,7 @@ import { toonGradient } from '@/lib/toon';
 import { worldState } from '@/lib/worldState';
 import { zones } from '@/data/world';
 import { useStore } from '@/lib/store';
+import { PALETTE } from '@/lib/palette';
 
 /* ----------------------------------------------------------------------------
    Sky dome — vertical gradient: deep indigo overhead → warm amber at horizon.
@@ -269,7 +270,7 @@ function makeEnterTexture(accent) {
   return tex;
 }
 
-export function District({ id, position = [10, 0, 0], color = '#ff8a3d', label = 'ENGINEERING DISTRICT', accent = '#ffd27a', enterRadius = 5, labelRadius = 30 }) {
+export function District({ id, position = [10, 0, 0], color = PALETTE.accent, label = 'ENGINEERING DISTRICT', accent = PALETTE.accentHi, enterRadius = 5, labelRadius = 30 }) {
   const grad = useMemo(toonGradient, []);
   const beacon = useRef();
   const glow = useRef();
@@ -281,7 +282,7 @@ export function District({ id, position = [10, 0, 0], color = '#ff8a3d', label =
   const setEnteredZone = useStore((s) => s.setEnteredZone);
 
   // Label uses the spec amber; ENTER plate uses the zone accent.
-  const labelTex = useMemo(() => makeLabelTexture(label, '#e8a040'), [label]);
+  const labelTex = useMemo(() => makeLabelTexture(label, PALETTE.accent), [label]);
   const enterTex = useMemo(() => makeEnterTexture(accent), [accent]);
 
   useFrame((state) => {

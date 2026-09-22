@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { Outlines } from '@react-three/drei';
 import * as THREE from 'three';
 import { toonGradient } from '@/lib/toon';
+import { PALETTE } from '@/lib/palette';
 
 /**
  * Low-poly, cel-shaded astronaut — Allen's avatar on the surface. Built from
@@ -28,7 +29,7 @@ const Astronaut = forwardRef(function Astronaut({ moving = { current: false } },
     [grad]
   );
   const accent = useMemo(
-    () => ({ gradientMap: grad, color: '#ff8a3d' }),
+    () => ({ gradientMap: grad, color: PALETTE.accent }),
     [grad]
   );
   const pack = useMemo(() => ({ gradientMap: grad, color: '#b8c0cc' }), [grad]);

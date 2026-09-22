@@ -4,10 +4,7 @@ import gsap from 'gsap';
 import { useStore } from '@/lib/store';
 import { worldState } from '@/lib/worldState';
 import { ENTRY, resetEntryState } from '@/lib/entrySequence';
-
-// Timed beats must hit their marks even through heavy frames (the world
-// canvas mounts mid-flash) — default lag smoothing would rewind the playhead.
-if (typeof window !== 'undefined') gsap.ticker.lagSmoothing(0);
+import { getAudio } from '@/lib/audio';
 
 const MONO = { fontFamily: 'var(--font-jetbrains-mono), monospace' };
 
@@ -15,7 +12,7 @@ const MONO = { fontFamily: 'var(--font-jetbrains-mono), monospace' };
    unlocked by the button click. Every call is defensive: sound is a bonus. */
 function rumble(dur = 3) {
   try {
-    const ctx = window.__entryAudio;
+    const ctx = getAudio();
     if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -33,7 +30,7 @@ function rumble(dur = 3) {
 }
 function crack() {
   try {
-    const ctx = window.__entryAudio;
+    const ctx = getAudio();
     if (!ctx) return;
     const len = Math.floor(ctx.sampleRate * 0.18);
     const buf = ctx.createBuffer(1, len, ctx.sampleRate);
@@ -109,6 +106,10 @@ export default function BigBangTransition() {
     if (phase !== 'dive' || fired.current) return;
     fired.current = true;
     document.body.style.overflow = 'hidden';
+    // Timed beats must hit their marks even through heavy frames (the world
+    // canvas mounts mid-flash) — default lag smoothing would rewind the
+    // playhead. Scoped to the sequence; GSAP's default is restored after.
+    gsap.ticker.lagSmoothing(0);
 
     const tl = gsap.timeline();
     masterTl.current = tl;
@@ -190,6 +191,7 @@ export default function BigBangTransition() {
       tl.kill();
       masterTl.current = null;
       resetEntryState();
+      gsap.ticker.lagSmoothing(500, 33);
       document.body.style.overflow = '';
     };
   }, [phase, setJourneyPhase]);
@@ -214,12 +216,12 @@ export default function BigBangTransition() {
       <div
         ref={shockRef}
         className="pointer-events-none fixed left-1/2 top-1/2 z-[211] rounded-full"
-        style={{ width: '24px', height: '24px', border: '3px solid #ffffff', opacity: 0, transform: 'translate(-50%, -50%) scale(0)' }}
+        style={{ width: '24px', height: '24px', border: '3px solid var(--ink)', opacity: 0, transform: 'translate(-50%, -50%) scale(0)' }}
       />
       <div
         ref={shockAmberRef}
         className="pointer-events-none fixed left-1/2 top-1/2 z-[211] rounded-full"
-        style={{ width: '24px', height: '24px', border: '3px solid rgba(232,160,64,0.4)', opacity: 0, transform: 'translate(-50%, -50%) scale(0)' }}
+        style={{ width: '24px', height: '24px', border: '3px solid color-mix(in srgb, var(--accent) 40%, transparent)', opacity: 0, transform: 'translate(-50%, -50%) scale(0)' }}
       />
       {/* chromatic split frames */}
       <div ref={rgbRedRef} className="pointer-events-none fixed inset-0 z-[209]" style={{ opacity: 0, background: 'rgba(255,0,60,0.5)', transform: 'translateX(-6px)', mixBlendMode: 'screen' }} />
@@ -235,8 +237,8 @@ export default function BigBangTransition() {
         className="pointer-events-none fixed inset-x-0 z-[206] text-center"
         style={{ bottom: '2.6vh', opacity: 0, ...MONO }}
       >
-        <div ref={typeLine1} className="uppercase" style={{ fontSize: '10px', letterSpacing: '0.3em', color: '#e8a040' }} />
-        <div ref={typeLine2} style={{ marginTop: '5px', fontSize: '8px', letterSpacing: '0.16em', color: '#3a5060' }} />
+        <div ref={typeLine1} className="uppercase" style={{ fontSize: '12px', letterSpacing: '0.3em', color: 'var(--accent)' }} />
+        <div ref={typeLine2} style={{ marginTop: '5px', fontSize: '11px', letterSpacing: '0.16em', color: 'var(--ink-subtle)' }} />
       </div>
 
       {/* Act C — film intertitles */}
@@ -245,13 +247,13 @@ export default function BigBangTransition() {
         className="pointer-events-none fixed left-1/2 top-1/2 z-[206] -translate-x-1/2 -translate-y-1/2 text-center"
         style={MONO}
       >
-        <div ref={welcome1} className="uppercase" style={{ opacity: 0, fontSize: '10px', letterSpacing: '0.3em', color: '#dde6f0' }}>
+        <div ref={welcome1} className="uppercase" style={{ opacity: 0, fontSize: '11px', letterSpacing: '0.3em', color: 'var(--ink)' }}>
           Welcome to
         </div>
         <div
           ref={welcome2}
           className="uppercase"
-          style={{ opacity: 0, marginTop: '12px', fontSize: '22px', fontWeight: 700, letterSpacing: '0.15em', color: '#e8a040', textShadow: '0 0 22px rgba(232,160,64,0.5)' }}
+          style={{ opacity: 0, marginTop: '12px', fontSize: '22px', fontWeight: 700, letterSpacing: '0.15em', color: 'var(--accent)', textShadow: '0 0 22px color-mix(in srgb, var(--accent) 50%, transparent)' }}
         >
           Allen&apos;s World
         </div>
@@ -273,11 +275,13 @@ export function ControlHint() {
       className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-md font-mono uppercase"
       style={{
         opacity: 0,
-        fontSize: '8px',
+        fontSize: '11px',
         letterSpacing: '0.18em',
-        color: '#1a2535',
-        background: 'rgba(255,240,214,0.55)',
-        padding: '6px 12px',
+        color: 'var(--ink-muted)',
+        background: 'color-mix(in srgb, var(--void) 72%, transparent)',
+        border: '1px solid var(--line)',
+        backdropFilter: 'blur(8px)',
+        padding: '8px 14px',
       }}
     >
       CLICK TO EXPLORE · WASD / ARROWS TO MOVE

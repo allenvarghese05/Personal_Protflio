@@ -7,12 +7,15 @@
  * signature | current | project | classified.
  */
 
+import { PALETTE } from '@/lib/palette';
+
+// Graph node colours — named by role, drawn from the one palette.
 const C = {
-  amber: '#e8a040',
-  teal: '#30c0a0',
-  blue: '#4090e0',
-  purple: '#9060e0',
-  grey: '#608090',
+  amber: PALETTE.accent,
+  teal: PALETTE.jade,
+  blue: PALETTE.ice,
+  purple: PALETTE.lilac,
+  grey: PALETTE.slate,
 };
 
 export const ENGINEERING_PROJECTS = [
@@ -183,15 +186,15 @@ export const ENGINEERING_PROJECTS = [
       { week: 'WEEK 7', title: 'Performance Optimisation', desc: 'PostgreSQL indexing, sub-150ms query achievement on 50K+ records', done: true },
       { week: 'WEEK 8', title: 'Beta Launch & Iteration', desc: '150+ user onboarding, retention tracking, satisfaction measurement', done: true },
     ],
-    // Per-project graph palette (core = teal, LearnFlow's accent).
+    // Per-project graph palette (core = ice, LearnFlow's accent).
     graphColors: {
-      core: '#30c0a0',
-      audio: '#e8a040',
-      ai: '#9060e0',
-      storage: '#608090',
-      ui: '#4090e0',
-      infrastructure: '#3a5060',
-      data: '#4090e0',
+      core: PALETTE.ice,
+      audio: PALETTE.accent,
+      ai: PALETTE.lilac,
+      storage: PALETTE.slate,
+      ui: PALETTE.jade,
+      infrastructure: PALETTE.slate,
+      data: PALETTE.sand,
     },
     deployment: {
       url: 'learnflow-ai.app',

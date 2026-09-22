@@ -3,6 +3,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '@/lib/store';
+import { PALETTE } from '@/lib/palette';
 
 /**
  * Additive-blended point cloud of stars filling a large sphere shell.
@@ -22,7 +23,7 @@ export default function StarField({ count = 6000 }) {
     const palette = [
       new THREE.Color('#fff6e6'),
       new THREE.Color('#dfeaff'),
-      new THREE.Color('#ff8a3d'),
+      new THREE.Color(PALETTE.accent),
       new THREE.Color('#6fb0ee'),
     ];
 

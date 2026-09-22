@@ -1,4 +1,5 @@
 'use client';
+import { PALETTE as P, alpha, CATEGORY_COLOR } from '@/lib/palette';
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { GRAPH } from '@/lib/motion';
@@ -13,20 +14,8 @@ import { GRAPH } from '@/lib/motion';
  * (category / importance / x,y% / edge direction).
  */
 
-const COLOR_BY_CATEGORY = {
-  core: '#e8a040',
-  auth: '#30c0a0',
-  data: '#4090e0',
-  realtime: '#9060e0',
-  storage: '#608090',
-  location: '#4090e0',
-  workflow: '#c87830',
-  // LearnFlow categories
-  ai: '#9060e0',
-  ui: '#4090e0',
-  audio: '#e8a040',
-  infrastructure: '#3a5060',
-};
+// Category hues come from the one palette (lib/palette.js).
+const COLOR_BY_CATEGORY = CATEGORY_COLOR;
 const RADIUS_BY_IMPORTANCE = { center: 26, primary: 15, secondary: 11, leaf: 7 };
 const CATEGORY_LABEL = {
   core: 'Core',
@@ -45,9 +34,9 @@ const CATEGORY_LABEL = {
 const radiusOf = (n) => n.r ?? RADIUS_BY_IMPORTANCE[n.importance] ?? 12;
 const descOf = (n) => n.description || n.desc || '';
 
-export default function ArchitectureGraph({ nodes, edges, categoryColors, accent = '#e8a040' }) {
+export default function ArchitectureGraph({ nodes, edges, categoryColors, accent = P.accent }) {
   const colorOf = (n) =>
-    n.color || categoryColors?.[n.category] || COLOR_BY_CATEGORY[n.category] || '#608090';
+    n.color || categoryColors?.[n.category] || COLOR_BY_CATEGORY[n.category] || P.slate;
   const wrapRef = useRef(null);
   const svgRef = useRef(null);
   const zoomApi = useRef(null);
@@ -90,7 +79,7 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
 
     // Legend — categories present.
     const cats = [...new Set(simNodes.map((n) => n.category).filter(Boolean))];
-    setLegendItems(cats.map((c) => ({ color: categoryColors?.[c] || COLOR_BY_CATEGORY[c] || '#608090', label: CATEGORY_LABEL[c] || c })));
+    setLegendItems(cats.map((c) => ({ color: categoryColors?.[c] || COLOR_BY_CATEGORY[c] || P.slate, label: CATEGORY_LABEL[c] || c })));
 
     /* ---- SVG scaffold ------------------------------------------------- */
     svg.selectAll('*').remove();
@@ -108,7 +97,7 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
       .selectAll('line')
       .data(simLinks)
       .join('line')
-      .attr('stroke', 'rgba(255,255,255,0.06)')
+      .attr('stroke', alpha(P.ink, 0.08))
       .attr('stroke-width', 0.5)
       .style('transition', 'stroke-opacity 0.2s ease, stroke 0.2s ease');
 
@@ -131,7 +120,7 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
     scaleG
       .append('circle')
       .attr('r', (d) => d._r)
-      .attr('fill', '#07090e')
+      .attr('fill', P.surface)
       .attr('stroke', (d) => d._c)
       .attr('stroke-width', 1.5)
       .style('transition', 'stroke-width 0.2s ease, filter 0.2s ease');
@@ -142,12 +131,12 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
       .attr('text-anchor', 'middle')
       .attr('fill', (d) => d._c)
       .attr('font-family', 'ui-monospace, "JetBrains Mono", monospace')
-      .attr('font-size', (d) => (d.importance === 'center' ? 10 : 8))
+      .attr('font-size', (d) => (d.importance === 'center' ? 11 : 9.5))
       .attr('font-weight', (d) => (d.importance === 'center' ? 600 : 400))
       .attr('dominant-baseline', (d) => (d.importance === 'center' ? 'middle' : 'hanging'))
       .attr('y', (d) => (d.importance === 'center' ? 0 : d._r + 4))
       .style('paint-order', 'stroke')
-      .style('stroke', '#07090e')
+      .style('stroke', P.surface)
       .style('stroke-width', (d) => (d.importance === 'center' ? 3 : 0));
 
     /* ---- force simulation -------------------------------------------- */
@@ -219,7 +208,7 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
       link
         .style('stroke', (l) => {
           if (active && (l.source.id === active || l.target.id === active)) return byId.get(active)._c;
-          return 'rgba(255,255,255,0.06)';
+          return alpha(P.ink, 0.08);
         })
         .style('stroke-opacity', (l) => {
           if (!active) return 1;
@@ -376,50 +365,37 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
   return (
     <div
       ref={wrapRef}
-      className="relative h-full w-full overflow-hidden bg-[#05070a]"
+      className="relative h-full w-full overflow-hidden bg-void"
       style={{ touchAction: 'none', userSelect: 'none' }}
     >
       <svg ref={svgRef} className="block h-full w-full" />
 
       {/* zoom-level indicator */}
-      <div
-        className="pointer-events-none absolute font-mono"
-        style={{ left: '8px', bottom: '6px', fontSize: '8px', color: '#1a2535', letterSpacing: '0.06em' }}
-      >
-        {zoomPct}%
-      </div>
+      <div className="pointer-events-none absolute bottom-1.5 left-2 font-mono text-micro text-ink-subtle">{zoomPct}%</div>
 
       {/* tooltip */}
       {tip && (
         <div
-          className="pointer-events-none absolute z-20"
+          className="pointer-events-none absolute z-20 max-w-[240px] rounded-md bg-surface-2 px-3.5 py-3"
           style={{
-            left: tip.flipX ? tip.x - 236 : tip.x + 16,
-            top: tip.flipY ? tip.y - 8 - 120 : tip.y - 8,
-            maxWidth: '220px',
-            background: '#07090e',
-            border: `0.5px solid ${accent}`,
-            borderRadius: '6px',
-            padding: '10px 14px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+            left: tip.flipX ? tip.x - 256 : tip.x + 16,
+            top: tip.flipY ? tip.y - 8 - 130 : tip.y - 8,
+            border: `1px solid ${alpha(accent, 0.5)}`,
+            boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
           }}
         >
-          <div className="font-mono" style={{ fontSize: '10px', fontWeight: 600, color: accent, marginBottom: '6px' }}>
+          <div className="mb-1.5 text-sm font-semibold" style={{ color: accent }}>
             {tip.label}
           </div>
-          <div className="font-mono" style={{ fontSize: '10px', color: '#6080a0', lineHeight: 1.6 }}>
-            {tip.desc}
-          </div>
+          <div className="text-label text-ink-muted">{tip.desc}</div>
           {tip.connected?.length > 0 && (
-            <div className="font-mono" style={{ marginTop: '8px' }}>
-              <span className="uppercase" style={{ fontSize: '8px', letterSpacing: '0.1em', color: '#3a5060' }}>Connected to: </span>
-              <span style={{ fontSize: '9px', color: '#3a5060' }}>{tip.connected.join(', ')}</span>
+            <div className="mt-2 text-label text-ink-subtle">
+              <span className="font-mono text-micro uppercase tracking-[0.1em]">Connected to: </span>
+              {tip.connected.join(', ')}
             </div>
           )}
           {tip.category && (
-            <div className="font-mono uppercase" style={{ fontSize: '8px', letterSpacing: '0.1em', color: '#3a5060', marginTop: '6px' }}>
-              {tip.category}
-            </div>
+            <div className="mc-label mt-2 tracking-[0.1em]">{tip.category}</div>
           )}
         </div>
       )}
@@ -427,15 +403,13 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
       {/* legend */}
       {legendItems.length > 0 && (
         <div
-          className="pointer-events-none absolute left-2 flex flex-wrap gap-x-3 gap-y-1"
-          style={{ bottom: '22px', maxWidth: 'calc(100% - 90px)', background: 'rgba(5,7,10,0.78)', borderRadius: '4px', padding: '5px 8px' }}
+          className="pointer-events-none absolute bottom-7 left-2 flex max-w-[calc(100%-90px)] flex-wrap gap-x-3 gap-y-1 rounded-chip px-2 py-1.5"
+          style={{ background: alpha(P.void, 0.8) }}
         >
           {legendItems.map((l) => (
             <div key={l.label} className="flex items-center gap-1.5">
-              <span className="rounded-full" style={{ width: '6px', height: '6px', background: l.color }} />
-              <span className="font-mono uppercase" style={{ fontSize: '7px', letterSpacing: '0.1em', color: '#3a5060' }}>
-                {l.label}
-              </span>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: l.color }} />
+              <span className="font-mono text-micro uppercase tracking-[0.1em] text-ink-muted">{l.label}</span>
             </div>
           ))}
         </div>
@@ -443,10 +417,7 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
 
       {/* hint */}
       {showHint && (
-        <div
-          className="pointer-events-none absolute left-2 top-2 font-mono"
-          style={{ fontSize: '8px', color: '#1a2535', transition: 'opacity 0.6s', letterSpacing: '0.06em' }}
-        >
+        <div className="pointer-events-none absolute left-2 top-2 font-mono text-micro text-ink-subtle">
           scroll to zoom · drag to pan · click nodes to explore
         </div>
       )}
@@ -454,17 +425,15 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
       {/* zoom controls */}
       <div className="absolute bottom-2 right-2 flex flex-col gap-1">
         {[
-          { k: '+', fn: () => zoomApi.current?.zoomBy(1.3) },
-          { k: '−', fn: () => zoomApi.current?.zoomBy(1 / 1.3) },
-          { k: '⊡', fn: () => zoomApi.current?.reset() },
+          { k: '+', label: 'Zoom in', fn: () => zoomApi.current?.zoomBy(1.3) },
+          { k: '−', label: 'Zoom out', fn: () => zoomApi.current?.zoomBy(1 / 1.3) },
+          { k: '⊡', label: 'Reset view', fn: () => zoomApi.current?.reset() },
         ].map((b) => (
           <button
             key={b.k}
             onClick={b.fn}
-            className="flex items-center justify-center font-mono transition-colors"
-            style={{ width: '24px', height: '24px', background: '#07090e', border: '0.5px solid #1a2535', borderRadius: '4px', color: '#3a5060', fontSize: '12px' }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#0d1420'; e.currentTarget.style.color = '#6080a0'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#07090e'; e.currentTarget.style.color = '#3a5060'; }}
+            aria-label={b.label}
+            className="mc-ghost-btn flex h-7 w-7 items-center justify-center rounded-chip border border-line bg-surface text-[13px] tracking-normal hover:bg-surface-2"
           >
             {b.k}
           </button>

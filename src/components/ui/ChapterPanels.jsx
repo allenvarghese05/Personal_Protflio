@@ -6,6 +6,7 @@ import { SplitText } from 'gsap/SplitText';
 import { useStore } from '@/lib/store';
 import { identity, chapters } from '@/data/timeline';
 import { AsciiGlitchRipple } from '@/components/ui/AsciiGlitchRipple';
+import { unlockAudio } from '@/lib/audio';
 
 if (typeof window !== 'undefined') gsap.registerPlugin(SplitText);
 
@@ -103,14 +104,7 @@ function NameCard() {
 
     // Unlock audio on the user gesture — the sequence synthesizes its own
     // rumble/crack/thud through this context.
-    try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      const ctx = new AC();
-      ctx.resume();
-      window.__entryAudio = ctx;
-    } catch {
-      /* sound is optional */
-    }
+    unlockAudio();
 
     // Lock-on: border flash + INITIATING...
     btnRef.current?.classList.add('entry-lockon');
@@ -198,24 +192,24 @@ function NameCard() {
             <button
               ref={btnRef}
               onClick={initiateWorldEntry}
-              className="entry-btn group relative flex flex-col items-center justify-center border border-[#e8a040] bg-transparent transition-shadow duration-300 hover:shadow-[0_0_12px_rgba(232,160,64,0.4)]"
+              className="entry-btn group relative flex flex-col items-center justify-center border border-accent bg-transparent transition-shadow duration-300 hover:shadow-[0_0_12px_color-mix(in_srgb,var(--accent)_40%,transparent)]"
               style={{ width: '280px', height: '52px' }}
             >
               <span className="entry-corner tl" />
               <span className="entry-corner tr" />
               <span className="entry-corner bl" />
               <span className="entry-corner br" />
-              <span className="font-mono text-[11px] font-semibold tracking-[0.2em] text-[#e8a040] transition-colors duration-200 group-hover:text-[#f0c060]">
+              <span className="font-mono text-[11px] font-semibold tracking-[0.2em] text-accent transition-colors duration-200 group-hover:text-accent-hi">
                 {label}
               </span>
               <span
                 className="pointer-events-none absolute bottom-[5px] font-mono uppercase opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                style={{ fontSize: '7px', letterSpacing: '0.18em', color: '#3a5060' }}
+                style={{ fontSize: '9px', letterSpacing: '0.18em', color: 'var(--ink-subtle)' }}
               >
                 INITIATE SEQUENCE
               </span>
             </button>
-            <span className="entry-chevron font-mono text-lg text-[#e8a040]">›</span>
+            <span className="entry-chevron font-mono text-lg text-accent">›</span>
           </div>
           </motion.div>
 
@@ -224,9 +218,9 @@ function NameCard() {
             <div
               ref={statusRef}
               className="flex items-center gap-2 font-mono uppercase"
-              style={{ fontSize: '9px', letterSpacing: '0.25em', color: 'var(--text-dim)' }}
+              style={{ fontSize: '11px', letterSpacing: '0.25em', color: 'var(--ink-subtle)' }}
             >
-              <span className="pulse-soft h-1.5 w-1.5 rounded-full bg-[#5affa0]" style={{ boxShadow: '0 0 8px #5affa0' }} />
+              <span className="pulse-soft h-1.5 w-1.5 rounded-full bg-live" style={{ boxShadow: '0 0 8px var(--live)' }} />
               ORBIT STABLE · AWAITING COMMAND
             </div>
           </motion.div>

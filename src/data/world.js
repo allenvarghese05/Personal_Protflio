@@ -1,3 +1,5 @@
+import { PALETTE } from '@/lib/palette';
+
 /**
  * Surface zones for "Allen's World" (Act 4). Each is a physical district the
  * astronaut walks up to. `feature` points at the timeline memory opened when
@@ -10,8 +12,8 @@ export const zones = [
     label: 'ENGINEERING DISTRICT',
     blurb: 'Work experience · the things I’ve shipped',
     position: [10, 0, -2],
-    color: '#ff8a3d',
-    accent: '#ffd27a',
+    color: PALETTE.accent,
+    accent: PALETTE.accentHi,
     // Invisible trigger sphere: the astronaut halts and the ENTER prompt /
     // camera pivot fire when it crosses enterRadius. The floating name label is
     // visible from much further out (labelRadius).
