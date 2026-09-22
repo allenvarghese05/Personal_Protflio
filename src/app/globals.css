@@ -86,7 +86,7 @@
   --radius-chip: 4px;
   --radius-panel: 10px;
 
-  --font-display: var(--font-space-grotesk), sans-serif;
+  --font-display: var(--font-display-face), sans-serif;
   --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
@@ -112,19 +112,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar */
+/* No visible scrollbars anywhere — the experience is full-bleed. Scrolling
+   areas (Mission Control) still scroll with wheel / trackpad / touch. */
+html {
+  scrollbar-width: none;
+}
 ::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: var(--void);
-}
-::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--accent) 40%, transparent);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--accent) 70%, transparent);
+  display: none;
 }
 
 ::selection {
@@ -159,35 +153,11 @@ body {
   color: transparent;
 }
 
-/* Legibility helpers for text over the bright 3D scene */
-.text-shadow-soft {
-  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7), 0 1px 4px rgba(0, 0, 0, 0.6);
-}
-
-/* Radial dark scrim placed behind hero content */
-.hero-scrim {
-  background: radial-gradient(
-    ellipse 68% 56% at 50% 50%,
-    color-mix(in srgb, var(--void) 92%, transparent) 0%,
-    color-mix(in srgb, var(--void) 68%, transparent) 42%,
-    transparent 78%
-  );
-}
-
 .font-display {
-  font-family: var(--font-space-grotesk), sans-serif;
+  font-family: var(--font-display-face), sans-serif;
 }
 .font-mono {
   font-family: var(--font-jetbrains-mono), monospace;
-}
-
-/* Subtle pulse for status dots / blinking cursor */
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
-}
-.pulse-soft {
-  animation: pulse-soft 2s ease-in-out infinite;
 }
 
 /* ============================================================
@@ -278,17 +248,6 @@ body {
   animation: gps-ring 2.5s ease-in-out infinite;
 }
 
-/* Approval-chain connector: a dot travelling down through the tiers */
-@keyframes chain-dot {
-  0% { transform: translateY(-2px); opacity: 0; }
-  20% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { transform: translateY(12px); opacity: 0; }
-}
-.chain-dot {
-  animation: chain-dot 2s linear infinite;
-}
-
 /* LearnFlow — pipeline dashes flowing left → right into the context engine */
 @keyframes pipe-dash {
   to { stroke-dashoffset: -24; }
@@ -339,105 +298,126 @@ body {
   animation-delay: 0.1s;
 }
 
-/* ── The portal button (TRAVEL TO ALLEN'S WORLD) ───────────────────────── */
-@keyframes entry-breathe {
-  0%, 100% { transform: scale(0.95); }
-  50% { transform: scale(1); }
-}
-.entry-corner {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  animation: entry-breathe 2s ease-in-out infinite;
-  transition: transform 0.25s ease;
-}
-.entry-btn:hover .entry-corner {
-  animation: none;
-  transform: scale(1.05);
-}
-.entry-corner.tl { left: -1px; top: -1px; border-left: 2px solid var(--accent); border-top: 2px solid var(--accent); }
-.entry-corner.tr { right: -1px; top: -1px; border-right: 2px solid var(--accent); border-top: 2px solid var(--accent); }
-.entry-corner.bl { left: -1px; bottom: -1px; border-left: 2px solid var(--accent); border-bottom: 2px solid var(--accent); }
-.entry-corner.br { right: -1px; bottom: -1px; border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent); }
-
-@keyframes entry-chevron {
-  0%, 100% { transform: translateX(0); opacity: 0.6; }
-  50% { transform: translateX(6px); opacity: 1; }
-}
-.entry-chevron {
-  animation: entry-chevron 2s ease-in-out infinite;
-}
-
-/* click lock-on: border flashes white → amber → white */
-@keyframes entry-lockon {
-  0% { border-color: var(--ink); box-shadow: 0 0 16px color-mix(in srgb, var(--ink) 60%, transparent); }
-  50% { border-color: var(--accent); box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 60%, transparent); }
-  100% { border-color: var(--ink); box-shadow: 0 0 20px color-mix(in srgb, var(--ink) 70%, transparent); }
-}
-.entry-lockon {
-  animation: entry-lockon 0.3s ease-in-out;
-}
-
-/* Hero name characters — alive under the cursor (split on mount) */
-.hero-char {
-  transition: transform 0.18s ease, text-shadow 0.18s ease;
-  will-change: transform;
-}
-.hero-char:hover {
-  transform: translateY(-7px) scale(1.06);
-  text-shadow: 0 0 22px color-mix(in srgb, var(--accent-hi) 85%, transparent);
-}
-
-/* Intro Act 1 — slow bounce-down arrow under the scroll hint */
-@keyframes intro-arrow-bob {
-  0%, 100% { transform: translateY(0); opacity: 0.7; }
-  50% { transform: translateY(5px); opacity: 1; }
-}
-.intro-arrow-bob {
-  animation: intro-arrow-bob 1.6s ease-in-out infinite;
-}
-
-@keyframes blink {
-  0%, 49% { opacity: 1; }
-  50%, 100% { opacity: 0; }
-}
-.cursor-blink {
-  animation: blink 1s step-end infinite;
-}
-
-/* Gentle float */
-@keyframes float-y {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-.float-y {
-  animation: float-y 4s ease-in-out infinite;
-}
-
-/* Scroll prompt bounce */
-@keyframes scroll-bob {
-  0%, 100% { transform: translateY(0); opacity: 0.6; }
-  50% { transform: translateY(6px); opacity: 1; }
-}
-.scroll-bob {
-  animation: scroll-bob 1.8s ease-in-out infinite;
-}
-
 /* ============================================================
-   Lenis smooth scroll
+   Intro — hero, skip, planet designation
    ============================================================ */
-html.lenis,
-html.lenis body {
-  height: auto;
+
+/* Quiet text link with an underline that draws in */
+.hero-link {
+  position: relative;
+  transition: color 0.25s ease;
 }
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
+.hero-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
+.hero-link:hover {
+  color: var(--ink);
 }
-.lenis.lenis-stopped {
-  overflow: hidden;
+.hero-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* Primary CTA — solid ink pill, arrow nudges on hover */
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 3.25rem;
+  padding: 0 1.6rem 0 1.75rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--void);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  transition: background-color 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hero-cta:hover {
+  background: #ffffff;
+}
+.hero-cta:active {
+  transform: scale(0.98);
+}
+.hero-cta__arrow {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hero-cta:hover .hero-cta__arrow {
+  transform: translateX(4px);
+}
+.hero-cta:focus-visible,
+.hero-link:focus-visible,
+.skip-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Skip intro — glass pill, always reachable */
+.skip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.6rem 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  background: color-mix(in srgb, var(--void) 55%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+  transition: color 0.25s ease, border-color 0.25s ease;
+}
+.skip-btn:hover {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--ink) 35%, transparent);
+}
+.skip-btn__key {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+}
+
+/* "Allen's World" — the destination tag floating above the planet */
+.world-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: opacity 0.2s linear;
+}
+.world-label__name {
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.9);
+}
+.world-label__meta {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.world-label__tick {
+  width: 1px;
+  height: 22px;
+  margin-top: 4px;
+  background: linear-gradient(180deg, var(--accent), transparent);
 }
 
 /* ============================================================

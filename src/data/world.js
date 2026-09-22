@@ -3,7 +3,7 @@ import { PALETTE } from '@/lib/palette';
 /**
  * Surface zones for "Allen's World" (Act 4). Each is a physical district the
  * astronaut walks up to. `feature` points at the timeline memory opened when
- * the visitor enters (reuses the existing MemoryCard). More zones land here as
+ * the visitor enters (opens Mission Control). More zones land here as
  * they're built (Mission Log, Observatory, Comms, Hall of Flags).
  */
 export const zones = [

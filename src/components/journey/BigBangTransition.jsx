@@ -69,14 +69,13 @@ function typeInto(tl, el, text, at, perChar = 0.04) {
 }
 
 /**
- * The world-entry cinematic, DOM side. Triggered when the portal button sets
- * phase='dive' (after the lock-on + name scatter, ~0.8s post-click). The 3D
- * side (CameraRig / GalaxyVoyage / EntryEffects) runs off the same ENTRY
- * clock via elapsed time, so both layers stay in lockstep.
+ * The world-entry cinematic, DOM side. Triggered when the hero's Enter click
+ * sets phase='dive'. The 3D side (components/intro — IntroCamera, Voyager,
+ * EntryDistortion) runs off the same ENTRY clock, so both stay in lockstep.
  *
- * Act A — departure: stillness … the camera retreats, the galaxy is revealed
- * Act B — the crossing: the voyager launches, arcs across the system, makes
- *         its final run — vignette + heat burn — then THE FLASH on contact
+ * Act A — the galaxy dive + Allen's system (3D + IntroOverlay captions)
+ * Act B — the crossing: the voyager launches, the chase cam rides its final
+ *         run — vignette + heat burn — then THE FLASH on contact
  * Act C — arrival: world materialises under letterbox, typewriter designation,
  *         bars iris out, the drop plays world-side, film intertitles, handoff.
  */

@@ -1,73 +1,39 @@
 'use client';
+import { identity } from '@/data/timeline';
 
 /**
- * Base-tier fallback — no WebGL / reduced-motion. Same content as the
- * 3D hero, fully readable, with a CSS-only starfield gradient backdrop.
+ * Base-tier fallback — no WebGL / reduced-motion. Same editorial hero as the
+ * 3D intro, fully readable, no canvas and no motion.
  */
-const SKILLS = [
-  'TypeScript', 'React', 'Next.js', 'Python',
-  'Node.js', 'PostgreSQL', 'GPT-4', 'Three.js',
-];
-
 export default function StaticHero() {
+  const { links } = identity;
   return (
     <main
-      className="relative flex min-h-screen flex-col items-center justify-center px-6 text-center"
+      className="relative flex min-h-screen flex-col justify-between p-6 sm:p-10"
       style={{
-        background:
-          'radial-gradient(circle at 50% 120%, var(--raised) 0%, var(--surface) 40%, var(--void) 100%)',
+        background: 'radial-gradient(120% 80% at 100% 0%, var(--raised) 0%, var(--surface) 35%, var(--void) 80%)',
       }}
     >
-      <div className="glass glass-glow mb-8 flex items-center gap-2.5 rounded-full px-5 py-2">
-        <span className="text-[var(--gold)] text-sm">★</span>
-        <span className="font-mono text-xs tracking-wide text-[var(--text-secondary)]">
-          NASA Space Apps — Global Nominee · Top 9% of 11,350+
-        </span>
-      </div>
+      <header className="flex items-center justify-between">
+        <span className="text-sm font-medium tracking-tight text-ink">Allen Varghese</span>
+        <nav className="flex items-center gap-5 text-sm text-ink-muted sm:gap-7">
+          <a className="hero-link" href={links.github} target="_blank" rel="noreferrer">GitHub</a>
+          <a className="hero-link" href={links.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
+          <a className="hero-link" href={`mailto:${links.email}`}>Email</a>
+        </nav>
+      </header>
 
-      <h1 className="font-display text-5xl font-bold leading-tight tracking-tight sm:text-7xl">
-        <span className="text-gradient">Allen Shaji</span>
-        <br />
-        <span className="text-[var(--text-primary)]">Varghese</span>
-      </h1>
-
-      <p className="mt-6 max-w-xl text-base text-[var(--text-secondary)] sm:text-lg">
-        Software Engineering student at Drexel building products that solve real
-        problems through{' '}
-        <span className="text-[var(--gold)]">AI</span> and{' '}
-        <span className="text-[var(--steel-bright)]">technology</span>.
-      </p>
-
-      <div className="mt-8 flex max-w-2xl flex-wrap justify-center gap-2.5">
-        {SKILLS.map((s) => (
-          <span
-            key={s}
-            className="glass rounded-full px-4 py-1.5 font-mono text-xs text-[var(--text-secondary)]"
-          >
-            {s}
-          </span>
-        ))}
-      </div>
-
-      <div className="mt-10 flex gap-5 font-mono text-sm">
-        <a
-          href="https://github.com/allenvarghese05"
-          className="text-[var(--steel-bright)] hover:underline"
-        >
-          GitHub
-        </a>
-        <a
-          href="https://www.linkedin.com/in/allen-shaji-varghese/"
-          className="text-[var(--steel-bright)] hover:underline"
-        >
-          LinkedIn
-        </a>
-        <a
-          href="mailto:allenvarghese05@gmail.com"
-          className="text-[var(--steel-bright)] hover:underline"
-        >
-          Email
-        </a>
+      <div className="max-w-3xl">
+        <p className="mb-6 font-mono text-micro uppercase tracking-[0.22em] text-ink-muted">
+          Software Engineer — Drexel University ’27
+        </p>
+        <h1 className="font-display text-[clamp(3.25rem,9vw,8.5rem)] font-semibold leading-[0.92] tracking-[-0.045em] text-ink">
+          Allen Shaji
+          <br />
+          Varghese
+        </h1>
+        <p className="mt-7 max-w-md text-body text-ink-muted">{identity.tagline}</p>
+        <p className="mt-6 font-mono text-micro uppercase tracking-[0.2em] text-accent">{identity.badge}</p>
       </div>
     </main>
   );

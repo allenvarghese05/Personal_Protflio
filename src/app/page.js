@@ -1,21 +1,16 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
-import LoadingScreen from '@/components/ui/LoadingScreen';
-import ChapterPanels from '@/components/ui/ChapterPanels';
-import MemoryCard from '@/components/ui/MemoryCard';
 import StaticHero from '@/components/fallback/StaticHero';
-import ScrollManager from '@/components/scene/ScrollManager';
-import SpaceExperience from '@/components/scene/SpaceExperience';
+import IntroExperience from '@/components/intro/IntroExperience';
+import IntroOverlay, { SkipIntro } from '@/components/intro/IntroOverlay';
 import WorldExperience from '@/components/scene/world/WorldExperience';
 import MissionControl from '@/components/ui/MissionControl';
 import BigBangTransition, { ControlHint } from '@/components/journey/BigBangTransition';
 
-// NOTE: SpaceExperience is imported statically (not next/dynamic) so it
-// shares the SAME store + scrollState module instances as ScrollManager
-// and the overlays. A separate dynamic chunk duplicated that state, which
-// left the 3D scene reading values that never updated. The `mounted` gate
-// below keeps the WebGL canvas from rendering during SSR.
+// NOTE: the intro scene is imported statically (not next/dynamic) so it
+// shares the SAME store + entry-clock module instances as the overlays. The
+// `mounted` gate below keeps the WebGL canvas from rendering during SSR.
 
 /**
  * Capability detection — chooses base / enhanced / full.
@@ -42,9 +37,9 @@ function detectTier() {
 }
 
 /**
- * THE journey: launch cinematic → scroll ascent → orbit / name card →
- * TRAVEL TO ALLEN'S WORLD → Big Bang dive → astronaut drop → walkable world
- * (Mission Control). One-way — landing is the point of no return.
+ * THE journey: loader → name over the galaxy → Enter → dive into Allen's
+ * star → Allen's system → the voyager's run → Big Bang → astronaut drop →
+ * walkable world (Mission Control). One-way; Skip / Esc jumps to the world.
  * /?world=1 skips straight to the surface (dev / direct access).
  */
 export default function Home() {
@@ -62,11 +57,6 @@ export default function Home() {
     setJourneyPhase(isWorld ? 'world' : 'intro');
     setMounted(true);
   }, [setTier, setJourneyPhase]);
-
-  // Debug/test hook — lets tooling observe the journey phase.
-  useEffect(() => {
-    if (mounted) window.__jp = journeyPhase;
-  }, [mounted, journeyPhase]);
 
   // Avoid hydration flash — render nothing until tier is known
   if (!mounted) {
@@ -87,22 +77,15 @@ export default function Home() {
 
   // Direct surface access — no space intro
   if (isWorldRoute) {
-    return <main className="relative bg-[var(--void)]">{world}</main>;
+    return <main className="relative h-screen overflow-hidden bg-[var(--void)]">{world}</main>;
   }
 
   return (
-    <main className="relative bg-[var(--void)]">
+    <main className="relative h-screen overflow-hidden bg-[var(--void)]">
       {journeyPhase === 'intro' ? (
         <>
-          {/* Fixed 3D layer + overlays */}
-          <SpaceExperience tier={tier} />
-          <LoadingScreen />
-          <ChapterPanels />
-          <MemoryCard />
-          <ScrollManager />
-
-          {/* Scroll runway — the ascent climaxes at the orbit / name card */}
-          <div aria-hidden style={{ height: '320vh' }} />
+          <IntroExperience tier={tier} />
+          <IntroOverlay />
         </>
       ) : (
         world
@@ -110,6 +93,7 @@ export default function Home() {
 
       {/* Big Bang overlays persist across the intro → landing swap */}
       {journeyPhase !== 'world' && <BigBangTransition />}
+      <SkipIntro />
       {journeyPhase === 'world' && <ControlHint />}
     </main>
   );
