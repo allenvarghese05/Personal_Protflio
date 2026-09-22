@@ -270,7 +270,7 @@ const CAPTIONS = [
   { from: ENTRY.GALAXY + 0.4, to: ENTRY.GALAXY + 2.5, title: 'The Milky Way', sub: 'Two hundred billion stars' },
   { from: ENTRY.GALAXY + 2.8, to: ENTRY.STAR_FLASH + 0.2, title: 'One of them is Allen’s', sub: 'Closing in' },
   { from: ENTRY.SOLAR + 2.4, to: ENTRY.ZOOM + 0.3, title: 'Allen’s system', sub: 'Eight worlds · one star' },
-  { from: ENTRY.ZOOM + 1.0, to: ENTRY.ZOOM + 3.6, title: 'Setting a course', sub: 'Destination · Allen’s World' },
+  { from: ENTRY.ZOOM + 1.2, to: ENTRY.ZOOM + 3.8, title: 'Allen’s World', sub: 'Entering the atmosphere' },
 ];
 
 function DiveLayer() {

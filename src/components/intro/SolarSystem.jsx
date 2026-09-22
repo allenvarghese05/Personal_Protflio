@@ -19,8 +19,8 @@ import {
 
 /**
  * Allen's system — the real solar-system textures from human-constellations,
- * as-is. The Earth-textured world is Allen's World: parked in place so the
- * voyager's path can be planned, labelled while the camera sweeps in.
+ * as-is, in a display layout (see cosmos.js). The Earth-textured world is
+ * Allen's World: parked in place so the final dive can be planned exactly.
  * Hidden until the cut (IntroCamera flips `visible`).
  */
 
@@ -80,7 +80,7 @@ function Sun() {
 
 /**
  * Label visibility on the shared clock: in once the camera has settled on the
- * whole system, out as the approach (or, for Allen's World, the chase) begins.
+ * whole system, out as the dive begins (Allen's World holds on a little longer).
  */
 function useLabelFade(ref, outFrom) {
   useFrame(() => {
@@ -155,8 +155,10 @@ function Planet({ def }) {
   const glow = useMemo(() => glowMaterial(def.rim), [def.rim]);
   const geo = useMemo(() => new THREE.IcosahedronGeometry(def.size, 12), [def.size]);
 
-  useFrame((state, delta) => {
-    if (orbit.current) orbit.current.rotation.y = def.angle + state.clock.elapsedTime * def.orbit * 0.1;
+  useFrame((_, delta) => {
+    // orbit on the journey clock, so the layout is identical every visit no
+    // matter how long the hero sat idle
+    if (orbit.current) orbit.current.rotation.y = def.angle + entryState.t * def.orbit;
     if (body.current) body.current.rotation.y += delta * def.spin;
   });
 
@@ -214,9 +216,9 @@ function AllensWorld() {
   );
   const glow = useMemo(() => glowMaterial(0x6fa8ff), []);
 
-  // The designation stays up through the approach, bowing out as the chase
-  // cam takes over.
-  useLabelFade(label, ENTRY.VOYAGE);
+  // The designation stays up through the first half of the dive, bowing out
+  // as the planet fills the frame.
+  useLabelFade(label, ENTRY.ZOOM + 2.2);
   useFrame((_, delta) => {
     if (spin.current) spin.current.rotation.y += delta * ALLENS_WORLD.spin;
   });

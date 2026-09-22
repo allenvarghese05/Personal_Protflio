@@ -38,7 +38,7 @@ function detectTier() {
 
 /**
  * THE journey: loader → name over the galaxy → Enter → dive into Allen's
- * star → Allen's system → the voyager's run → Big Bang → astronaut drop →
+ * star → Allen's system → dive into Allen's World → Big Bang → astronaut drop →
  * walkable world (Mission Control). One-way; Skip / Esc jumps to the world.
  * /?world=1 skips straight to the surface (dev / direct access).
  */

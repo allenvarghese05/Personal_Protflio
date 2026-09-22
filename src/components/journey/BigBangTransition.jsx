@@ -70,12 +70,12 @@ function typeInto(tl, el, text, at, perChar = 0.04) {
 
 /**
  * The world-entry cinematic, DOM side. Triggered when the hero's Enter click
- * sets phase='dive'. The 3D side (components/intro — IntroCamera, Voyager,
+ * sets phase='dive'. The 3D side (components/intro — IntroCamera,
  * EntryDistortion) runs off the same ENTRY clock, so both stay in lockstep.
  *
  * Act A — the galaxy dive + Allen's system (3D + IntroOverlay captions)
- * Act B — the crossing: the voyager launches, the chase cam rides its final
- *         run — vignette + heat burn — then THE FLASH on contact
+ * Act B — the dive into Allen's World: vignette + heat burn on the last
+ *         stretch, then THE FLASH on contact with the atmosphere
  * Act C — arrival: world materialises under letterbox, typewriter designation,
  *         bars iris out, the drop plays world-side, film intertitles, handoff.
  */
@@ -114,10 +114,10 @@ export default function BigBangTransition() {
     masterTl.current = tl;
 
     /* ── ACT B — the crossing ────────────────────────────────────────── */
-    tl.addLabel('launch', ENTRY.LAUNCH);
-    tl.call(() => rumble(ENTRY.FLASH - ENTRY.LAUNCH), null, 'launch');
+    tl.addLabel('dive2', ENTRY.ZOOM);
+    tl.call(() => rumble(ENTRY.FLASH - ENTRY.ZOOM), null, 'dive2');
 
-    // the final run — edges darken and burn as the ship makes contact
+    // the last stretch — edges darken and burn as we hit the atmosphere
     tl.addLabel('approach', ENTRY.APPROACH);
     tl.to(vignetteRef.current, { opacity: 0.6, duration: ENTRY.FLASH - ENTRY.APPROACH }, 'approach');
     tl.to(heatRef.current, { opacity: 0.7, duration: ENTRY.FLASH - ENTRY.APPROACH }, 'approach');

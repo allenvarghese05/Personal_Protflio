@@ -7,10 +7,9 @@ import * as THREE from 'three';
 import { useStore } from '@/lib/store';
 import { ENTRY, entryState, entryElapsed } from '@/lib/entrySequence';
 import { PALETTE } from '@/lib/palette';
-import { GALAXY, ALLENS_WORLD, SYSTEM_START, FRAME_ALL, WORLD_MARK, cosmos } from './cosmos';
+import { GALAXY, ALLENS_WORLD, SYSTEM_START, FRAME_ALL, SYSTEM_LOOK, WORLD_ENTRY, cosmos } from './cosmos';
 import Galaxy from './Galaxy';
 import SolarSystem from './SolarSystem';
-import Voyager, { voyagePose } from './Voyager';
 import { EntryDistortion } from './EntryDistortion';
 
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
@@ -26,8 +25,8 @@ const UP = new THREE.Vector3(0, 1, 0);
 /**
  * The director. Idle (loading / hero): the galaxy turns with a touch of
  * pointer parallax. Dive: every shot is a pure function of the shared clock —
- *   galaxy dive → cut under the star flash → settle on the whole system →
- *   hold → approach Allen's World (same zoom as the dive) → chase the voyager.
+ *   Act 1: dive into Allen's star → flash → settle on the whole system →
+ *   hold → Act 2: dive into Allen's World (same zoom, same curve) → flash.
  */
 function IntroCamera() {
   const { camera, pointer, size } = useThree();
@@ -36,10 +35,7 @@ function IntroCamera() {
   const startFov = useRef(GALAXY.FOV_DESKTOP);
   const tmpPos = useMemo(() => new THREE.Vector3(), []);
   const tmpLook = useMemo(() => new THREE.Vector3(), []);
-  const ship = useMemo(() => new THREE.Vector3(), []);
-  const tan = useMemo(() => new THREE.Vector3(), []);
-  const chasePos = useMemo(() => new THREE.Vector3(), []);
-  const chaseLook = useMemo(() => new THREE.Vector3(), []);
+  const frame = useMemo(() => new THREE.Vector3(), []);
 
   useFrame(() => {
     const phase = useStore.getState().phase;
@@ -85,39 +81,34 @@ function IntroCamera() {
       return;
     }
 
-    /* ── Allen's system: settle on the whole system, hold, approach ────── */
+    /* ── Allen's system: settle on the whole system, hold, then Act 2 ─── */
     if (cosmos.galaxyGroup) cosmos.galaxyGroup.visible = false;
     if (cosmos.solarGroup) cosmos.solarGroup.visible = true;
 
+    // portrait screens pull back so the outer orbits still fit the width
+    frame.copy(FRAME_ALL).multiplyScalar(mobile ? 1.7 : 1);
+
     const arrive = easeOutCubic(clamp01((t - ENTRY.SOLAR) / ENTRY.SYSTEM_ARRIVE_DUR));
     const z = zoomEase(clamp01((t - ENTRY.ZOOM) / ENTRY.ZOOM_DUR));
-    // arrival: deep space → full-system view, with a slow lateral drift on
-    // the hold so the frame is never dead
-    tmpPos.lerpVectors(SYSTEM_START, FRAME_ALL, arrive);
-    tmpPos.x += Math.sin((t - ENTRY.SOLAR) * 0.25) * 14 * arrive;
-    // approach: full system → mid-shot of Allen's World
-    tmpPos.lerp(WORLD_MARK, z);
-    tmpLook.lerpVectors(ORIGIN, ALLENS_WORLD.position, easeInOutCubic(clamp01(z * 1.2)));
-
-    voyagePose(t, ship, tan);
-    const c = smooth(clamp01((t - ENTRY.VOYAGE) / 1.0));
-    chasePos.copy(ship).addScaledVector(tan, -0.9).addScaledVector(UP, 0.28);
-    chaseLook.copy(ship).addScaledVector(tan, 2);
+    // arrival: deep space → full-system view; a slow drift on the hold so the
+    // frame is never dead
+    tmpPos.lerpVectors(SYSTEM_START, frame, arrive);
+    tmpPos.x += Math.sin((t - ENTRY.SOLAR) * 0.22) * 4 * arrive;
+    // Act 2: the dive — full system → the edge of Allen's World's atmosphere
+    tmpPos.lerp(WORLD_ENTRY, z);
+    tmpLook.lerpVectors(SYSTEM_LOOK, ALLENS_WORLD.position, easeInOutCubic(clamp01(z * 1.35)));
 
     const approach = clamp01((t - ENTRY.APPROACH) / (ENTRY.FLASH - ENTRY.APPROACH));
     entryState.approach = approach;
     entryState.heat = approach;
-    entryState.voyage = clamp01((t - ENTRY.LAUNCH) / (ENTRY.FLASH - ENTRY.LAUNCH));
 
-    camera.position.lerpVectors(tmpPos, chasePos, c);
-    look.lerpVectors(tmpLook, chaseLook, c);
-    camera.lookAt(look);
-    camera.rotation.z += Math.sin(t * 1.4) * 0.004 * c; // gentle bank while riding
-    camera.fov = THREE.MathUtils.lerp(55, 48, z) + approach * 12;
+    camera.position.copy(tmpPos);
+    camera.lookAt(tmpLook);
+    camera.fov = THREE.MathUtils.lerp(50, 38, z) + approach * 10;
     // Near plane follows the shot: 1.0 on the wide system view (planet vs
-    // glow-shell depth would otherwise z-fight and flicker at ~400 units),
-    // easing down to 0.02 for the close approach + chase.
-    camera.near = THREE.MathUtils.lerp(1.0, 0.02, Math.max(z, c));
+    // glow-shell depth would otherwise z-fight and flicker), easing down to
+    // 0.02 as we reach the atmosphere.
+    camera.near = THREE.MathUtils.lerp(1.0, 0.02, z);
     camera.updateProjectionMatrix();
   });
 
@@ -173,7 +164,6 @@ export default function IntroExperience({ tier = 'full' }) {
       <Suspense fallback={null}>
         <Galaxy />
         <SolarSystem />
-        <Voyager />
         <ReadyGate />
       </Suspense>
       <IntroCamera />

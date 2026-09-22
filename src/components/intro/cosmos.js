@@ -6,7 +6,7 @@ import * as THREE from 'three';
  * portfolio-specific staging (where Allen's World sits, camera marks).
  *
  * `cosmos` is the shared mutable registry: scene components publish refs /
- * world positions here each frame so the camera + voyager can read them
+ * world positions here each frame so the camera can read them
  * without React re-renders.
  */
 
@@ -40,35 +40,43 @@ export const GALAXY = {
 /* ── Solar system ───────────────────────────────────────────────────────── */
 
 export const SUN = {
-  RADIUS: 5,
+  RADIUS: 4,
   DETAIL: 24,
   LIGHT: { COLOR: 0xffff99, INTENSITY: 1000, DISTANCE: 2000, DECAY: 1.5 },
   CORONA: {
     SCALE: 1.1,
-    RADIUS: 5,
+    RADIUS: 4,
     DETAIL: 64,
     INNER: new THREE.Color(0xff7700),
     OUTER: new THREE.Color(0xffcc33),
   },
 };
 
-// Real textures, as-is. `angle` = fixed starting position on the orbit so the
-// staging is deterministic; outer worlds drift slowly (rad/s).
+// Real textures, as-is — but a DISPLAY layout, not real distances. Real
+// spacing crushes the inner worlds into a dot beside the sun; like every good
+// solar-system visual we compress to even orbital spacing and fan the worlds
+// out at different angles so each is visible, clear of the sun and of each
+// other's labels. `angle` is in radians (0 = +x, −π/2 = toward the camera).
+const deg = (d) => (d * Math.PI) / 180;
 export const PLANETS = [
-  { name: 'Mercury', radius: 11, size: 0.7, texture: '/cosmic/planets/mercury.jpg', rim: 0xf9cf9f, angle: 2.2, orbit: 0.03, spin: 0.3 },
-  { name: 'Venus', radius: 17, size: 1.6, texture: '/cosmic/planets/venus.jpg', rim: 0xb66f1f, angle: 1.1, orbit: 0.02, spin: 0.03 },
-  { name: 'Mars', radius: 32, size: 1.2, texture: '/cosmic/planets/mars.jpg', rim: 0xbc6434, angle: 0.25, orbit: 0.014, spin: 0.6 },
-  { name: 'Jupiter', radius: 55, size: 4.0, texture: '/cosmic/planets/jupiter.jpg', rim: 0xf3d6b6, angle: 1.4, orbit: 0.008, spin: 0.5 },
-  { name: 'Saturn', radius: 85, size: 3.5, texture: '/cosmic/planets/saturn.jpg', rim: 0xd6b892, angle: 0.95, orbit: 0.006, spin: 0.4, rings: { size: 1.6, texture: '/cosmic/planets/saturnring.jpg' } },
-  { name: 'Uranus', radius: 120, size: 2.5, texture: '/cosmic/planets/uranus.jpg', rim: 0x9ab6c2, angle: 0.5, orbit: 0.004, spin: 0.2, rings: { size: 1.0, texture: '/cosmic/planets/uranusring.jpg' } },
-  { name: 'Neptune', radius: 165, size: 2.5, texture: '/cosmic/planets/neptune.jpg', rim: 0x5c7ed7, angle: 1.9, orbit: 0.003, spin: 0.2 },
+  { name: 'Mercury', radius: 10, size: 0.8, texture: '/cosmic/planets/mercury.jpg', rim: 0xf9cf9f, angle: deg(185), orbit: 0.05, spin: 0.3 },
+  { name: 'Venus', radius: 13, size: 1.25, texture: '/cosmic/planets/venus.jpg', rim: 0xb66f1f, angle: deg(250), orbit: 0.04, spin: 0.03 },
+  { name: 'Mars', radius: 22, size: 1.0, texture: '/cosmic/planets/mars.jpg', rim: 0xbc6434, angle: deg(62), orbit: 0.03, spin: 0.6 },
+  { name: 'Jupiter', radius: 29, size: 3.2, texture: '/cosmic/planets/jupiter.jpg', rim: 0xf3d6b6, angle: deg(172), orbit: 0.02, spin: 0.5 },
+  { name: 'Saturn', radius: 37, size: 2.8, texture: '/cosmic/planets/saturn.jpg', rim: 0xd6b892, angle: deg(-118), orbit: 0.016, spin: 0.4, rings: { size: 1.4, texture: '/cosmic/planets/saturnring.jpg' } },
+  { name: 'Uranus', radius: 44, size: 2.0, texture: '/cosmic/planets/uranus.jpg', rim: 0x9ab6c2, angle: deg(18), orbit: 0.012, spin: 0.2, rings: { size: 0.9, texture: '/cosmic/planets/uranusring.jpg' } },
+  { name: 'Neptune', radius: 50, size: 2.0, texture: '/cosmic/planets/neptune.jpg', rim: 0x5c7ed7, angle: deg(112), orbit: 0.01, spin: 0.2 },
 ];
 
-// Allen's World (Earth textures). Parked — it holds still so the voyage can
-// be pre-planned; it only spins.
+// Allen's World (Earth textures) — third from the sun, front-right of frame,
+// a touch larger than its neighbours. Parked (it only spins) so the final
+// zoom can be planned exactly.
+const WORLD_ORBIT = 17.5;
+const WORLD_ANGLE = deg(-40);
 export const ALLENS_WORLD = {
-  position: new THREE.Vector3(18, 0, 16),
-  size: 1.0,
+  orbit: WORLD_ORBIT,
+  position: new THREE.Vector3(Math.cos(WORLD_ANGLE) * WORLD_ORBIT, 0, -Math.sin(WORLD_ANGLE) * WORLD_ORBIT),
+  size: 1.4,
   tilt: (-23.4 * Math.PI) / 180,
   spin: 0.08,
 };
@@ -88,20 +96,24 @@ export const NEBULA = {
 
 /* ── Staging: camera marks in the solar system ──────────────────────────── */
 
-const toWorld = ALLENS_WORLD.position.clone().normalize(); // sun → Allen's World
-const side = new THREE.Vector3(-toWorld.z, 0, toWorld.x); // perpendicular, in-plane
+// After the cut the camera drifts in from deep space and settles high over
+// the system — sun centred, every orbit on screen (the outermost spans ~60%
+// of the width, clear of the caption line), ~35° down so the orbits read as
+// circles, not slivers. Framing solved numerically for a 16:10 viewport.
+export const SYSTEM_START = new THREE.Vector3(30, 190, 240);
+export const FRAME_ALL = new THREE.Vector3(0, 64, 92);
+// aim slightly in front of the sun: perspective makes the near half of the
+// system bigger, so this keeps the whole ellipse optically centred
+export const SYSTEM_LOOK = new THREE.Vector3(0, 0, 12);
 
-// After the cut the camera drifts in from deep space and settles on the
-// full-system view (human-constellations' "Frame All" vantage) — every orbit,
-// every world on screen at once.
-export const SYSTEM_START = new THREE.Vector3(40, 330, 640);
-export const FRAME_ALL = new THREE.Vector3(0, 180, 380);
-// Mid-shot of Allen's World: side-lit (terminator in frame), slightly above
-export const WORLD_MARK = ALLENS_WORLD.position
+// Where the final zoom ends: just above Allen's World's atmosphere, on the
+// sunlit side, coming in from the camera's direction. The white flash lands
+// the instant we arrive — the mirror of the galaxy dive into the star.
+const toSun = ALLENS_WORLD.position.clone().negate().normalize();
+const toFrame = FRAME_ALL.clone().sub(ALLENS_WORLD.position).normalize();
+export const WORLD_ENTRY = ALLENS_WORLD.position
   .clone()
-  .addScaledVector(side, 6.6)
-  .addScaledVector(toWorld, -1.2)
-  .add(new THREE.Vector3(0, 1.9, 0));
+  .addScaledVector(toFrame.multiplyScalar(0.75).add(toSun.multiplyScalar(0.55)).normalize(), ALLENS_WORLD.size * 1.18);
 
 /* ── Shared registry ────────────────────────────────────────────────────── */
 

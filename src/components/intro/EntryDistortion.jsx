@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { entryState } from '@/lib/entrySequence';
 
 /* ----------------------------------------------------------------------------
-   EntryDistortion — heat-shimmer for the voyager's final run into Allen's
+   EntryDistortion — heat-shimmer for the last stretch of the dive into Allen's
    World: a high-frequency UV wobble that ramps with entryState.heat. The
    uniform rests at 0, so the pass is an identity outside the sequence.
 ---------------------------------------------------------------------------- */

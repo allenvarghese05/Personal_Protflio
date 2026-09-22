@@ -32,7 +32,7 @@ export const useStore = create((set) => ({
   setEnteredZone: (enteredZone) => set({ enteredZone }),
 
   // The intro → landing → explore arc:
-  //   'intro'   — galaxy hero + dive + voyage (ends in the Big Bang)
+  //   'intro'   — galaxy hero + the two dives (ends in the Big Bang)
   //   'landing' — world visible, astronaut dropping in (control locked)
   //   'world'   — full player control
   journeyPhase: 'world',
