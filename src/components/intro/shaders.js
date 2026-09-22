@@ -113,7 +113,9 @@ void main() {
     sunspots = pow(sunspots, 3.0) * 0.6;
 
     float edgeFactor = dot(normalize(vNormal), vec3(0.0, 0.0, 1.0));
-    edgeFactor = pow(edgeFactor, 0.6);
+    // clamp: pow() of a negative base is NaN in GLSL. Harmless on its own, but
+    // the bloom pass blurs NaN across whole mip tiles → black screen blocks.
+    edgeFactor = pow(max(edgeFactor, 0.0), 0.6);
 
     float hotSpots = noise1 * noise2 * 3.0;
     hotSpots = clamp(hotSpots, 0.0, 1.0);
@@ -125,7 +127,7 @@ void main() {
     color += vec3(1.0, 0.6, 0.1) * hotSpots * 0.4;
     color *= 1.0 + vDisplacement * 2.0;
 
-    gl_FragColor = vec4(color, 1.0);
+    gl_FragColor = vec4(max(color, vec3(0.0)), 1.0);
 }
 `;
 
@@ -155,7 +157,7 @@ float snoise(vec3 v) {
 
 void main() {
     vec3 viewDir = normalize(vViewPosition);
-    float fresnelFactor = pow(1.0 - abs(dot(vNormal, viewDir)), 4.0);
+    float fresnelFactor = pow(max(1.0 - abs(dot(vNormal, viewDir)), 0.0), 4.0);
     float noiseValue = snoise(vNormal * 2.0 + vec3(0.0, time * 0.1, 0.0));
     noiseValue += 0.5 * snoise(vNormal * 4.0 + vec3(time * 0.2, 0.0, 0.0));
     float flares = pow(max(0.0, snoise(vNormal * 3.0 + vec3(time * 0.05, 0.0, 0.0))), 4.0);
@@ -181,7 +183,7 @@ export const planetGlowVertexShader = `
 
         vec3 I = worldPosition.xyz - cameraPosition;
 
-        vReflectionFactor = fresnelBias + fresnelScale * pow( 1.0 + dot( normalize( I ), worldNormal ), fresnelPower );
+        vReflectionFactor = fresnelBias + fresnelScale * pow( max( 1.0 + dot( normalize( I ), worldNormal ), 0.0 ), fresnelPower );
 
         gl_Position = projectionMatrix * mvPosition;
       }

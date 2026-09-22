@@ -80,6 +80,7 @@ function IntroCamera() {
       look.lerpVectors(ORIGIN, cosmos.starWorld, smooth(p));
       camera.lookAt(look);
       camera.fov = THREE.MathUtils.lerp(startFov.current, GALAXY.DIVE_FOV, e);
+      camera.near = 0.02;
       camera.updateProjectionMatrix();
       return;
     }
@@ -113,6 +114,10 @@ function IntroCamera() {
     camera.lookAt(look);
     camera.rotation.z += Math.sin(t * 1.4) * 0.004 * c; // gentle bank while riding
     camera.fov = THREE.MathUtils.lerp(55, 48, z) + approach * 12;
+    // Near plane follows the shot: 1.0 on the wide system view (planet vs
+    // glow-shell depth would otherwise z-fight and flicker at ~400 units),
+    // easing down to 0.02 for the close approach + chase.
+    camera.near = THREE.MathUtils.lerp(1.0, 0.02, Math.max(z, c));
     camera.updateProjectionMatrix();
   });
 
