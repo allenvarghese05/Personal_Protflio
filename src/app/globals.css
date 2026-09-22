@@ -92,8 +92,8 @@
 }
 
 /* Reset lives in Tailwind's preflight (@layer base). Do NOT add an unlayered
-   `* { margin: 0; padding: 0 }` here — unlayered CSS beats every Tailwind
-   utility in v4, which silently disables all p-*/m-* classes. */
+   universal margin/padding reset here — unlayered CSS beats every Tailwind
+   utility in v4, which silently disables all padding and margin classes. */
 
 html,
 body {
