@@ -6,6 +6,7 @@ import gsap from 'gsap';
 import { worldState } from '@/lib/worldState';
 import { ENTRY } from '@/lib/entrySequence';
 import { getAudio } from '@/lib/audio';
+import { PALETTE } from '@/lib/palette';
 
 /**
  * World-side beats of the arrival (mounted the moment the white flash hands
@@ -209,7 +210,7 @@ export default function LandingDirector() {
       <mesh ref={streakRef} visible={false}>
         <cylinderGeometry args={[0.02, 0.09, 8, 8, 1, true]} />
         <meshBasicMaterial
-          color="#ffd9a0"
+          color={PALETTE.accentHi}
           transparent
           opacity={0}
           blending={THREE.AdditiveBlending}
@@ -221,7 +222,7 @@ export default function LandingDirector() {
       {/* impact shockwave through the ground */}
       <mesh ref={rippleRef} visible={false} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.85, 1, 48]} />
-        <meshBasicMaterial color="#e8c896" transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={PALETTE.sand} transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
 
       {/* hemisphere dust burst — two clusters for varied grain */}
@@ -232,7 +233,7 @@ export default function LandingDirector() {
           </bufferGeometry>
           <pointsMaterial
             ref={(el) => el && (dustMats.current[ci] = el)}
-            color="#b98a5c"
+            color="#9a8468"
             size={0}
             sizeAttenuation
             transparent

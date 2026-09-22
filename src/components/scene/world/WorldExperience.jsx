@@ -2,7 +2,7 @@
 import { Suspense, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
-import AllenWorld from './AllenWorld';
+import AllenWorld, { SKY } from './AllenWorld';
 import Astronaut from './Astronaut';
 import ExploreController from './ExploreController';
 import LandingDirector from './LandingDirector';
@@ -31,9 +31,10 @@ export default function WorldExperience() {
         dpr={[1, 2]}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         camera={{ position: [0, 5.2, 15], fov: 50, near: 0.1, far: 300 }}
-        onCreated={({ gl }) => gl.setClearColor('#2a2150', 1)}
+        onCreated={({ gl }) => gl.setClearColor(SKY.top, 1)}
       >
-        <fogExp2 attach="fog" args={['#5a3f6e', 0.012]} />
+        {/* fog = the horizon colour, so the ground dissolves into the dusk */}
+        <fogExp2 attach="fog" args={[SKY.horizon, 0.012]} />
         <Suspense fallback={null}>
           <AllenWorld />
           <Astronaut ref={astronautRef} moving={moving} />

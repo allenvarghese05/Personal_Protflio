@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { useStore } from '@/lib/store';
 import { ENTRY, entryState, entryElapsed } from '@/lib/entrySequence';
 import { PALETTE } from '@/lib/palette';
-import { GALAXY, ALLENS_WORLD, SOLAR_WIDE, WORLD_MARK, cosmos } from './cosmos';
+import { GALAXY, ALLENS_WORLD, SYSTEM_START, FRAME_ALL, WORLD_MARK, cosmos } from './cosmos';
 import Galaxy from './Galaxy';
 import SolarSystem from './SolarSystem';
 import Voyager, { voyagePose } from './Voyager';
@@ -16,13 +16,18 @@ import { EntryDistortion } from './EntryDistortion';
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
 const smooth = (x) => x * x * (3 - 2 * x);
 const easeInOutCubic = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
+// THE zoom curve — shared by the galaxy dive and the approach to Allen's
+// World so both zooms move at the same speed and feel like one camera.
+const zoomEase = easeInOutCubic;
 const ORIGIN = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0);
 
 /**
  * The director. Idle (loading / hero): the galaxy turns with a touch of
  * pointer parallax. Dive: every shot is a pure function of the shared clock —
- *   galaxy dive → cut under the star flash → system sweep → chase the voyager.
+ *   galaxy dive → cut under the star flash → settle on the whole system →
+ *   hold → approach Allen's World (same zoom as the dive) → chase the voyager.
  */
 function IntroCamera() {
   const { camera, pointer, size } = useThree();
@@ -69,7 +74,7 @@ function IntroCamera() {
       if (cosmos.galaxyGroup) cosmos.galaxyGroup.visible = true;
       if (cosmos.solarGroup) cosmos.solarGroup.visible = false;
       const p = clamp01((t - ENTRY.GALAXY) / ENTRY.GALAXY_DUR);
-      const e = p * p * p * (p * (6 * p - 15) + 10) * 0.35 + p * p * 0.65; // slow start, committed finish
+      const e = zoomEase(p);
       tmpPos.copy(cosmos.starWorld).add(GALAXY.STAR_CAMERA_OFFSET);
       camera.position.lerpVectors(start, tmpPos, e);
       look.lerpVectors(ORIGIN, cosmos.starWorld, smooth(p));
@@ -79,14 +84,19 @@ function IntroCamera() {
       return;
     }
 
-    /* ── Allen's system: sweep in, then ride the voyager ───────────────── */
+    /* ── Allen's system: settle on the whole system, hold, approach ────── */
     if (cosmos.galaxyGroup) cosmos.galaxyGroup.visible = false;
     if (cosmos.solarGroup) cosmos.solarGroup.visible = true;
 
-    const s = clamp01((t - ENTRY.SOLAR) / ENTRY.SOLAR_SWEEP_DUR);
-    const es = easeInOutCubic(s);
-    tmpPos.lerpVectors(SOLAR_WIDE, WORLD_MARK, es);
-    tmpLook.lerpVectors(ORIGIN, ALLENS_WORLD.position, easeInOutCubic(clamp01(s * 1.25)));
+    const arrive = easeOutCubic(clamp01((t - ENTRY.SOLAR) / ENTRY.SYSTEM_ARRIVE_DUR));
+    const z = zoomEase(clamp01((t - ENTRY.ZOOM) / ENTRY.ZOOM_DUR));
+    // arrival: deep space → full-system view, with a slow lateral drift on
+    // the hold so the frame is never dead
+    tmpPos.lerpVectors(SYSTEM_START, FRAME_ALL, arrive);
+    tmpPos.x += Math.sin((t - ENTRY.SOLAR) * 0.25) * 14 * arrive;
+    // approach: full system → mid-shot of Allen's World
+    tmpPos.lerp(WORLD_MARK, z);
+    tmpLook.lerpVectors(ORIGIN, ALLENS_WORLD.position, easeInOutCubic(clamp01(z * 1.2)));
 
     voyagePose(t, ship, tan);
     const c = smooth(clamp01((t - ENTRY.VOYAGE) / 1.0));
@@ -102,7 +112,7 @@ function IntroCamera() {
     look.lerpVectors(tmpLook, chaseLook, c);
     camera.lookAt(look);
     camera.rotation.z += Math.sin(t * 1.4) * 0.004 * c; // gentle bank while riding
-    camera.fov = THREE.MathUtils.lerp(55, 50, es) + approach * 12;
+    camera.fov = THREE.MathUtils.lerp(55, 48, z) + approach * 12;
     camera.updateProjectionMatrix();
   });
 

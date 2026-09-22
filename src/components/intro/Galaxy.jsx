@@ -4,6 +4,7 @@ import { useFrame, useLoader } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { ASSETS, GALAXY, cosmos } from './cosmos';
+import { PALETTE } from '@/lib/palette';
 
 /**
  * The Milky Way — a ~100k-point galaxy model (ported from human-constellations)
@@ -21,10 +22,25 @@ export default function Galaxy() {
     src.center();
     const positions = src.attributes.position.array;
     const colors = new Float32Array(positions.length);
+    // Graded from the one palette: a warm core (accent-hi → accent) cooling
+    // through lilac into ice-blue arms, with per-star brightness jitter.
+    let maxD = 0;
+    for (let i = 0; i < positions.length; i += 3) {
+      maxD = Math.max(maxD, Math.hypot(positions[i], positions[i + 1], positions[i + 2]));
+    }
+    const core = new THREE.Color(PALETTE.accentHi);
+    const warm = new THREE.Color(PALETTE.accent);
+    const mid = new THREE.Color(PALETTE.lilac);
+    const arm = new THREE.Color(PALETTE.ice);
     const c = new THREE.Color();
     for (let i = 0; i < positions.length; i += 3) {
-      const d = Math.hypot(positions[i], positions[i + 1], positions[i + 2]) / 100;
-      c.setRGB(Math.cos(d), THREE.MathUtils.randFloat(0, 0.8), Math.sin(d));
+      const d = Math.hypot(positions[i], positions[i + 1], positions[i + 2]) / maxD;
+      if (d < 0.12) c.copy(core).lerp(warm, d / 0.12);
+      else if (d < 0.4) c.copy(warm).lerp(mid, (d - 0.12) / 0.28);
+      else c.copy(mid).lerp(arm, Math.min(1, (d - 0.4) / 0.4));
+      // occasional warm stars out in the arms keep it from reading two-tone
+      if (d > 0.4 && Math.random() < 0.08) c.copy(core);
+      c.multiplyScalar(0.55 + Math.random() * 0.45);
       c.toArray(colors, i);
     }
     const g = new THREE.BufferGeometry();

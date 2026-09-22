@@ -236,25 +236,37 @@ export default function BigBangTransition() {
         className="pointer-events-none fixed inset-x-0 z-[206] text-center"
         style={{ bottom: '2.6vh', opacity: 0, ...MONO }}
       >
-        <div ref={typeLine1} className="uppercase" style={{ fontSize: '12px', letterSpacing: '0.3em', color: 'var(--accent)' }} />
-        <div ref={typeLine2} style={{ marginTop: '5px', fontSize: '11px', letterSpacing: '0.16em', color: 'var(--ink-subtle)' }} />
+        <div ref={typeLine1} className="uppercase" style={{ fontSize: '11px', letterSpacing: '0.28em', color: 'var(--accent)' }} />
+        <div ref={typeLine2} className="uppercase" style={{ marginTop: '6px', fontSize: '11px', letterSpacing: '0.22em', color: 'var(--ink-subtle)' }} />
       </div>
 
-      {/* Act C — film intertitles */}
+      {/* Act C — film intertitles (same type as the hero + captions) */}
       <div
         ref={welcomeRef}
         className="pointer-events-none fixed left-1/2 top-1/2 z-[206] -translate-x-1/2 -translate-y-1/2 text-center"
-        style={MONO}
       >
-        <div ref={welcome1} className="uppercase" style={{ opacity: 0, fontSize: '11px', letterSpacing: '0.3em', color: 'var(--ink)' }}>
+        <div
+          ref={welcome1}
+          className="font-mono uppercase"
+          style={{ opacity: 0, fontSize: '11px', letterSpacing: '0.28em', color: 'var(--ink-muted)' }}
+        >
           Welcome to
         </div>
         <div
           ref={welcome2}
-          className="uppercase"
-          style={{ opacity: 0, marginTop: '12px', fontSize: '22px', fontWeight: 700, letterSpacing: '0.15em', color: 'var(--accent)', textShadow: '0 0 22px color-mix(in srgb, var(--accent) 50%, transparent)' }}
+          className="font-display"
+          style={{
+            opacity: 0,
+            marginTop: '14px',
+            fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
+            fontWeight: 600,
+            letterSpacing: '-0.04em',
+            lineHeight: 1,
+            color: 'var(--ink)',
+            textShadow: '0 2px 30px rgba(0,0,0,0.55)',
+          }}
         >
-          Allen&apos;s World
+          Allen&rsquo;s World
         </div>
       </div>
     </>
@@ -265,25 +277,16 @@ export default function BigBangTransition() {
 export function ControlHint() {
   const ref = useRef(null);
   useEffect(() => {
-    const tween = gsap.fromTo(ref.current, { opacity: 0 }, { opacity: 1, duration: 1 });
+    const tween = gsap.fromTo(ref.current, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 1, ease: 'expo.out' });
     return () => tween.kill();
   }, []);
   return (
     <div
       ref={ref}
-      className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-md font-mono uppercase"
-      style={{
-        opacity: 0,
-        fontSize: '11px',
-        letterSpacing: '0.18em',
-        color: 'var(--ink-muted)',
-        background: 'color-mix(in srgb, var(--void) 72%, transparent)',
-        border: '1px solid var(--line)',
-        backdropFilter: 'blur(8px)',
-        padding: '8px 14px',
-      }}
+      className="skip-btn pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap"
+      style={{ opacity: 0, paddingRight: '1rem' }}
     >
-      CLICK TO EXPLORE · WASD / ARROWS TO MOVE
+      Click to walk <span className="skip-btn__key">WASD</span> <span className="skip-btn__key">Drag</span> to look
     </div>
   );
 }

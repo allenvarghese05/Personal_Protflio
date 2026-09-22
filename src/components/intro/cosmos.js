@@ -80,7 +80,8 @@ export const NEBULA = {
   PARTICLE_SPREAD: 1000,
   SIZE: 120,
   OPACITY: 0.06,
-  COLORS: [0x9966ff, 0xff6699, 0x66ff99, 0x4c72bf, 0xff0000],
+  // tinted from the one palette: accent, lilac, ice, sand, accent-lo
+  COLORS: [0xff9a3c, 0xb9a6f5, 0x9cc3ff, 0xe6c9a0, 0xc9702a],
   COLOR_MULTIPLIER: 0.08,
   CLUSTER_SPREAD: 900,
 };
@@ -90,8 +91,11 @@ export const NEBULA = {
 const toWorld = ALLENS_WORLD.position.clone().normalize(); // sun → Allen's World
 const side = new THREE.Vector3(-toWorld.z, 0, toWorld.x); // perpendicular, in-plane
 
-// Where the camera lands after the cut — high above the system, sun in frame
-export const SOLAR_WIDE = new THREE.Vector3(-30, 120, 250);
+// After the cut the camera drifts in from deep space and settles on the
+// full-system view (human-constellations' "Frame All" vantage) — every orbit,
+// every world on screen at once.
+export const SYSTEM_START = new THREE.Vector3(40, 330, 640);
+export const FRAME_ALL = new THREE.Vector3(0, 180, 380);
 // Mid-shot of Allen's World: side-lit (terminator in frame), slightly above
 export const WORLD_MARK = ALLENS_WORLD.position
   .clone()

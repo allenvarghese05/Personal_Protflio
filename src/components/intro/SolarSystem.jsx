@@ -5,6 +5,7 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { ASSETS, SUN, PLANETS, ALLENS_WORLD, STARS, NEBULA, cosmos } from './cosmos';
 import { ENTRY, entryState } from '@/lib/entrySequence';
+import { PALETTE } from '@/lib/palette';
 import {
   sunVertexShaderSurface,
   sunFragmentShaderSurface,
@@ -77,6 +78,53 @@ function Sun() {
   );
 }
 
+/**
+ * Label visibility on the shared clock: in once the camera has settled on the
+ * whole system, out as the approach (or, for Allen's World, the chase) begins.
+ */
+function useLabelFade(ref, outFrom) {
+  useFrame(() => {
+    if (!ref.current) return;
+    const t = entryState.t;
+    const vis =
+      THREE.MathUtils.smoothstep(t, ENTRY.SOLAR + 1.4, ENTRY.SOLAR + 2.4) *
+      (1 - THREE.MathUtils.smoothstep(t, outFrom, outFrom + 0.7));
+    ref.current.style.opacity = String(vis);
+  });
+}
+
+/** Faint orbit path — the system reads as a diagram from the wide view. */
+function OrbitRing({ radius, highlight = false }) {
+  const ref = useRef();
+  const geo = useMemo(() => {
+    const pts = [];
+    for (let i = 0; i <= 256; i++) {
+      const a = (i / 256) * Math.PI * 2;
+      pts.push(new THREE.Vector3(Math.cos(a) * radius, 0, Math.sin(a) * radius));
+    }
+    return new THREE.BufferGeometry().setFromPoints(pts);
+  }, [radius]);
+  useFrame(() => {
+    if (!ref.current) return;
+    const t = entryState.t;
+    const vis =
+      THREE.MathUtils.smoothstep(t, ENTRY.SOLAR + 1.0, ENTRY.SOLAR + 2.4) *
+      (1 - THREE.MathUtils.smoothstep(t, ENTRY.ZOOM + 1.5, ENTRY.ZOOM + 3.5));
+    ref.current.material.opacity = vis * (highlight ? 0.45 : 0.12);
+  });
+  return (
+    <line ref={ref} geometry={geo}>
+      <lineBasicMaterial
+        color={highlight ? PALETTE.accent : PALETTE.ink}
+        transparent
+        opacity={0}
+        depthWrite={false}
+        toneMapped={false}
+      />
+    </line>
+  );
+}
+
 function glowMaterial(rim) {
   return new THREE.ShaderMaterial({
     uniforms: {
@@ -96,6 +144,8 @@ function glowMaterial(rim) {
 function Planet({ def }) {
   const orbit = useRef();
   const body = useRef();
+  const label = useRef();
+  useLabelFade(label, ENTRY.ZOOM);
   const tex = useLoader(THREE.TextureLoader, def.texture);
   const ringTex = useLoader(THREE.TextureLoader, def.rings?.texture ?? ASSETS.disc);
   const mat = useMemo(() => {
@@ -121,6 +171,11 @@ function Planet({ def }) {
             <meshBasicMaterial map={ringTex} side={THREE.DoubleSide} transparent />
           </mesh>
         )}
+        <Html center position={[0, def.size * 1.6 + 1.2, 0]} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+          <div ref={label} className="planet-label" style={{ opacity: 0 }}>
+            {def.name}
+          </div>
+        </Html>
       </group>
     </group>
   );
@@ -159,17 +214,11 @@ function AllensWorld() {
   );
   const glow = useMemo(() => glowMaterial(0x6fa8ff), []);
 
+  // The designation stays up through the approach, bowing out as the chase
+  // cam takes over.
+  useLabelFade(label, ENTRY.VOYAGE);
   useFrame((_, delta) => {
     if (spin.current) spin.current.rotation.y += delta * ALLENS_WORLD.spin;
-    // The designation label shows while the camera sweeps in, and bows out
-    // as the chase cam takes over.
-    if (label.current) {
-      const t = entryState.t;
-      const vis =
-        THREE.MathUtils.smoothstep(t, ENTRY.SOLAR + 0.9, ENTRY.SOLAR + 1.7) *
-        (1 - THREE.MathUtils.smoothstep(t, ENTRY.VOYAGE, ENTRY.VOYAGE + 0.8));
-      label.current.style.opacity = String(vis);
-    }
   });
 
   return (
@@ -267,6 +316,10 @@ export default function SolarSystem() {
       <Stars />
       <Nebula />
       <Sun />
+      {PLANETS.map((p) => (
+        <OrbitRing key={`o-${p.name}`} radius={p.radius} />
+      ))}
+      <OrbitRing radius={ALLENS_WORLD.position.length()} highlight />
       {PLANETS.map((p) => (
         <Planet key={p.name} def={p} />
       ))}

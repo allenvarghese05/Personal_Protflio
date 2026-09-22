@@ -8,9 +8,13 @@
  * they can never drift apart.
  *
  *   EXIT        hero copy lifts away
- *   GALAXY      camera dives through the Milky Way toward Allen's star
+ *   GALAXY      camera dives through the Milky Way into Allen's star (5s)
  *   STAR_FLASH  the star swells to white — the cut happens under it
- *   SOLAR       Allen's system: the camera sweeps in toward Allen's World
+ *   SOLAR       Allen's system: the camera settles on the whole system —
+ *               every world labelled, orbits drawn (as human-constellations)
+ *   HOLD        a breath on the full system
+ *   ZOOM        the approach to Allen's World — same 5s / same curve as the
+ *               galaxy dive, so the two zooms rhyme
  *   LAUNCH      the voyager (the only rocket) lifts off below the camera
  *   VOYAGE      chase cam rides it in
  *   APPROACH    final run — heat, vignette, rumble peak
@@ -18,26 +22,30 @@
  *   ...         arrival beats: reveal, designation type-on, letterbox iris,
  *               the drop (world-side), film intertitles, handoff
  */
+export const ZOOM_DUR = 5.0; // both zooms — galaxy dive and world approach
+
 export const ENTRY = {
   EXIT: 0,
   GALAXY: 0.4, // galaxy dive begins
-  GALAXY_DUR: 3.4,
-  STAR_FLASH: 3.4, // white-gold swell peaks at +0.4, the cut happens under it
-  SOLAR: 3.85, // solar system on screen
-  SOLAR_SWEEP_DUR: 2.9,
-  LAUNCH: 6.0, // voyager lifts off (the only rocket in the journey)
-  VOYAGE: 6.4, // chase cam engages
-  FLASH: 9.6, // the ship enters the planet — contact
-  SWAP: 9.72, // under the white: world mounts dark, letterbox on
-  REVEAL: 9.85, // white fades over 0.8s, world lights ramp
-  TYPE: 10.9, // "ALLEN'S WORLD · SECTOR 01" typewriter
-  BARS: 11.4, // letterbox dissolves (top, then bottom +0.15)
+  GALAXY_DUR: ZOOM_DUR,
+  STAR_FLASH: 5.0, // white-gold swell peaks at +0.4, the cut happens under it
+  SOLAR: 5.45, // the system on screen, camera still arriving
+  SYSTEM_ARRIVE_DUR: 3.2, // settle onto the full-system view
+  ZOOM: 10.9, // approach to Allen's World begins (after a ~2.2s hold)
+  ZOOM_DUR,
+  LAUNCH: 15.3, // voyager lifts off as the camera settles
+  VOYAGE: 15.7, // chase cam engages
+  FLASH: 19.3, // the ship enters the planet — contact
+  SWAP: 19.42, // under the white: world mounts dark, letterbox on
+  REVEAL: 19.55, // white fades over 0.8s, world lights ramp
+  TYPE: 20.6, // "ALLEN'S WORLD · SECTOR 01" typewriter
+  BARS: 21.1, // letterbox dissolves (top, then bottom +0.15)
   DROP_DELAY: 0.15, // world-side: the drop begins the moment the bang hands over
   FALL_MAIN: 1.05, // gravity acceleration portion (power2.in)
   FALL_BOUNCE: 0.45, // landing bounce portion (bounce.out)
-  WELCOME: 12.9, // film intertitles
-  WELCOME_OUT: 14.1,
-  HANDOFF: 14.5, // journeyPhase → 'world', control unlocked
+  WELCOME: 22.6, // film intertitles
+  WELCOME_OUT: 23.8,
+  HANDOFF: 24.2, // journeyPhase → 'world', control unlocked
 };
 // derived: the approach push-in begins as the voyage ends
 ENTRY.APPROACH = ENTRY.FLASH - 0.9;

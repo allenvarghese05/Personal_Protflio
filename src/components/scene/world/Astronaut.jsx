@@ -13,7 +13,7 @@ import { PALETTE } from '@/lib/palette';
  *
  * The outer group is forwarded so the controller can drive position/heading.
  */
-const OUTLINE = { thickness: 0.04, color: '#0a0a12' };
+const OUTLINE = { thickness: 0.04, color: PALETTE.void };
 
 const Astronaut = forwardRef(function Astronaut({ moving = { current: false } }, ref) {
   const grad = useMemo(toonGradient, []);
@@ -25,14 +25,14 @@ const Astronaut = forwardRef(function Astronaut({ moving = { current: false } },
   const visor = useRef();
 
   const suit = useMemo(
-    () => ({ gradientMap: grad, color: '#eef1f6' }),
+    () => ({ gradientMap: grad, color: PALETTE.ink }),
     [grad]
   );
   const accent = useMemo(
     () => ({ gradientMap: grad, color: PALETTE.accent }),
     [grad]
   );
-  const pack = useMemo(() => ({ gradientMap: grad, color: '#b8c0cc' }), [grad]);
+  const pack = useMemo(() => ({ gradientMap: grad, color: PALETTE.slate }), [grad]);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -86,8 +86,8 @@ const Astronaut = forwardRef(function Astronaut({ moving = { current: false } },
         <mesh ref={visor} position={[0, 1.5, 0.16]} rotation={[0.1, 0, 0]}>
           <sphereGeometry args={[0.2, 20, 20, 0, Math.PI * 2, 0, Math.PI / 1.7]} />
           <meshStandardMaterial
-            color="#13202e"
-            emissive="#7fd4ff"
+            color={PALETTE.surface}
+            emissive={PALETTE.ice}
             emissiveIntensity={0.8}
             metalness={0.3}
             roughness={0.2}
