@@ -36,4 +36,6 @@ export const worldState = {
   // Meshes that consume a click themselves (project monoliths) — the
   // controller skips walk-to when one of these is under the pointer.
   interactives: [],
+  // Terrain meshes that block line of sight (district labels test these).
+  occluders: [],
 };

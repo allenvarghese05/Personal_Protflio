@@ -7,6 +7,7 @@ import { STATIONS } from '@/data/world';
 import { PALETTE } from '@/lib/palette';
 import { worldState } from '@/lib/worldState';
 import { useStore } from '@/lib/store';
+import { labelVisibility } from '@/lib/worldLabels';
 
 /**
  * The station landmarks — one per district, each facing the landing hub:
@@ -145,7 +146,10 @@ function Station({ z }) {
   const hit = useRef();
   const farRef = useRef();
   const nearRef = useRef();
+  const vis = useRef({});
   const [x, zz] = z.landmark;
+  // label height above each landmark
+  const top = z.id === 'comms' ? 12.4 : z.id === 'observatory' ? 5.8 : 4.8;
   // face the landing hub at the origin
   const rotY = useMemo(() => Math.atan2(-x, -zz), [x, zz]);
 
@@ -157,7 +161,7 @@ function Station({ z }) {
     };
   }, []);
 
-  useFrame(() => {
+  useFrame(({ camera }) => {
     const d = Math.hypot(worldState.pos.x - x, worldState.pos.z - zz);
     const near = d < z.near;
     if (nearRef.current) {
@@ -165,8 +169,18 @@ function Station({ z }) {
       nearRef.current.style.transform = `translateY(${near ? 0 : 6}px)`;
     }
     if (farRef.current) {
-      const vis = THREE.MathUtils.smoothstep(d, z.near + 1, z.near + 5) * (1 - THREE.MathUtils.smoothstep(d, 55, 70));
-      farRef.current.style.opacity = String(vis * worldState.reveal);
+      // the name shows only while the landmark itself is in clear view —
+      // mid-height or top — and fades with distance like the fog does
+      const v = labelVisibility(vis.current, camera, {
+        points: [
+          [x, 2.2, zz],
+          [x, top - 1.2, zz],
+        ],
+        dist: d,
+        near: z.near + 1,
+        far: 46,
+      });
+      farRef.current.style.opacity = String(v * worldState.reveal);
     }
   });
 
@@ -176,7 +190,6 @@ function Station({ z }) {
     setEnteredZone(z.id);
   };
 
-  const top = z.id === 'comms' ? 12.4 : z.id === 'observatory' ? 5.8 : 4.8;
   return (
     <group position={[x, 0, zz]}>
       <group rotation-y={rotY}>

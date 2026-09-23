@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useLoader, extend } from '@react-three/fiber';
 import { Html, shaderMaterial } from '@react-three/drei';
 import * as THREE from 'three';
@@ -9,6 +9,7 @@ import { causewaySegments } from '@/lib/worldNav';
 import { PALETTE } from '@/lib/palette';
 import Monoliths from './Monoliths';
 import Landmarks from './Landmarks';
+import { labelVisibility } from '@/lib/worldLabels';
 
 /* ----------------------------------------------------------------------------
    Allen's World — stone mesas rising out of a sea of clouds at dusk, under the
@@ -278,6 +279,16 @@ const rockMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughn
 
 function Mesa({ center, r, top = 0, height = 34, seed = 1, walkable = true }) {
   const geo = useMemo(() => rockGeometry(r + 0.8, height, seed), [r, height, seed]);
+  const rock = useRef();
+  const cap = useRef();
+  // the rock blocks line of sight for the floating district labels
+  useEffect(() => {
+    const meshes = [rock.current, cap.current].filter(Boolean);
+    worldState.occluders.push(...meshes);
+    return () => {
+      worldState.occluders = worldState.occluders.filter((m) => !meshes.includes(m));
+    };
+  }, []);
   const ground = useMemo(() => {
     const t = groundTexture().clone();
     t.needsUpdate = true;
@@ -286,8 +297,8 @@ function Mesa({ center, r, top = 0, height = 34, seed = 1, walkable = true }) {
   }, [r]);
   return (
     <group position={[center[0], top, center[1]]}>
-      <mesh geometry={geo} material={rockMaterial} castShadow receiveShadow />
-      <mesh rotation-x={-Math.PI / 2} receiveShadow>
+      <mesh ref={rock} geometry={geo} material={rockMaterial} castShadow receiveShadow />
+      <mesh ref={cap} rotation-x={-Math.PI / 2} receiveShadow>
         <circleGeometry args={[r + 0.8, 72]} />
         <meshStandardMaterial map={ground} color={walkable ? '#b9aa94' : '#8f826f'} roughness={0.95} />
       </mesh>
@@ -510,11 +521,21 @@ export default function AllenWorld() {
  *  bowing out once you're among the monoliths (their own tags take over). */
 function EngineeringSign() {
   const ref = useRef();
+  const st = useRef({});
   const eng = mesaById('engineering');
-  useFrame(() => {
+  useFrame(({ camera }) => {
     if (!ref.current) return;
     const d = Math.hypot(worldState.pos.x - eng.center[0], worldState.pos.z - eng.center[1]);
-    const vis = THREE.MathUtils.smoothstep(d, 11, 15) * (1 - THREE.MathUtils.smoothstep(d, 60, 75));
+    // only when the stones are actually in view — never through rock or fog
+    const vis = labelVisibility(st.current, camera, {
+      points: [
+        [eng.center[0], 3, eng.center[1] - 3],
+        [eng.center[0], 7.2, eng.center[1] + 2],
+      ],
+      dist: d,
+      near: 11,
+      far: 46,
+    });
     ref.current.style.opacity = String(vis * worldState.reveal);
   });
   return (
