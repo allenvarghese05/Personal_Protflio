@@ -12,15 +12,19 @@ export const worldState = {
   target: new THREE.Vector3(0, 0, 6), // walk-to destination
   hasTarget: false,
   moving: false,
-  heading: 0, // facing angle (radians)
+  heading: Math.PI, // facing angle (radians) — starts facing Engineering (−z)
   azimuth: 0, // smoothed camera orbit angle around the astronaut
   azimuthTarget: 0, // drag updates this; azimuth damps toward it
   // full orbit: distance (scroll to zoom) + elevation (drag up/down)
-  dist: 9,
-  distTarget: 9,
-  pitch: 0.45, // radians above the horizon
-  pitchTarget: 0.45,
-  lastLook: 0, // performance.now() of the last manual look (pauses auto-follow)
+  dist: 9.5,
+  distTarget: 9.5,
+  // elevated back view: ~30° down over the astronaut's shoulder — you see
+  // them, the ground around them and where they're heading
+  pitch: 0.52,
+  pitchTarget: 0.52,
+  lookOffset: 0, // free-look yaw from a drag; springs back to 0 (behind) on release
+  dragging: false,
+  lastLook: 0,
 
   // Landing cinematic (Act 3): the astronaut drops in from `altitude` while
   // `reveal` fades the world lighting up from black; `shake` is a decaying
