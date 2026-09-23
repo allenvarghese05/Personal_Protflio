@@ -799,35 +799,111 @@ html {
   text-transform: uppercase;
   color: var(--ink-subtle);
 }
-.pv-strip {
+.pv-print {
+  /* lifted off the room: a bloom in the photo's colour, a deep shadow and
+     a hairline highlight on the edge */
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 50px 120px -30px rgba(0, 0, 0, 0.95),
+    0 0 140px -10px color-mix(in srgb, var(--tint) 45%, transparent);
+}
+.pv-edge {
+  position: absolute;
+  top: 50%;
+  z-index: 10;
   display: flex;
-  gap: 6px;
-  padding: 10px 24px 22px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-top: -24px;
+  border-radius: 999px;
+  color: var(--ink-muted);
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  background: color-mix(in srgb, var(--void) 45%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.pv-strip__item {
-  flex-shrink: 0;
-  height: 52px;
-  border-radius: 6px;
+.pv-edge:hover {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--ink) 30%, transparent);
+  transform: scale(1.06);
+}
+.pv-edge:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+/* Sound — album layout */
+.studio-feature {
+  position: relative;
   overflow: hidden;
-  opacity: 0.45;
-  outline: 2px solid transparent;
-  outline-offset: 2px;
-  transition: opacity 0.3s ease, outline-color 0.3s ease, transform 0.3s ease;
+  border-radius: 14px;
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.pv-strip__item img {
-  height: 100%;
-  width: auto;
-  display: block;
+.studio-feature:hover {
+  transform: translateY(-3px);
 }
-.pv-strip__item:hover {
-  opacity: 0.8;
+.studio-feature__open {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--void) 60%, transparent);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.pv-strip__item.is-current {
+.studio-feature:hover .studio-feature__open {
   opacity: 1;
-  outline-color: var(--accent);
+  transform: translateY(0);
+}
+.studio-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border-bottom: 1px solid var(--line);
+  transition: background-color 0.25s ease;
+}
+.studio-row:hover {
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+.studio-row.is-current {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+.studio-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.studio-row__num {
+  display: flex;
+  width: 22px;
+  justify-content: center;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--ink-subtle);
+}
+
+/* Now Playing colour field */
+.np-blob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999px;
+  filter: blur(40px);
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
 }
 
 /* Now Playing controls */

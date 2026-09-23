@@ -6,7 +6,8 @@
    "w": 1351,
    "h": 2400,
    "file": "DSC00145.jpg",
-   "camera": "Sony α7 III"
+   "camera": "Sony α7 III",
+   "color": "#bd541a"
   },
   {
    "src": "/studio/photos/02.jpg",
@@ -20,7 +21,8 @@
    "aperture": "ƒ/1.4",
    "shutter": "1/2500 s",
    "iso": "ISO 400",
-   "date": "2019:01:04 12:22:00"
+   "date": "2019:01:04 12:22:00",
+   "color": "#515e6d"
   },
   {
    "src": "/studio/photos/03.jpg",
@@ -34,7 +36,8 @@
    "aperture": "ƒ/6.3",
    "shutter": "1/4000 s",
    "iso": "ISO 800",
-   "date": "2019:01:11 12:21:14"
+   "date": "2019:01:11 12:21:14",
+   "color": "#455f5e"
   },
   {
    "src": "/studio/photos/04.jpg",
@@ -48,7 +51,8 @@
    "aperture": "ƒ/2",
    "shutter": "1/160 s",
    "iso": "ISO 1600",
-   "date": "2019:01:11 12:23:48"
+   "date": "2019:01:11 12:23:48",
+   "color": "#584b4b"
   },
   {
    "src": "/studio/photos/05.jpg",
@@ -62,7 +66,8 @@
    "aperture": "ƒ/4.5",
    "shutter": "1/125 s",
    "iso": "ISO 100",
-   "date": "2019:01:11 12:30:59"
+   "date": "2019:01:11 12:30:59",
+   "color": "#4d6a57"
   },
   {
    "src": "/studio/photos/06.jpg",
@@ -76,7 +81,8 @@
    "aperture": "ƒ/4.5",
    "shutter": "1/500 s",
    "iso": "ISO 100",
-   "date": "2019:01:11 12:36:38"
+   "date": "2019:01:11 12:36:38",
+   "color": "#6c5c5c"
   },
   {
    "src": "/studio/photos/07.jpg",
@@ -90,7 +96,8 @@
    "aperture": "ƒ/4",
    "shutter": "1/160 s",
    "iso": "ISO 320",
-   "date": "2019:01:21 17:20:36"
+   "date": "2019:01:21 17:20:36",
+   "color": "#7c6b28"
   },
   {
    "src": "/studio/photos/08.jpg",
@@ -104,7 +111,8 @@
    "aperture": "ƒ/4.5",
    "shutter": "1/200 s",
    "iso": "ISO 100",
-   "date": "2019:01:21 17:30:12"
+   "date": "2019:01:21 17:30:12",
+   "color": "#8e6c48"
   },
   {
    "src": "/studio/photos/09.jpg",
@@ -118,7 +126,8 @@
    "aperture": "ƒ/4.5",
    "shutter": "1/100 s",
    "iso": "ISO 100",
-   "date": "2019:01:21 17:50:49"
+   "date": "2019:01:21 17:50:49",
+   "color": "#8c743c"
   },
   {
    "src": "/studio/photos/10.jpg",
@@ -132,7 +141,8 @@
    "aperture": "ƒ/4.5",
    "shutter": "1/125 s",
    "iso": "ISO 100",
-   "date": "2019:01:21 17:54:19"
+   "date": "2019:01:21 17:54:19",
+   "color": "#594c4c"
   },
   {
    "src": "/studio/photos/11.jpg",
@@ -145,7 +155,8 @@
    "aperture": "ƒ/6.3",
    "shutter": "1/640 s",
    "iso": "ISO 800",
-   "date": "2021:01:06 05:03:31"
+   "date": "2021:01:06 05:03:31",
+   "color": "#8d5416"
   },
   {
    "src": "/studio/photos/12.jpg",
@@ -153,7 +164,8 @@
    "w": 1351,
    "h": 2400,
    "file": "DSC01901.jpg",
-   "camera": "Sony α7 III"
+   "camera": "Sony α7 III",
+   "color": "#8b4418"
   },
   {
    "src": "/studio/photos/13.jpg",
@@ -161,7 +173,8 @@
    "w": 2400,
    "h": 1351,
    "file": "DSC01954.jpg",
-   "camera": "Sony α7 III"
+   "camera": "Sony α7 III",
+   "color": "#716060"
   },
   {
    "src": "/studio/photos/14.jpg",
@@ -169,7 +182,8 @@
    "w": 1118,
    "h": 2400,
    "file": "DSC04081.jpg",
-   "camera": "Sony α7 III"
+   "camera": "Sony α7 III",
+   "color": "#876d40"
   },
   {
    "src": "/studio/photos/15.jpg",
@@ -177,7 +191,8 @@
    "w": 2400,
    "h": 1800,
    "file": "DSC04163.JPEG",
-   "camera": "Sony α7 III"
+   "camera": "Sony α7 III",
+   "color": "#bf7e1e"
   },
   {
    "src": "/studio/photos/16.jpg",
@@ -185,7 +200,8 @@
    "w": 1351,
    "h": 2400,
    "file": "DSC09885.jpg",
-   "camera": "Sony α7 III"
+   "camera": "Sony α7 III",
+   "color": "#5c7e49"
   },
   {
    "src": "/studio/photos/17.jpg",
@@ -199,7 +215,8 @@
    "aperture": "ƒ/8",
    "shutter": "1/160 s",
    "iso": "ISO 160",
-   "date": "2021:10:30 13:49:38"
+   "date": "2021:10:30 13:49:38",
+   "color": "#868d49"
   },
   {
    "src": "/studio/photos/18.jpg",
@@ -213,7 +230,8 @@
    "aperture": "ƒ/4",
    "shutter": "1/400 s",
    "iso": "ISO 100",
-   "date": "2021:12:17 16:41:45"
+   "date": "2021:12:17 16:41:45",
+   "color": "#aa896e"
   },
   {
    "src": "/studio/photos/19.jpg",
@@ -227,7 +245,8 @@
    "aperture": "ƒ/2.8",
    "shutter": "1/250 s",
    "iso": "ISO 100",
-   "date": "2021:12:17 17:08:32"
+   "date": "2021:12:17 17:08:32",
+   "color": "#705c33"
   },
   {
    "src": "/studio/photos/20.jpg",
@@ -246,7 +265,8 @@
     39.95589,
     -75.19102
    ],
-   "place": "Philadelphia, PA"
+   "place": "Philadelphia, PA",
+   "color": "#444162"
   },
   {
    "src": "/studio/photos/21.jpg",
@@ -265,7 +285,8 @@
     41.01792,
     28.97227
    ],
-   "place": "Istanbul, Türkiye"
+   "place": "Istanbul, Türkiye",
+   "color": "#7a674e"
   },
   {
    "src": "/studio/photos/22.jpg",
@@ -284,7 +305,8 @@
     38.64534,
     34.81325
    ],
-   "place": "Cappadocia, Türkiye"
+   "place": "Cappadocia, Türkiye",
+   "color": "#528992"
   },
   {
    "src": "/studio/photos/23.jpg",
@@ -303,7 +325,8 @@
     38.64155,
     34.83268
    ],
-   "place": "Cappadocia, Türkiye"
+   "place": "Cappadocia, Türkiye",
+   "color": "#a55a27"
   },
   {
    "src": "/studio/photos/24.jpg",
@@ -322,7 +345,8 @@
     38.64184,
     34.83311
    ],
-   "place": "Cappadocia, Türkiye"
+   "place": "Cappadocia, Türkiye",
+   "color": "#726453"
   },
   {
    "src": "/studio/photos/25.jpg",
@@ -341,7 +365,8 @@
     22.83567,
     77.63454
    ],
-   "place": "Madhya Pradesh, India"
+   "place": "Madhya Pradesh, India",
+   "color": "#706d4e"
   },
   {
    "src": "/studio/photos/26.jpg",
@@ -360,7 +385,8 @@
     41.02028,
     28.97314
    ],
-   "place": "Istanbul, Türkiye"
+   "place": "Istanbul, Türkiye",
+   "color": "#a15e02"
   },
   {
    "src": "/studio/photos/27.jpg",
@@ -379,7 +405,8 @@
     41.02037,
     28.97321
    ],
-   "place": "Istanbul, Türkiye"
+   "place": "Istanbul, Türkiye",
+   "color": "#ad7527"
   },
   {
    "src": "/studio/photos/28.jpg",
@@ -398,7 +425,8 @@
     41.02038,
     28.97318
    ],
-   "place": "Istanbul, Türkiye"
+   "place": "Istanbul, Türkiye",
+   "color": "#985911"
   },
   {
    "src": "/studio/photos/29.jpg",
@@ -417,7 +445,8 @@
     41.02263,
     28.97501
    ],
-   "place": "Istanbul, Türkiye"
+   "place": "Istanbul, Türkiye",
+   "color": "#aa6739"
   },
   {
    "src": "/studio/photos/30.jpg",
@@ -436,7 +465,8 @@
     41.02364,
     28.97705
    ],
-   "place": "Istanbul, Türkiye"
+   "place": "Istanbul, Türkiye",
+   "color": "#69543b"
   },
   {
    "src": "/studio/photos/31.jpg",
@@ -455,7 +485,8 @@
     7.28908,
     80.63984
    ],
-   "place": "Kandy, Sri Lanka"
+   "place": "Kandy, Sri Lanka",
+   "color": "#67856b"
   },
   {
    "src": "/studio/photos/32.jpg",
@@ -474,7 +505,8 @@
     41.01993,
     28.97894
    ],
-   "place": "Istanbul, Türkiye"
+   "place": "Istanbul, Türkiye",
+   "color": "#619f87"
   },
   {
    "src": "/studio/photos/33.jpg",
@@ -493,7 +525,8 @@
     39.95703,
     -75.19155
    ],
-   "place": "Philadelphia, PA"
+   "place": "Philadelphia, PA",
+   "color": "#426167"
   },
   {
    "src": "/studio/photos/34.jpg",
@@ -512,7 +545,8 @@
     39.95748,
     -75.19149
    ],
-   "place": "Philadelphia, PA"
+   "place": "Philadelphia, PA",
+   "color": "#843a1f"
   },
   {
    "src": "/studio/photos/35.jpg",
@@ -531,7 +565,8 @@
     39.95714,
     -75.19178
    ],
-   "place": "Philadelphia, PA"
+   "place": "Philadelphia, PA",
+   "color": "#656555"
   },
   {
    "src": "/studio/photos/36.jpg",
@@ -550,7 +585,8 @@
     39.95691,
     -75.19042
    ],
-   "place": "Philadelphia, PA"
+   "place": "Philadelphia, PA",
+   "color": "#5a683b"
   },
   {
    "src": "/studio/photos/37.jpg",
@@ -569,7 +605,8 @@
     41.01574,
     28.9731
    ],
-   "place": "Istanbul, Türkiye"
+   "place": "Istanbul, Türkiye",
+   "color": "#83623b"
   }
  ],
  "tracks": [

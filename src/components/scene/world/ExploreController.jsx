@@ -7,8 +7,12 @@ import { useStore } from '@/lib/store';
 import { MONOLITHS, MONOLITH_NEAR_R, STATIONS, mesaById } from '@/data/world';
 import { resolveStep, isWalkable, walkTo, edgeDistance, mesaAt, causewayAt, WALK_SPEED } from '@/lib/worldNav';
 
-const CAM_DIST = 9;
-const CAM_HEIGHT = 5.2;
+const LOOK_H = 1.3; // the orbit pivots around the astronaut's chest
+const DIST_MIN = 4.5;
+const DIST_MAX = 24;
+const PITCH_MIN = 0.12;
+const PITCH_MAX = 1.2;
+const FOLLOW_AFTER_MS = 2600; // auto-follow waits this long after a manual look
 // Mouse-look sensitivity — slow + cinematic (≈60% slower than the old 0.004).
 const LOOK_SENS = 0.0016;
 const DAMP = 0.05; // rotation damping factor (cinematic)
@@ -66,7 +70,11 @@ export default function ExploreController({ astronautRef, moving }) {
       if (!down) return;
       down.drag += Math.abs(e.movementX) + Math.abs(e.movementY);
       // Incremental (not cumulative) so it doesn't compound; damped in useFrame
-      if (down.drag > 6) worldState.azimuthTarget -= e.movementX * LOOK_SENS;
+      if (down.drag > 6) {
+        worldState.azimuthTarget -= e.movementX * LOOK_SENS;
+        worldState.pitchTarget = THREE.MathUtils.clamp(worldState.pitchTarget + e.movementY * LOOK_SENS * 0.8, PITCH_MIN, PITCH_MAX);
+        worldState.lastLook = performance.now();
+      }
     };
     const onUp = (e) => {
       if (!down) return;
@@ -119,6 +127,16 @@ export default function ExploreController({ astronautRef, moving }) {
       keys.current.f = keys.current.b = keys.current.l = keys.current.r = false;
     };
 
+    // Scroll to zoom — eased toward the target in useFrame
+    const onWheel = (e) => {
+      const s = useStore.getState();
+      if (s.journeyPhase !== 'world' || s.enteredZone) return;
+      e.preventDefault();
+      worldState.distTarget = THREE.MathUtils.clamp(worldState.distTarget * Math.exp(e.deltaY * 0.0012), DIST_MIN, DIST_MAX);
+      worldState.lastLook = performance.now();
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+
     el.addEventListener('pointerdown', onDown);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
@@ -134,6 +152,7 @@ export default function ExploreController({ astronautRef, moving }) {
     };
     window.__pos = () => [worldState.pos.x, worldState.pos.z];
     return () => {
+      el.removeEventListener('wheel', onWheel);
       el.removeEventListener('pointerdown', onDown);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
@@ -233,8 +252,19 @@ export default function ExploreController({ astronautRef, moving }) {
     const camK = fast ? 0.6 : 0.08;
     const azK = fast ? 0.6 : DAMP;
 
-    // Damp the camera orbit toward its drag target. Wrap-safe.
+    // Travelling (click-walk or the dock): ease the camera in behind the
+    // astronaut so the view turns with the journey — unless you've just
+    // looked around yourself.
+    const travelling = worldState.path.length > 0 && worldState.moving;
+    if (travelling && performance.now() - worldState.lastLook > FOLLOW_AFTER_MS) {
+      worldState.azimuthTarget = lerpAngle(worldState.azimuthTarget, worldState.heading + Math.PI, 0.035);
+    }
+
+    // Damp the orbit (angle, tilt, distance) toward its targets. Wrap-safe.
     worldState.azimuth = lerpAngle(worldState.azimuth, worldState.azimuthTarget, azK);
+    worldState.pitch += (worldState.pitchTarget - worldState.pitch) * 0.08;
+    const travelPull = travelling && worldState.pathSpeed > 8 ? 2.2 : 0; // pull back for speed on dock travel
+    worldState.dist += (worldState.distTarget + travelPull - worldState.dist) * 0.06;
 
     // Apply to astronaut (smooth heading). `altitude` is the Act 3 drop —
     // zero in normal play, tweened 50 → 0 by LandingDirector.
@@ -249,9 +279,11 @@ export default function ExploreController({ astronautRef, moving }) {
     // astronaut all the way down.
     const dropping = worldState.altitude > 0.01;
     const az = worldState.azimuth;
-    const desiredX = p.x + Math.sin(az) * CAM_DIST;
-    const desiredZ = p.z + Math.cos(az) * CAM_DIST;
-    const camY = dropping ? 2.1 : CAM_HEIGHT;
+    // spherical orbit around the astronaut
+    const horiz = worldState.dist * Math.cos(worldState.pitch);
+    const desiredX = p.x + Math.sin(az) * horiz;
+    const desiredZ = p.z + Math.cos(az) * horiz;
+    const camY = dropping ? 2.1 : p.y + LOOK_H + worldState.dist * Math.sin(worldState.pitch);
     camera.position.x += (desiredX - camera.position.x) * camK;
     camera.position.y += (camY - camera.position.y) * (dropping ? 0.2 : camK);
     camera.position.z += (desiredZ - camera.position.z) * camK;

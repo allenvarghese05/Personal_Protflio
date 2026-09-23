@@ -97,6 +97,18 @@ def place_for(gps):
     return best[0] if best else None
 
 
+def ambient_color(img):
+    """The photo's mood colour: the average of its mid-tones, gently
+    saturated — used for the viewer's backdrop + glow."""
+    import colorsys
+    small = img.convert('RGB').resize((48, 48), Image.LANCZOS)
+    px = [c for c in small.getdata() if 40 < sum(c) / 3 < 215] or list(small.getdata())
+    r, g, b = (sum(c[i] for c in px) / len(px) / 255 for i in range(3))
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    r, g, b = colorsys.hls_to_rgb(h, min(max(l, 0.32), 0.55), min(1, s * 1.35 + 0.08))
+    return '#%02x%02x%02x' % (round(r * 255), round(g * 255), round(b * 255))
+
+
 def camera_name(make, model):
     model = (model or '').strip()
     if not model:
@@ -148,7 +160,7 @@ def process_photos(src):
             thumb.thumbnail((900, 900), Image.LANCZOS)
             thumb.save(os.path.join(OUT_PHOTOS, name + '-sm.jpg'), 'JPEG', quality=78, optimize=True, progressive=True)
             out.append({'src': f'/studio/photos/{name}.jpg', 'thumb': f'/studio/photos/{name}-sm.jpg',
-                        'w': full.width, 'h': full.height, 'file': f,
+                        'w': full.width, 'h': full.height, 'file': f, 'color': ambient_color(thumb),
                         **{k: v for k, v in meta.items() if v is not None}})
     return out
 

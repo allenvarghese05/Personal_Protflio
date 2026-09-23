@@ -118,13 +118,17 @@ function Films() {
 
 /* ── Sound ────────────────────────────────────────────────────────────── */
 
-/** The small waveform on a track row — the beat's real envelope. */
+/** A fine hairline waveform — the beat's real envelope, drawn thin. */
 function RowWave({ peaks, active }) {
   const bars = peaks.filter((_, i) => i % 2 === 0);
   return (
-    <div className="flex h-7 items-center gap-[2px]">
+    <div className="flex h-6 items-center gap-[3px]" aria-hidden>
       {bars.map((v, i) => (
-        <span key={i} className="flex-1 rounded-full" style={{ height: `${16 + v * 84}%`, background: active ? 'var(--accent)' : 'var(--line-hi)' }} />
+        <span
+          key={i}
+          className="w-[2px] shrink-0"
+          style={{ height: `${10 + v * 90}%`, background: active ? 'var(--accent)' : 'color-mix(in srgb, var(--ink) 22%, transparent)' }}
+        />
       ))}
     </div>
   );
@@ -140,14 +144,46 @@ function PlayingBars() {
   );
 }
 
+/** The featured beat — the current one (or the first), large, with Play. */
+function Featured() {
+  const { tracks, index, playing, openTrack, toggle } = usePlayer();
+  const i = index ?? 0;
+  const t = tracks[i];
+  const total = tracks.reduce((s, x) => s + (x.duration || 0), 0);
+  const isCurrent = index === i;
+  return (
+    <div className="lg:sticky lg:top-8">
+      <button onClick={() => openTrack(i)} className="studio-feature group block w-full" aria-label={`Open ${t.title}`}>
+        <Cover track={t} index={i} className="block h-auto w-full" />
+        <span className="studio-feature__open">Open player ↗</span>
+      </button>
+      <div className="mt-5 font-mono text-micro uppercase tracking-[0.2em] text-ink-subtle">
+        {isCurrent && playing ? 'Now playing' : 'Featured'} · {t.genre}
+      </div>
+      <div className="font-display mt-2 text-3xl font-semibold tracking-[-0.03em] text-ink">{t.title}</div>
+      <div className="mt-5 flex items-center gap-4">
+        <button onClick={() => (isCurrent ? toggle() : openTrack(i))} className="np-play" aria-label={isCurrent && playing ? 'Pause' : 'Play'}>
+          {isCurrent && playing ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z" /></svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+          )}
+        </button>
+        <span className="font-mono text-micro uppercase tracking-[0.16em] text-ink-subtle">
+          {tracks.length} beats · {formatTime(total)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function Tracks() {
   const { tracks, index, playing, openTrack } = usePlayer();
   if (!tracks.length) {
     return (
       <div className="flex max-w-3xl flex-col gap-3">
         {Array.from({ length: PLACEHOLDER_COUNT.tracks }).map((_, i) => (
-          <motion.div key={i} variants={rise} className="studio-track is-disabled">
-            <span className="studio-track__play">▶</span>
+          <motion.div key={i} variants={rise} className="studio-row is-disabled">
             <span className="font-display text-base font-semibold text-ink">Track {String(i + 1).padStart(2, '0')}</span>
           </motion.div>
         ))}
@@ -155,31 +191,44 @@ function Tracks() {
     );
   }
   return (
-    <div className="flex max-w-4xl flex-col gap-2.5">
-      {tracks.map((t, i) => {
-        const current = i === index;
-        return (
-          <motion.button key={t.src} variants={rise} onClick={() => openTrack(i)} className={`studio-track text-left ${current ? 'is-current' : ''}`}>
-            <motion.div layoutId={`cover-${i}`} className="h-14 w-14 shrink-0 overflow-hidden rounded-md" transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
-              <Cover track={t} index={i} className="block h-full w-full" showText={false} />
-            </motion.div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="flex items-center gap-2 truncate font-display text-base font-semibold text-ink">
-                  {current && playing && <PlayingBars />}
-                  {t.title}
+    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:gap-14">
+      <motion.div variants={rise}>
+        <Featured />
+      </motion.div>
+      <ol className="flex flex-col">
+        {tracks.map((t, i) => {
+          const current = i === index;
+          return (
+            <motion.li key={t.src} variants={rise}>
+              <button onClick={() => openTrack(i)} className={`studio-row group ${current ? 'is-current' : ''}`}>
+                <span className="studio-row__num">
+                  {current && playing ? (
+                    <PlayingBars />
+                  ) : (
+                    <>
+                      <span className="group-hover:hidden">{String(i + 1).padStart(2, '0')}</span>
+                      <svg className="hidden group-hover:block" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </>
+                  )}
                 </span>
-                <span className="shrink-0 font-mono text-micro uppercase tracking-[0.14em] text-ink-subtle">
-                  {t.genre} · {formatTime(t.duration)}
+                <motion.span layoutId={`cover-${i}`} className="block h-12 w-12 shrink-0 overflow-hidden rounded-[6px]" transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
+                  <Cover track={t} index={i} className="block h-full w-full" showText={false} />
+                </motion.span>
+                <span className="min-w-0 flex-1 text-left">
+                  <span className={`block truncate font-display text-[1.05rem] font-semibold ${current ? 'text-accent' : 'text-ink'}`}>{t.title}</span>
+                  <span className="block truncate font-mono text-micro uppercase tracking-[0.14em] text-ink-subtle">{t.genre}</span>
                 </span>
-              </div>
-              <div className="mt-1.5">
-                <RowWave peaks={t.peaks} active={current} />
-              </div>
-            </div>
-          </motion.button>
-        );
-      })}
+                <span className="hidden w-[38%] shrink-0 md:block">
+                  <RowWave peaks={t.peaks} active={current} />
+                </span>
+                <span className="w-12 shrink-0 text-right font-mono text-micro tabular-nums text-ink-subtle">{formatTime(t.duration)}</span>
+              </button>
+            </motion.li>
+          );
+        })}
+      </ol>
     </div>
   );
 }

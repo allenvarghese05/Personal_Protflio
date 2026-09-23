@@ -138,15 +138,113 @@ function IconBtn({ label, onClick, children, big = false }) {
   );
 }
 
+/**
+ * The living colour field. Three soft shapes in the cover's palette:
+ *  · on each kick (bass jumping above its running average) they get an
+ *    impulse — a bounce + a scale pop — then spring home;
+ *  · they drift toward the cursor at different depths (parallax);
+ *  · their size and brightness ride the music's overall energy.
+ * Pure DOM transforms from one rAF loop — no React renders.
+ */
+function ColorField({ theme, still }) {
+  const { graph } = usePlayer();
+  const refs = useRef([]);
+  const blobs = [
+    { color: theme.glow, size: 78, depth: 0.9, home: [-0.18, -0.08] },
+    { color: theme.ring, size: 54, depth: 1.4, home: [0.22, 0.12] },
+    { color: theme.accentSoft, size: 44, depth: 2.0, home: [0.05, 0.3] },
+  ];
+
+  useEffect(() => {
+    if (still) return;
+    const W = () => window.innerWidth;
+    const H = () => window.innerHeight;
+    const st = blobs.map(() => ({ x: 0, y: 0, vx: 0, vy: 0, kick: 0 }));
+    const mouse = { x: 0, y: 0 };
+    const onMove = (e) => {
+      mouse.x = (e.clientX / W()) * 2 - 1;
+      mouse.y = (e.clientY / H()) * 2 - 1;
+    };
+    window.addEventListener('pointermove', onMove);
+
+    let avg = 0;
+    let energy = 0;
+    let lastKick = 0;
+    let prev = performance.now();
+    let raf;
+    const tick = (now) => {
+      const dt = Math.min(0.05, (now - prev) / 1000);
+      prev = now;
+      const { bass, level } = readEnergy(graph);
+      energy += (level - energy) * 0.12;
+      avg += (bass - avg) * 0.04; // slow running average of the low end
+      const hit = bass - avg > 0.1 && bass > 0.35 && now - lastKick > 170;
+      if (hit) lastKick = now;
+
+      st.forEach((b, i) => {
+        const cfg = blobs[i];
+        if (hit) {
+          const a = Math.random() * Math.PI * 2;
+          const force = (380 + Math.random() * 380) * (bass - avg + 0.4) * cfg.depth * 0.6;
+          b.vx += Math.cos(a) * force;
+          b.vy += Math.sin(a) * force;
+          b.kick = 1;
+        }
+        // home position + cursor parallax (deeper shapes follow further)
+        const tx = cfg.home[0] * W() + mouse.x * W() * 0.12 * cfg.depth;
+        const ty = cfg.home[1] * H() + mouse.y * H() * 0.1 * cfg.depth;
+        // damped spring
+        b.vx += ((tx - b.x) * 14 - b.vx * 5.2) * dt;
+        b.vy += ((ty - b.y) * 14 - b.vy * 5.2) * dt;
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        b.kick *= Math.pow(0.02, dt); // pop decays fast
+
+        const el = refs.current[i];
+        if (el) {
+          const s = 0.9 + energy * 0.9 + b.kick * 0.22;
+          el.style.transform = `translate(-50%, -50%) translate3d(${b.x.toFixed(1)}px, ${b.y.toFixed(1)}px, 0) scale(${s.toFixed(3)})`;
+          el.style.opacity = String(Math.min(0.95, 0.32 + energy * 0.9 + b.kick * 0.25));
+        }
+      });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('pointermove', onMove);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graph, still, theme]);
+
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      {blobs.map((b, i) => (
+        <div
+          key={i}
+          ref={(el) => (refs.current[i] = el)}
+          className="np-blob"
+          style={{
+            width: `${b.size}vmax`,
+            height: `${b.size}vmax`,
+            background: `radial-gradient(circle, ${b.color} 0%, color-mix(in srgb, ${b.color} 35%, transparent) 35%, transparent 68%)`,
+            transform: `translate(-50%, -50%) translate3d(${b.home[0] * 60}vw, ${b.home[1] * 60}vh, 0)`,
+            opacity: 0.4,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function NowPlaying() {
   const { tracks, index, playing, open, setOpen, toggle, step, seek, audio, graph } = usePlayer();
   const reduced = useReducedMotion();
-  const glow = useRef(null);
   const coverWrap = useRef(null);
   const track = index !== null ? tracks[index] : null;
   const theme = track ? COVER_THEMES[track.mood] || COVER_THEMES.warm : COVER_THEMES.warm;
 
-  // The glow breathes with the bass (written straight to the DOM — no renders)
+  // The cover itself gives the faintest pulse on the low end
   useEffect(() => {
     if (!open || reduced) return;
     let raf;
@@ -154,10 +252,6 @@ export default function NowPlaying() {
     const tick = () => {
       const { bass } = readEnergy(graph);
       b += (bass - b) * 0.18;
-      if (glow.current) {
-        glow.current.style.transform = `translate(-50%, -50%) scale(${1 + b * 0.35})`;
-        glow.current.style.opacity = String(0.35 + b * 0.55);
-      }
       if (coverWrap.current) coverWrap.current.style.transform = `scale(${1 + b * 0.018})`;
       raf = requestAnimationFrame(tick);
     };
@@ -196,18 +290,8 @@ export default function NowPlaying() {
           aria-modal="true"
           aria-label={`Now playing: ${track.title}`}
         >
-          {/* the breathing colour field */}
-          <div
-            ref={glow}
-            aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[120vmax] w-[120vmax] rounded-full"
-            style={{
-              transform: 'translate(-50%, -50%)',
-              opacity: 0.4,
-              background: `radial-gradient(circle, ${theme.glow} 0%, transparent 55%)`,
-              transition: 'background 1.2s ease',
-            }}
-          />
+          {/* the living colour field — bounces on the beat, follows the cursor */}
+          <ColorField theme={theme} still={reduced || !playing} />
           <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(90% 70% at 50% 50%, transparent 30%, rgba(7,8,12,0.85) 100%)' }} />
 
           {/* top bar */}

@@ -1,17 +1,18 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatShotDate, formatCoords } from '@/data/studio';
 
 const EASE = [0.16, 1, 0.3, 1];
 
 /**
- * The immersive photo viewer. The photo you clicked zooms out of the grid
- * (shared layout) — thumbnail first, the full image crossfading in when it
- * lands. Its own colours wash the room behind it. Top right: the story of
- * the shot — camera, lens, exposure, date, and where it was taken.
- * Arrows / swipe / filmstrip to move; I hides the card; Esc closes back
- * into the grid.
+ * The immersive photo viewer — the photograph is the whole show. It zooms
+ * out of the grid (shared layout), thumbnail first, full image crossfading
+ * in. The room takes a subtle tint of the photo's own mood colour, and the
+ * print is lifted off it: a soft bloom in that colour behind it, a deep
+ * shadow, a fine edge highlight. Top right: the story of the shot.
+ * Arrows / swipe / the edge buttons to move; I hides the card; Esc closes
+ * back into the grid.
  */
 
 /** The shot's details, top right — staggered in per photo. */
@@ -109,8 +110,8 @@ const slide = {
 export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }) {
   const [dir, setDir] = useState(0);
   const [info, setInfo] = useState(true);
-  const strip = useRef(null);
   const p = photos[index];
+  const tint = p.color || '#3a3a44';
   const go = (d) => {
     setDir(d);
     onGo((index + d + photos.length) % photos.length);
@@ -131,11 +132,6 @@ export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }
     return () => window.removeEventListener('keydown', onKey, true);
   });
 
-  // keep the current frame centred in the filmstrip
-  useEffect(() => {
-    strip.current?.querySelector(`[data-i="${index}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-  }, [index]);
-
   const morph = index === openedFrom; // only the photo you opened flies home
 
   return (
@@ -149,19 +145,19 @@ export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }
       aria-modal="true"
       aria-label="Photograph viewer"
     >
-      {/* the photo's own colours, washed across the room */}
+      {/* a subtle tint of the photo's mood colour — the room, not a feature */}
       <AnimatePresence>
         <motion.div
-          key={p.thumb}
+          key={tint}
           aria-hidden
           className="pointer-events-none absolute inset-0"
-          style={{ backgroundImage: `url(${p.thumb})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(70px) saturate(1.3)', transform: 'scale(1.3)' }}
+          style={{ background: `radial-gradient(70% 65% at 50% 48%, color-mix(in srgb, ${tint} 34%, transparent) 0%, color-mix(in srgb, ${tint} 10%, transparent) 55%, transparent 85%)` }}
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.45, transition: { duration: 0.9 } }}
-          exit={{ opacity: 0, transition: { duration: 0.9 } }}
+          animate={{ opacity: 1, transition: { duration: 1.1, ease: EASE } }}
+          exit={{ opacity: 0, transition: { duration: 1.1, ease: EASE } }}
         />
       </AnimatePresence>
-      <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(80% 80% at 50% 45%, rgba(7,8,12,0.35), rgba(7,8,12,0.9))' }} />
+      <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(100% 90% at 50% 50%, transparent 40%, rgba(7,8,12,0.75) 100%)' }} />
 
       {/* top bar */}
       <motion.div
@@ -185,7 +181,7 @@ export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }
       </motion.div>
 
       {/* the photograph */}
-      <div className="relative z-0 flex min-h-0 flex-1 items-center justify-center px-6 py-4 sm:px-16">
+      <div className="relative z-0 flex min-h-0 flex-1 items-center justify-center px-6 pb-10 pt-4 sm:px-24">
         <AnimatePresence initial={false} custom={dir} mode="popLayout">
           <motion.div
             key={p.src}
@@ -204,10 +200,11 @@ export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }
               else if (i.offset.x > 80 || i.velocity.x > 500) go(-1);
             }}
             onClick={(e) => e.stopPropagation()}
-            className="max-h-full overflow-hidden rounded-lg shadow-[0_40px_140px_-30px_rgba(0,0,0,0.9)]"
+            className="pv-print max-h-full overflow-hidden rounded-lg"
             style={{
-              width: `min(100%, calc((100vh - 13rem) * ${p.w / p.h}))`,
+              width: `min(100%, calc((100vh - 9.5rem) * ${p.w / p.h}))`,
               cursor: 'grab',
+              '--tint': tint,
             }}
           >
             <Progressive p={p} className="w-full" />
@@ -217,31 +214,25 @@ export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }
         <AnimatePresence>{info && <InfoCard p={p} />}</AnimatePresence>
       </div>
 
-      {/* filmstrip */}
-      <motion.div
-        ref={strip}
-        className="pv-strip relative z-10"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0, transition: { delay: 0.3, duration: 0.5, ease: EASE } }}
-        exit={{ opacity: 0, y: 20, transition: { duration: 0.2 } }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {photos.map((ph, i) => (
-          <button
-            key={ph.thumb}
-            data-i={i}
-            onClick={() => {
-              setDir(i > index ? 1 : -1);
-              onGo(i);
-            }}
-            className={`pv-strip__item ${i === index ? 'is-current' : ''}`}
-            aria-label={`Photograph ${i + 1}`}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ph.thumb} alt="" loading="lazy" />
-          </button>
-        ))}
-      </motion.div>
+      {/* quiet edge controls — the photo stays the focus */}
+      {[-1, 1].map((d) => (
+        <motion.button
+          key={d}
+          className={`pv-edge ${d < 0 ? 'left-4 sm:left-6' : 'right-4 sm:right-6'}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { delay: 0.35 } }}
+          exit={{ opacity: 0, transition: { duration: 0.15 } }}
+          onClick={(e) => {
+            e.stopPropagation();
+            go(d);
+          }}
+          aria-label={d < 0 ? 'Previous photograph' : 'Next photograph'}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            {d < 0 ? <path d="M15 5l-7 7 7 7" /> : <path d="M9 5l7 7-7 7" />}
+          </svg>
+        </motion.button>
+      ))}
     </motion.div>
   );
 }

@@ -9,8 +9,8 @@ import { PALETTE } from '@/lib/palette';
  * sound. Palettes: 'cold' for drill, 'warm' for guitar beats.
  */
 export const COVER_THEMES = {
-  cold: { bg: ['#10162a', '#07080c'], ring: PALETTE.ice, glow: '#3a4f8a', ink: PALETTE.ink },
-  warm: { bg: ['#2a1608', '#07080c'], ring: PALETTE.accent, glow: PALETTE.accentLo, ink: PALETTE.ink },
+  cold: { bg: ['#10162a', '#07080c'], ring: PALETTE.ice, glow: '#3a4f8a', accentSoft: PALETTE.lilac, ink: PALETTE.ink },
+  warm: { bg: ['#2a1608', '#07080c'], ring: PALETTE.accent, glow: PALETTE.accentLo, accentSoft: PALETTE.accentHi, ink: PALETTE.ink },
 };
 
 export default function Cover({ track, index, className = '', showText = true }) {
