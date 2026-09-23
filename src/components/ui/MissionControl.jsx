@@ -4,6 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/lib/store';
 import { zoneById } from '@/data/world';
 import { ENGINEERING_PROJECTS, projectById } from '@/data/projects';
+import { caseStudyFor } from '@/data/caseStudies';
+import { PALETTE } from '@/lib/palette';
+
+const P_INK_FAINT = PALETTE.inkSubtle;
 import { ACCENTS, DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
 import ArchitectureGraph from './ArchitectureGraph';
 import BentoPanels from './BentoPanels';
@@ -197,8 +201,104 @@ function StackChips({ primary, secondary, accent }) {
   );
 }
 
+/* The hero image slot — a device frame holding real screenshots when they
+   exist, and a designed placeholder until then. Private client systems get
+   an honest note instead of a fake UI. */
+function MockShot({ project, study, accent }) {
+  const media = study?.media || { frame: 'browser', shots: [] };
+  const shot = media.shots?.[0];
+
+  if (media.frame === 'private') {
+    return (
+      <div className="mock-private">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+          <rect x="4" y="10" width="16" height="11" rx="2" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+        </svg>
+        <div>
+          <div className="text-sm font-semibold text-ink">Private client system</div>
+          <div className="text-label text-ink-muted">Screenshots aren’t shareable — the diagrams below show how it works.</div>
+        </div>
+      </div>
+    );
+  }
+
+  const screen = shot ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={shot} alt={`${project.label} screenshot`} className="h-full w-full object-cover" />
+  ) : (
+    <div className="mock-screen" style={{ '--mock': accent }}>
+      <div className="mock-screen__grid" />
+      <div className="relative text-center">
+        <div className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">{project.label}</div>
+        <div className="mt-2 font-mono text-micro uppercase tracking-[0.2em] text-ink-subtle">Screenshots coming soon</div>
+      </div>
+    </div>
+  );
+
+  if (media.frame === 'phone') {
+    return (
+      <div className="flex justify-center">
+        <div className="mock-phone">
+          <div className="mock-phone__notch" />
+          <div className="mock-phone__screen">{screen}</div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="mock-browser">
+      <div className="mock-browser__bar">
+        <span className="mock-browser__dots"><i /><i /><i /></span>
+        <span className="mock-browser__url">{media.url || project.label.toLowerCase()}</span>
+      </div>
+      <div className="mock-browser__screen">{screen}</div>
+    </div>
+  );
+}
+
+/* One labelled row of the case study: label rail on the left, content right */
+function Section({ label, children }) {
+  return (
+    <section className="grid grid-cols-1 gap-3 border-t border-line py-10 lg:grid-cols-[200px_1fr] lg:gap-10">
+      <div className="mc-label pt-1">{label}</div>
+      <div className="min-w-0">{children}</div>
+    </section>
+  );
+}
+
+function Bullets({ items, accent }) {
+  return (
+    <ul className="flex flex-col gap-3">
+      {items.map((it) => (
+        <li key={it} className="flex gap-3 text-body text-ink-muted">
+          <span className="mt-[0.7em] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: accent }} />
+          <span>{it}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Decisions({ items, accent }) {
+  return (
+    <ol className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      {items.map((d, i) => (
+        <li key={d.title} className="mc-panel flex flex-col">
+          <span className="font-mono text-micro font-semibold" style={{ color: accent }}>
+            {String(i + 1).padStart(2, '0')}
+          </span>
+          <span className="font-display mt-2 text-base font-semibold leading-snug text-ink">{d.title}</span>
+          <span className="mt-2 text-sm leading-relaxed text-ink-muted">{d.body}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function Brief({ project }) {
   const accent = accentFor(project.kind);
+  const study = caseStudyFor(project.id);
   const meta = [project.role, project.company, project.dateRange, project.location].filter(Boolean);
   return (
     <motion.article
@@ -210,16 +310,17 @@ function Brief({ project }) {
     >
       {/* HEADER */}
       <header
-        className="relative overflow-hidden border-b border-line px-6 pb-10 pt-12 text-center sm:px-16"
-        style={{ background: `radial-gradient(70% 120% at 50% 0%, color-mix(in srgb, ${accent} 9%, transparent) 0%, transparent 70%), var(--void)` }}
+        className="relative overflow-hidden px-6 pb-12 pt-12 text-center sm:px-16"
+        style={{ background: `radial-gradient(70% 120% at 50% 0%, color-mix(in srgb, ${accent} 9%, transparent) 0%, transparent 70%)` }}
       >
         <Badge accent={accent} className="mb-5">
           {project.badge}
         </Badge>
-        <h2 className="font-display mx-auto max-w-4xl text-4xl font-bold leading-[1.08] tracking-tight text-ink sm:text-5xl">
+        <h2 className="font-display mx-auto max-w-4xl text-4xl font-bold leading-[1.05] tracking-[-0.03em] text-ink sm:text-6xl">
           {project.label}
         </h2>
-        <div className="mx-auto mt-4 flex max-w-3xl flex-wrap justify-center gap-x-2 font-mono text-label text-ink-muted">
+        <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-ink-muted">{project.subtitle}</p>
+        <div className="mx-auto mt-5 flex max-w-3xl flex-wrap justify-center gap-x-2 font-mono text-label text-ink-subtle">
           {meta.map((seg, i) => (
             <span key={seg}>
               {seg}
@@ -227,47 +328,77 @@ function Brief({ project }) {
             </span>
           ))}
         </div>
-        {project.repo && (
-          <a
-            href={project.repo}
-            target="_blank"
-            rel="noreferrer"
-            className="hero-link mt-4 inline-block font-mono text-micro uppercase tracking-[0.16em] text-ink-muted"
-          >
-            View source on GitHub ↗
-          </a>
+        {(study?.live || project.repo) && (
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
+            {study?.live && (
+              <a href={study.live} target="_blank" rel="noreferrer" className="hero-cta" style={{ height: '2.75rem' }}>
+                {study.liveLabel || 'Visit live'} <span aria-hidden className="hero-cta__arrow">↗</span>
+              </a>
+            )}
+            {project.repo && (
+              <a href={project.repo} target="_blank" rel="noreferrer" className="skip-btn" style={{ paddingRight: '1rem' }}>
+                View source <span aria-hidden>↗</span>
+              </a>
+            )}
+          </div>
         )}
-        <div className="mb-10" />
-        <MetricStrip metrics={project.metrics} accent={accent} />
+        {project.metrics?.length > 0 && (
+          <div className="mt-12">
+            <MetricStrip metrics={project.metrics} accent={accent} />
+          </div>
+        )}
       </header>
 
-      {/* BODY — two columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-[38fr_62fr]">
-        {/* LEFT */}
-        <div className="min-w-0 px-6 py-10 sm:px-12">
-          <div className="mc-label mb-3">Context</div>
-          <p className="mb-10 text-body text-ink-muted">{project.description}</p>
+      {/* HERO IMAGE */}
+      <div className="mx-auto max-w-5xl px-6 sm:px-12">
+        <MockShot project={project} study={study} accent={accent} />
+      </div>
 
-          <div className="mc-label mb-3">Stack</div>
-          <StackChips primary={project.primaryStack} secondary={project.secondaryStack} accent={accent} />
+      {/* THE CASE STUDY */}
+      <div className="mx-auto mt-14 max-w-6xl px-6 sm:px-12">
+        {study && (
+          <>
+            <Section label="The problem">
+              <p className="font-display max-w-3xl text-2xl font-medium leading-snug tracking-[-0.015em] text-ink sm:text-[1.7rem]">
+                {study.problem}
+              </p>
+            </Section>
+            <Section label="What I built">
+              <p className="max-w-3xl text-lg leading-relaxed text-ink-muted">{study.built}</p>
+            </Section>
+            <Section label="How it works">
+              <div className="max-w-3xl">
+                <Bullets items={study.how} accent={accent} />
+              </div>
+            </Section>
+          </>
+        )}
+        {project.keyDecisions?.length > 0 && (
+          <Section label="Key decisions">
+            <Decisions items={project.keyDecisions} accent={accent} />
+          </Section>
+        )}
+        {study?.next?.length > 0 && (
+          <Section label="What’s next">
+            <div className="max-w-3xl">
+              <Bullets items={study.next} accent={P_INK_FAINT} />
+            </div>
+          </Section>
+        )}
+      </div>
 
-          {/* Key Decisions live in the architecture bento (Panel 4). */}
-          <BuildTimeline items={project.timeline} accent={accent} />
-        </div>
-
-        {/* RIGHT */}
-        <div className="min-w-0 border-line px-6 py-8 sm:px-10 lg:border-l">
+      {/* UNDER THE HOOD */}
+      <div className="mx-auto max-w-6xl px-6 pb-16 sm:px-12">
+        <Section label="Under the hood">
           <BentoPanels project={project} accent={accent} />
-
           {project.deployment && (
-            <div className="mt-8">
+            <div className="mt-6">
               <DeploymentStatusStrip deployment={project.deployment} />
             </div>
           )}
-
-          <div className="mt-8">
-            <div className="mc-label mb-3">System architecture</div>
-            <div className="h-[380px] overflow-hidden rounded-panel border border-line">
+          <div className="mt-6">
+            <div className="mc-label mb-3">System architecture · drag, zoom, click a node</div>
+            <div className="h-[420px] overflow-hidden rounded-panel border border-line">
               {project.architectureGraph ? (
                 <ArchitectureGraph
                   nodes={project.architectureGraph.nodes}
@@ -280,7 +411,11 @@ function Brief({ project }) {
               )}
             </div>
           </div>
-        </div>
+        </Section>
+        <Section label="Stack">
+          <StackChips primary={project.primaryStack} secondary={project.secondaryStack} accent={accent} />
+          <BuildTimeline items={project.timeline} accent={accent} />
+        </Section>
       </div>
     </motion.article>
   );

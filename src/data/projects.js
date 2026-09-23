@@ -339,7 +339,6 @@ export const ENGINEERING_PROJECTS = [
     metrics: [
       { value: '5', label: 'Matching factors weighed' },
       { value: '2', label: 'Assessment modes · form & voice' },
-      { value: 'Live', label: 'Speech-to-text counselor' },
     ],
     primaryStack: ['React 18', 'Node.js', 'Express.js', 'OpenAI API', 'Web Speech API'],
     secondaryStack: ['React Router', 'Axios', 'MongoDB', 'Multer', 'CSS-in-JS'],
@@ -458,7 +457,7 @@ export const ENGINEERING_PROJECTS = [
     metrics: [
       { value: '6', label: 'App screens built' },
       { value: '10+', label: 'Points per accurate report' },
-      { value: 'Phase 1', label: 'Complete · backend planned' },
+      { value: '3', label: 'Platforms · iOS, Android, web' },
     ],
     primaryStack: ['React Native', 'Expo', 'React Native Maps', 'Firebase Auth', 'React Navigation'],
     secondaryStack: ['React Native Paper', 'Expo Location', 'Socket.io (planned)', 'Node/Express (planned)', 'MongoDB Atlas (planned)'],

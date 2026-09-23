@@ -2,13 +2,11 @@
 import { PALETTE as P, alpha } from '@/lib/palette';
 
 /**
- * The 2×2 architecture bento for the project brief (right column, top half):
- *   1 (TL) 5-tier approval flowchart   ·   2 (TR) GPS enforcement + 3-phase
- *   3 (BL) key metrics (2×2)           ·   4 (BR) key decisions
- *
- * Panels 1 & 2 are bespoke for the signature IET build; other projects get a
- * graceful generic flow / focus so the grid is always populated. All content
- * is data-driven where it can be (metrics, decisions, stack).
+ * "Under the hood" — two bespoke visuals per project that show how it works
+ * (the approval chain, the audio pipeline, the data fusion, the matching
+ * engine, a battle, the live map …). A new project without its own visuals
+ * falls back to a generic flow + supporting-systems pair. Metrics live in
+ * the brief header and key decisions in the case study, not here.
  */
 
 function Panel({ heading, accent = P.accent, children }) {
@@ -373,9 +371,252 @@ function ForecastDriversPanel({ accent }) {
   );
 }
 
+/* ── College Matcher — the matching engine + the voice counselor ───────── */
+
+const MATCH_FACTORS = [
+  { name: 'Academics', sub: 'GPA · scores · rigor', w: 0.9 },
+  { name: 'Interests', sub: 'activities · hobbies', w: 0.75 },
+  { name: 'Career goals', sub: 'salary · environment', w: 0.8 },
+  { name: 'Location', sub: 'region · climate · setting', w: 0.55 },
+  { name: 'Finances', sub: 'budget · aid needs', w: 0.7 },
+];
+
+function MatchEnginePanel({ accent }) {
+  const R = 38;
+  const C = 2 * Math.PI * R;
+  return (
+    <Panel heading="Matching Engine" accent={accent}>
+      <div className="flex items-center gap-5">
+        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+          {MATCH_FACTORS.map((f) => (
+            <div key={f.name}>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-mono text-micro font-semibold text-ink">{f.name}</span>
+                <span className="truncate font-mono text-micro text-ink-subtle">{f.sub}</span>
+              </div>
+              <div className="mt-1 h-1 rounded-full" style={{ background: P.surface2 }}>
+                <div className="perf-fill h-1 rounded-full" style={{ width: `${f.w * 100}%`, background: `linear-gradient(90deg, ${alpha(accent, 0.35)}, ${accent})` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="relative shrink-0" style={{ width: 104, height: 104 }}>
+          <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90">
+            <circle cx="50" cy="50" r={R} fill="none" stroke={P.surface2} strokeWidth="6" />
+            <circle cx="50" cy="50" r={R} fill="none" stroke={accent} strokeWidth="6" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * 0.08} />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="font-display text-2xl font-bold" style={{ color: accent }}>92%</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-subtle">match</span>
+          </div>
+        </div>
+      </div>
+      <div className="mt-4 font-mono text-micro text-ink-subtle">Five factors → one ranked match per school · illustrative values</div>
+    </Panel>
+  );
+}
+
+function VoiceCounselorPanel({ accent }) {
+  const bars = [4, 9, 14, 7, 18, 11, 22, 15, 9, 17, 24, 12, 8, 16, 20, 10, 6, 13, 19, 9, 5];
+  return (
+    <Panel heading="AI Voice Counselor" accent={accent}>
+      <div className="flex flex-col gap-2.5">
+        <div className="max-w-[85%] self-start rounded-xl rounded-tl-sm px-3 py-2 text-sm leading-snug text-ink" style={{ background: P.surface2 }}>
+          What would a great day at college look like for you?
+        </div>
+        <div className="max-w-[85%] self-end rounded-xl rounded-tr-sm px-3 py-2 text-sm leading-snug text-ink" style={{ background: alpha(accent, 0.14), border: `1px solid ${alpha(accent, 0.3)}` }}>
+          Building things in a lab, then a city to explore after…
+          <span className="blink-cursor ml-0.5" style={{ color: accent }}>▍</span>
+        </div>
+      </div>
+      <div className="mt-4 flex items-center gap-3">
+        <span className="live-pulse h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: P.live }} />
+        <div className="flex h-7 flex-1 items-center gap-[3px]">
+          {bars.map((h, i) => (
+            <span key={i} className="flex-1 rounded-full" style={{ height: `${h + 4}px`, background: i < 14 ? accent : P.lineHi }} />
+          ))}
+        </div>
+        <span className="mc-chip">Pause</span>
+      </div>
+      <div className="mt-3 font-mono text-micro text-ink-subtle">Web Speech API · live transcript · OpenAI keeps the thread</div>
+    </Panel>
+  );
+}
+
+/* ── Jam Duel — a battle + where the recommendations come from ─────────── */
+
+function BattleSide({ label, pct, lead, accent }) {
+  return (
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
+      <div
+        className="aspect-square w-full rounded-lg"
+        style={{
+          background: lead
+            ? `linear-gradient(135deg, ${alpha(accent, 0.55)}, ${P.raised})`
+            : `linear-gradient(135deg, ${alpha(P.lilac, 0.45)}, ${P.raised})`,
+          boxShadow: lead ? `0 0 0 1px ${alpha(accent, 0.6)}` : `0 0 0 1px ${P.line}`,
+        }}
+      />
+      <span className="font-mono text-micro font-semibold text-ink">{label}</span>
+      <span className="font-display text-lg font-bold" style={{ color: lead ? accent : P.inkMuted }}>{pct}%</span>
+    </div>
+  );
+}
+
+function BattlePanel({ accent }) {
+  return (
+    <Panel heading="Head-to-Head" accent={accent}>
+      <div className="flex items-center gap-3">
+        <BattleSide label="Track A" pct={58} lead accent={accent} />
+        <span className="font-display text-sm font-bold text-ink-subtle">VS</span>
+        <BattleSide label="Track B" pct={42} accent={accent} />
+      </div>
+      <div className="mt-3 flex h-1.5 overflow-hidden rounded-full">
+        <span style={{ width: '58%', background: accent }} />
+        <span style={{ width: '42%', background: alpha(P.lilac, 0.7) }} />
+      </div>
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <span key={i} className="h-2 w-2 rounded-full" style={{ background: i < 7 ? accent : P.surface2 }} />
+          ))}
+        </div>
+        <span className="font-mono text-micro text-ink-muted">7 / 10 votes today · 5-day streak</span>
+      </div>
+      <div className="mt-3 font-mono text-micro text-ink-subtle">10 votes a day · resets at midnight · illustrative battle</div>
+    </Panel>
+  );
+}
+
+function FlowBox({ title, sub, color }) {
+  return (
+    <div className="rounded-md px-3 py-2" style={{ background: P.surface2, borderLeft: `2px solid ${color}` }}>
+      <div className="font-mono text-micro font-semibold" style={{ color }}>{title}</div>
+      <div className="font-mono text-micro text-ink-subtle">{sub}</div>
+    </div>
+  );
+}
+
+function RecFlowPanel({ accent }) {
+  return (
+    <Panel heading="How Recommendations Work" accent={accent}>
+      <div className="grid items-center gap-3" style={{ gridTemplateColumns: '1fr auto 1fr' }}>
+        <div className="flex flex-col gap-2">
+          <FlowBox title="FAVOURITES" sub="songs you love" color={P.ice} />
+          <FlowBox title="VOTING HISTORY" sub="every battle you called" color={P.lilac} />
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <span className="font-mono text-micro text-ink-subtle">→</span>
+          <span className="rounded-full px-3 py-1.5 font-mono text-micro font-bold" style={{ color: accent, border: `1px solid ${accent}`, background: alpha(accent, 0.1) }}>GPT-4</span>
+          <span className="font-mono text-micro text-ink-subtle">→</span>
+        </div>
+        <div className="flex flex-col gap-2">
+          <FlowBox title="BY MOOD" sub="grouped for you" color={accent} />
+          <FlowBox title="FRESH DAILY" sub="new picks each day" color={P.jade} />
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-1.5">
+        {['Spotify search + previews', 'YouTube playback', 'Friends & taste compare'].map((t) => (
+          <span key={t} className="mc-chip">{t}</span>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+/* ── StreetSpot — the live map + levels & roadmap ───────────────────────── */
+
+function LiveMapPanel({ accent }) {
+  const pins = [
+    { x: 62, y: 70, open: true },
+    { x: 150, y: 58, open: true },
+    { x: 118, y: 150, open: false },
+    { x: 40, y: 190, open: true },
+    { x: 168, y: 214, open: false },
+  ];
+  return (
+    <Panel heading="Live Spot Map" accent={accent}>
+      <div className="flex items-center gap-5">
+        <div className="shrink-0 overflow-hidden rounded-[22px] p-1.5" style={{ background: P.raised, boxShadow: `0 0 0 1px ${P.lineHi}` }}>
+          <svg viewBox="0 0 200 260" width="132" style={{ display: 'block', borderRadius: 16, background: P.surface2 }}>
+            {[40, 100, 160, 220].map((y) => <rect key={`h${y}`} x="0" y={y} width="200" height="9" fill={P.raised} />)}
+            {[30, 95, 160].map((x) => <rect key={`v${x}`} x={x} y="0" width="9" height="260" fill={P.raised} />)}
+            {pins.map((p, i) => (
+              <g key={i} transform={`translate(${p.x} ${p.y})`}>
+                <circle r="9" fill={alpha(p.open ? P.jade : accent, 0.22)} />
+                <circle r="4.5" fill={p.open ? P.jade : accent} />
+              </g>
+            ))}
+            <circle cx="104" cy="112" r="6" fill={P.ice} stroke={P.ink} strokeWidth="2" />
+            <rect x="14" y="228" width="172" height="22" rx="11" fill={P.void} opacity="0.85" />
+            <text x="100" y="239" textAnchor="middle" dominantBaseline="middle" fontSize="9" fill={P.ink} fontFamily="monospace">Spot reported · 2 min ago</text>
+          </svg>
+        </div>
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: P.jade }} /><span className="text-sm text-ink-muted">Open spot</span></div>
+          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: accent }} /><span className="text-sm text-ink-muted">Just taken</span></div>
+          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: P.ice }} /><span className="text-sm text-ink-muted">You</span></div>
+          <div className="mt-1 font-mono text-micro text-ink-subtle">Google Maps · Expo Location · offline cache</div>
+        </div>
+      </div>
+      <div className="mt-3 font-mono text-micro text-ink-subtle">Illustrative map</div>
+    </Panel>
+  );
+}
+
+const ROADMAP = [
+  { phase: 'Phase 1', state: 'done', items: 'Auth · map · reporting · points · leaderboards' },
+  { phase: 'Phase 2', state: 'next', items: 'Realtime backend · push alerts · predictions' },
+  { phase: 'Phase 3', state: 'later', items: 'Social · analytics · meters · more cities' },
+];
+
+function LevelsRoadmapPanel({ accent }) {
+  return (
+    <Panel heading="Contributors & Roadmap" accent={accent}>
+      <SubHeading>Earn your way up</SubHeading>
+      <div className="flex items-center gap-2">
+        <span className="mc-chip mc-chip--accent" style={{ '--chip': accent }}>Rookie</span>
+        <span className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${accent}, ${P.jade})` }} />
+        <span className="font-mono text-micro text-ink-subtle">10 pts / report + bonuses</span>
+        <span className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${P.jade}, ${P.accentHi})` }} />
+        <span className="mc-chip mc-chip--accent" style={{ '--chip': P.accentHi }}>Legend</span>
+      </div>
+      <div className="my-4 border-t border-line" />
+      <SubHeading>Roadmap</SubHeading>
+      <div className="flex flex-col gap-2.5">
+        {ROADMAP.map((r) => (
+          <div key={r.phase} className="flex items-start gap-3">
+            <span
+              className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-[10px] font-bold"
+              style={
+                r.state === 'done'
+                  ? { background: P.jade, color: P.void }
+                  : r.state === 'next'
+                    ? { border: `1px solid ${accent}`, color: accent }
+                    : { border: `1px solid ${P.lineHi}`, color: P.inkSubtle }
+              }
+            >
+              {r.state === 'done' ? '✓' : ''}
+            </span>
+            <div className="min-w-0">
+              <div className="font-mono text-micro font-semibold text-ink">
+                {r.phase} <span className="text-ink-subtle">· {r.state === 'done' ? 'built' : r.state === 'next' ? 'next' : 'future'}</span>
+              </div>
+              <div className="text-label text-ink-muted">{r.items}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
 function ApprovalChainPanel({ project, accent }) {
   if (project.id === 'learnflow-ai') return <PipelineFlowPanel accent={accent} />;
   if (project.id === 'aircast') return <FusionPanel accent={accent} />;
+  if (project.id === 'college-matcher') return <MatchEnginePanel accent={accent} />;
+  if (project.id === 'jam-duel') return <BattlePanel accent={accent} />;
+  if (project.id === 'streetspot') return <LiveMapPanel accent={accent} />;
   const iet = project.id === 'iet';
   if (!iet) {
     return (
@@ -421,6 +662,9 @@ function SubHeading({ children }) {
 function GpsPhasePanel({ project, accent }) {
   if (project.id === 'learnflow-ai') return <PlatformReachPanel accent={accent} />;
   if (project.id === 'aircast') return <ForecastDriversPanel accent={accent} />;
+  if (project.id === 'college-matcher') return <VoiceCounselorPanel accent={accent} />;
+  if (project.id === 'jam-duel') return <RecFlowPanel accent={accent} />;
+  if (project.id === 'streetspot') return <LevelsRoadmapPanel accent={accent} />;
   if (project.id !== 'iet') {
     const items = project.secondaryStack?.length ? project.secondaryStack : project.tags || [];
     return (
@@ -488,65 +732,11 @@ function GpsPhasePanel({ project, accent }) {
   );
 }
 
-/* ── PANEL 3 — key metrics 2×2 ───────────────────────────────────────────── */
-
-function MetricsPanel({ project, accent }) {
-  const metrics = (project.metrics || []).slice(0, 4);
-  return (
-    <Panel heading="Key Metrics" accent={accent}>
-      <div className="grid grid-cols-2" style={{ gap: '8px' }}>
-        {metrics.map((m) => (
-          <div
-            key={m.label}
-            className="flex flex-col"
-            style={{ background: P.surface2, border: `1px solid ${P.line}`, borderRadius: '6px', padding: '14px 12px' }}
-          >
-            <span className="font-display text-3xl font-bold leading-none tracking-tight" style={{ color: accent }}>
-              {m.value}
-            </span>
-            <span className="mc-label mt-2 leading-snug tracking-[0.12em]">
-              {m.label}
-            </span>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  );
-}
-
-/* ── PANEL 4 — key decisions ─────────────────────────────────────────────── */
-
-function DecisionsPanel({ project, accent }) {
-  const decisions = project.keyDecisions || [];
-  return (
-    <Panel heading="Key Decisions" accent={accent}>
-      <div>
-        {decisions.map((d, i) => (
-          <div key={d.title}>
-            <div
-              className="font-mono"
-              style={{ fontSize: '12px', fontWeight: 700, color: accent, letterSpacing: '0.04em', borderLeft: `2px solid ${accent}`, paddingLeft: '8px', marginBottom: '6px' }}
-            >
-              {d.title}
-            </div>
-            <div className="text-sm leading-relaxed text-ink-muted">
-              {d.body}
-            </div>
-            {i < decisions.length - 1 && <div style={{ borderTop: `1px solid ${P.line}`, margin: '14px 0' }} />}
-          </div>
-        ))}
-      </div>
-    </Panel>
-  );
-}
-
 export default function BentoPanels({ project, accent = P.accent }) {
   return (
     <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
       <ApprovalChainPanel project={project} accent={accent} />
       <GpsPhasePanel project={project} accent={accent} />
-      <MetricsPanel project={project} accent={accent} />
-      <DecisionsPanel project={project} accent={accent} />
     </div>
   );
 }

@@ -545,6 +545,108 @@ html {
 }
 
 /* ============================================================
+   Project hero image — device frames + designed placeholders
+   ============================================================ */
+.mock-browser {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line-hi);
+  background: var(--surface);
+  box-shadow: 0 40px 120px -40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+.mock-browser__bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 38px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.mock-browser__dots {
+  display: flex;
+  gap: 6px;
+}
+.mock-browser__dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--line-hi);
+}
+.mock-browser__url {
+  flex: 1;
+  max-width: 360px;
+  margin: 0 auto;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: var(--void);
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ink-subtle);
+  text-align: center;
+}
+.mock-browser__screen {
+  aspect-ratio: 16 / 9;
+}
+.mock-phone {
+  position: relative;
+  width: 280px;
+  padding: 12px;
+  border-radius: 44px;
+  background: var(--raised);
+  border: 1px solid var(--line-hi);
+  box-shadow: 0 40px 120px -40px rgba(0, 0, 0, 0.8);
+}
+.mock-phone__notch {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  z-index: 2;
+  width: 84px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--void);
+  transform: translateX(-50%);
+}
+.mock-phone__screen {
+  aspect-ratio: 9 / 19.5;
+  border-radius: 34px;
+  overflow: hidden;
+}
+.mock-screen {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(60% 70% at 30% 20%, color-mix(in srgb, var(--mock) 22%, transparent), transparent 70%),
+    radial-gradient(50% 60% at 85% 90%, color-mix(in srgb, var(--ice) 12%, transparent), transparent 70%),
+    var(--surface-2);
+}
+.mock-screen__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(70% 70% at 50% 50%, #000, transparent);
+}
+.mock-private {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 26px;
+  border-radius: 14px;
+  border: 1px dashed var(--line-hi);
+  background: var(--surface);
+  color: var(--ink-muted);
+}
+
+/* ============================================================
    Reduced-motion guard — kill all motion
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
