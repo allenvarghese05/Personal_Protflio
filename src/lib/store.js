@@ -29,7 +29,21 @@ export const useStore = create((set) => ({
   // Which district the visitor has ENTERED — opens the Mission Control room
   // and dims/blurs the world behind it (null = out in the world).
   enteredZone: null,
-  setEnteredZone: (enteredZone) => set({ enteredZone }),
+  setEnteredZone: (enteredZone) =>
+    set((s) => ({ enteredZone, selectedProject: enteredZone ? s.selectedProject : null })),
+
+  // The project brief open inside Mission Control (null = the project wall).
+  // Set directly by walking up to a monolith, or by picking a card.
+  selectedProject: null,
+  setSelectedProject: (selectedProject) => set({ selectedProject }),
+  /** Open Mission Control straight onto one project's brief. */
+  openProject: (id) => set({ enteredZone: 'engineering', selectedProject: id }),
+
+  // The project monolith the astronaut is standing at (drives its preview
+  // tag + the E key). Set only when it changes.
+  nearProject: null,
+  setNearProject: (nearProject) =>
+    set((s) => (s.nearProject === nearProject ? s : { nearProject })),
 
   // The intro → landing → explore arc:
   //   'intro'   — galaxy hero + the two dives (ends in the Big Bang)

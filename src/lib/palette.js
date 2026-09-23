@@ -49,9 +49,10 @@ export function alpha(hex, a) {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 }
 
-/** Project `kind` → accent. Signature is the only amber-led card. */
+/** Project `kind` → accent. The amber cards are the signature build and the award. */
 export const KIND_ACCENT = {
   signature: PALETTE.accent,
+  award: PALETTE.accent,
   current: PALETTE.ice,
   project: PALETTE.sand,
   classified: PALETTE.slate,

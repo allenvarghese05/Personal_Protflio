@@ -6,6 +6,7 @@ import IntroExperience from '@/components/intro/IntroExperience';
 import IntroOverlay, { SkipIntro } from '@/components/intro/IntroOverlay';
 import WorldExperience from '@/components/scene/world/WorldExperience';
 import MissionControl from '@/components/ui/MissionControl';
+import WorldDock from '@/components/ui/WorldDock';
 import BigBangTransition, { ControlHint } from '@/components/journey/BigBangTransition';
 
 // NOTE: the intro scene is imported statically (not next/dynamic) so it
@@ -71,6 +72,7 @@ export default function Home() {
   const world = (
     <>
       <WorldExperience />
+      <WorldDock />
       <MissionControl />
     </>
   );

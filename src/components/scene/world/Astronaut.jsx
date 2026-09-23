@@ -1,22 +1,19 @@
 'use client';
 import { forwardRef, useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Outlines } from '@react-three/drei';
 import * as THREE from 'three';
-import { toonGradient } from '@/lib/toon';
 import { PALETTE } from '@/lib/palette';
 
 /**
- * Low-poly, cel-shaded astronaut — Allen's avatar on the surface. Built from
- * primitives (no model to load), toon-shaded with black inverted-hull outlines
- * for the hand-drawn look. Idle-bobs when still; swings arms/legs when `moving`.
+ * Allen's avatar on the surface. Built from primitives (no model to load) with
+ * physically based materials — a matte suit, amber panel, brushed pack and a
+ * glossy visor — so it sits in the same light as the mesas. Idle-bobs when
+ * still; swings arms/legs when `moving`.
  *
  * The outer group is forwarded so the controller can drive position/heading.
  */
-const OUTLINE = { thickness: 0.04, color: PALETTE.void };
 
 const Astronaut = forwardRef(function Astronaut({ moving = { current: false } }, ref) {
-  const grad = useMemo(toonGradient, []);
   const bob = useRef();
   const armL = useRef();
   const armR = useRef();
@@ -24,15 +21,12 @@ const Astronaut = forwardRef(function Astronaut({ moving = { current: false } },
   const legR = useRef();
   const visor = useRef();
 
-  const suit = useMemo(
-    () => ({ gradientMap: grad, color: PALETTE.ink }),
-    [grad]
-  );
+  const suit = useMemo(() => new THREE.MeshStandardMaterial({ color: '#e9e5dc', roughness: 0.62, metalness: 0.02 }), []);
   const accent = useMemo(
-    () => ({ gradientMap: grad, color: PALETTE.accent }),
-    [grad]
+    () => new THREE.MeshStandardMaterial({ color: PALETTE.accent, emissive: PALETTE.accent, emissiveIntensity: 0.25, roughness: 0.4 }),
+    []
   );
-  const pack = useMemo(() => ({ gradientMap: grad, color: PALETTE.slate }), [grad]);
+  const pack = useMemo(() => new THREE.MeshStandardMaterial({ color: PALETTE.slate, roughness: 0.45, metalness: 0.55 }), []);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -49,8 +43,7 @@ const Astronaut = forwardRef(function Astronaut({ moving = { current: false } },
     if (legL.current) legL.current.rotation.x = -swing * 0.8;
     if (legR.current) legR.current.rotation.x = swing * 0.8;
     if (visor.current) {
-      visor.current.material.emissiveIntensity =
-        0.7 + Math.sin(t * 2) * 0.15;
+      visor.current.material.emissiveIntensity = 0.3 + Math.sin(t * 2) * 0.06;
     }
   });
 
@@ -58,71 +51,64 @@ const Astronaut = forwardRef(function Astronaut({ moving = { current: false } },
     <group ref={ref}>
       <group ref={bob}>
         {/* Torso */}
-        <mesh position={[0, 0.95, 0]}>
+        <mesh castShadow position={[0, 0.95, 0]}>
           <capsuleGeometry args={[0.26, 0.5, 6, 16]} />
-          <meshToonMaterial {...suit} />
-          <Outlines {...OUTLINE} />
+          <primitive object={suit} attach="material" />
         </mesh>
         {/* Chest control panel */}
-        <mesh position={[0, 0.98, 0.24]}>
+        <mesh castShadow position={[0, 0.98, 0.24]}>
           <boxGeometry args={[0.2, 0.16, 0.06]} />
-          <meshToonMaterial {...accent} />
+          <primitive object={accent} attach="material" />
         </mesh>
 
         {/* Backpack */}
-        <mesh position={[0, 1.0, -0.26]}>
+        <mesh castShadow position={[0, 1.0, -0.26]}>
           <boxGeometry args={[0.34, 0.42, 0.2]} />
-          <meshToonMaterial {...pack} />
-          <Outlines {...OUTLINE} />
+          <primitive object={pack} attach="material" />
         </mesh>
 
         {/* Helmet */}
-        <mesh position={[0, 1.5, 0]}>
+        <mesh castShadow position={[0, 1.5, 0]}>
           <sphereGeometry args={[0.27, 24, 24]} />
-          <meshToonMaterial {...suit} />
-          <Outlines {...OUTLINE} />
+          <primitive object={suit} attach="material" />
         </mesh>
         {/* Visor */}
-        <mesh ref={visor} position={[0, 1.5, 0.16]} rotation={[0.1, 0, 0]}>
+        <mesh ref={visor} castShadow position={[0, 1.5, 0.16]} rotation={[0.1, 0, 0]}>
           <sphereGeometry args={[0.2, 20, 20, 0, Math.PI * 2, 0, Math.PI / 1.7]} />
           <meshStandardMaterial
-            color={PALETTE.surface}
+            color={PALETTE.void}
             emissive={PALETTE.ice}
-            emissiveIntensity={0.8}
-            metalness={0.3}
-            roughness={0.2}
+            emissiveIntensity={0.35}
+            metalness={0.6}
+            roughness={0.12}
           />
         </mesh>
 
         {/* Arms */}
         <group ref={armL} position={[0.32, 1.18, 0]}>
-          <mesh position={[0, -0.26, 0]}>
+          <mesh castShadow position={[0, -0.26, 0]}>
             <capsuleGeometry args={[0.09, 0.4, 4, 10]} />
-            <meshToonMaterial {...suit} />
-            <Outlines {...OUTLINE} />
+            <primitive object={suit} attach="material" />
           </mesh>
         </group>
         <group ref={armR} position={[-0.32, 1.18, 0]}>
-          <mesh position={[0, -0.26, 0]}>
+          <mesh castShadow position={[0, -0.26, 0]}>
             <capsuleGeometry args={[0.09, 0.4, 4, 10]} />
-            <meshToonMaterial {...suit} />
-            <Outlines {...OUTLINE} />
+            <primitive object={suit} attach="material" />
           </mesh>
         </group>
 
         {/* Legs */}
         <group ref={legL} position={[0.13, 0.6, 0]}>
-          <mesh position={[0, -0.3, 0]}>
+          <mesh castShadow position={[0, -0.3, 0]}>
             <capsuleGeometry args={[0.11, 0.42, 4, 10]} />
-            <meshToonMaterial {...suit} />
-            <Outlines {...OUTLINE} />
+            <primitive object={suit} attach="material" />
           </mesh>
         </group>
         <group ref={legR} position={[-0.13, 0.6, 0]}>
-          <mesh position={[0, -0.3, 0]}>
+          <mesh castShadow position={[0, -0.3, 0]}>
             <capsuleGeometry args={[0.11, 0.42, 4, 10]} />
-            <meshToonMaterial {...suit} />
-            <Outlines {...OUTLINE} />
+            <primitive object={suit} attach="material" />
           </mesh>
         </group>
       </group>

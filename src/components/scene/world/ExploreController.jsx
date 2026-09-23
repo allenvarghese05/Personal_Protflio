@@ -2,16 +2,13 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import gsap from 'gsap';
 import { worldState } from '@/lib/worldState';
 import { useStore } from '@/lib/store';
-import { zones } from '@/data/world';
-import { CAMERA_PIVOT_S } from '@/lib/motion';
+import { MONOLITHS, MONOLITH_NEAR_R, mesaById } from '@/data/world';
+import { resolveStep, isWalkable, walkTo, edgeDistance, mesaAt, causewayAt, WALK_SPEED } from '@/lib/worldNav';
 
-const SPEED = 7; // units / second
 const CAM_DIST = 9;
 const CAM_HEIGHT = 5.2;
-const WORLD_R = 70;
 // Mouse-look sensitivity — slow + cinematic (≈60% slower than the old 0.004).
 const LOOK_SENS = 0.0016;
 const DAMP = 0.05; // rotation damping factor (cinematic)
@@ -22,29 +19,6 @@ const lerpAngle = (a, b, t) => {
   return a + d * t;
 };
 
-/** Clamp a step so it can't cross into any district's trigger sphere. */
-function resolveStep(px, pz, nx, nz) {
-  let blocked = false;
-  for (const z of zones) {
-    const r = z.stopRadius || z.enterRadius;
-    let ex = nx - z.position[0];
-    let ez = nz - z.position[2];
-    let ed = Math.hypot(ex, ez);
-    if (ed < r) {
-      // walking into the sphere — clamp to its edge along the approach
-      if (ed < 0.0001) {
-        ex = px - z.position[0];
-        ez = pz - z.position[2];
-        ed = Math.hypot(ex, ez) || 1;
-      }
-      nx = z.position[0] + (ex / ed) * r;
-      nz = z.position[2] + (ez / ed) * r;
-      blocked = true;
-    }
-  }
-  return { x: nx, z: nz, blocked };
-}
-
 // keyboard movement — WASD and the arrow keys are equivalent
 const KEYMAP = {
   w: 'f', arrowup: 'f',
@@ -54,19 +28,21 @@ const KEYMAP = {
 };
 
 /**
- * Click-to-move astronaut controller with a third-person follow camera.
- *  - Tap/click the ground → walk there (raycast the y=0 plane).
- *  - Drag → orbit the camera around the astronaut.
- *  - Walk within a district's radius → store.nearZone updates (drives the
- *    "ENTER" prompt). Movement state is shared via worldState (no re-renders).
+ * Astronaut controller + third-person follow camera, on the mesas.
+ *  - Click the ground → walk there, routed across causeways (lib/worldNav).
+ *  - Click a monolith → it opens its project (the monolith handles that).
+ *  - WASD / arrows → camera-relative walking; never off an edge.
+ *  - Drag → orbit the camera. Walk up to a monolith → its preview + E opens.
+ *  - Idle near a rim → the camera leans out over the cloud sea.
+ * Movement state lives in worldState (no re-renders).
  */
 export default function ExploreController({ astronautRef, moving }) {
   const { camera, gl } = useThree();
   const setNearZone = useStore((s) => s.setNearZone);
+  const setNearProject = useStore((s) => s.setNearProject);
 
-  const insideZone = useRef(null); // id of the trigger sphere we're inside
-  const insidePos = useRef(null); // [x,z] of that zone (for camera framing)
-  const pivoting = useRef(false); // true while the GSAP camera pivot runs
+  const focus = useRef(null); // [x,z] of the monolith we're standing at
+  const stall = useRef(0); // frames without progress while following a path
   const lookAt = useRef(new THREE.Vector3());
   const lookInit = useRef(false);
   const ray = useRef(new THREE.Raycaster());
@@ -103,22 +79,24 @@ export default function ExploreController({ astronautRef, moving }) {
           -((e.clientY - r.top) / r.height) * 2 + 1
         );
         ray.current.setFromCamera(ndc.current, camera);
-        if (ray.current.ray.intersectPlane(plane.current, hit.current)) {
-          const d = Math.hypot(hit.current.x, hit.current.z);
-          const k = d > WORLD_R ? WORLD_R / d : 1;
-          worldState.target.set(hit.current.x * k, 0, hit.current.z * k);
-          worldState.hasTarget = true;
+        // a monolith under the pointer consumes the click (it opens itself)
+        const onStone = worldState.interactives.length
+          ? ray.current.intersectObjects(worldState.interactives, false).length > 0
+          : false;
+        if (!onStone && ray.current.ray.intersectPlane(plane.current, hit.current)) {
+          // only walkable ground — clicks out over the clouds do nothing
+          if (isWalkable(hit.current.x, hit.current.z)) walkTo(hit.current.x, hit.current.z, WALK_SPEED);
         }
       }
       down = null;
     };
 
-    // Press E to enter the district you're standing in
+    // Press E to open the project monolith you're standing at
     const onKey = (e) => {
       if (e.key !== 'e' && e.key !== 'E') return;
       const s = useStore.getState();
-      if (s.journeyPhase !== 'world') return;
-      if (s.nearZone && !s.enteredZone) s.setEnteredZone(s.nearZone);
+      if (s.journeyPhase !== 'world' || s.enteredZone) return;
+      if (s.nearProject) s.openProject(s.nearProject);
     };
 
     // Hold WASD / arrows to walk (camera-relative). Arrows are captured so
@@ -147,14 +125,10 @@ export default function ExploreController({ astronautRef, moving }) {
     window.addEventListener('keyup', onKeyUp);
     window.addEventListener('blur', onBlur);
     // Test hooks — deterministic positioning for screenshots
-    window.__walkTo = (x, z) => {
-      worldState.target.set(x, 0, z);
-      worldState.hasTarget = true;
-    };
+    window.__walkTo = (x, z) => walkTo(x, z);
     window.__warp = (x, z) => {
       worldState.pos.set(x, 0, z);
-      worldState.target.set(x, 0, z);
-      worldState.hasTarget = false;
+      worldState.path = [];
     };
     window.__pos = () => [worldState.pos.x, worldState.pos.z];
     return () => {
@@ -172,14 +146,15 @@ export default function ExploreController({ astronautRef, moving }) {
     const p = worldState.pos;
     const dt = Math.min(delta, 0.05);
 
-    // Keyboard movement (WASD / arrows) — camera-relative, overrides any
-    // click target the moment a key is held.
+    // Keyboard movement (WASD / arrows) — camera-relative, cancels any
+    // routed walk the moment a key is held. resolveStep keeps us on the stone.
     const kk = keys.current;
     const ix = (kk.r ? 1 : 0) - (kk.l ? 1 : 0);
     const iy = (kk.f ? 1 : 0) - (kk.b ? 1 : 0);
     const grounded = worldState.altitude < 0.01;
-    if ((ix || iy) && grounded && !useStore.getState().enteredZone) {
-      worldState.hasTarget = false;
+    const inRoom = !!useStore.getState().enteredZone;
+    if ((ix || iy) && grounded && !inRoom) {
+      worldState.path = [];
       const az = worldState.azimuth;
       // forward = away from the camera; right = screen right
       let mx = -Math.sin(az) * iy + Math.cos(az) * ix;
@@ -187,80 +162,57 @@ export default function ExploreController({ astronautRef, moving }) {
       const ml = Math.hypot(mx, mz) || 1;
       mx /= ml;
       mz /= ml;
-      let nx = p.x + mx * SPEED * dt;
-      let nz = p.z + mz * SPEED * dt;
-      const dw = Math.hypot(nx, nz);
-      if (dw > WORLD_R) {
-        nx *= WORLD_R / dw;
-        nz *= WORLD_R / dw;
-      }
-      const res = resolveStep(p.x, p.z, nx, nz);
+      const res = resolveStep(p.x, p.z, p.x + mx * WALK_SPEED * dt, p.z + mz * WALK_SPEED * dt);
       worldState.moving = Math.hypot(res.x - p.x, res.z - p.z) > 0.001;
       p.x = res.x;
       p.z = res.z;
       worldState.heading = Math.atan2(mx, mz);
-    } else if (worldState.hasTarget) {
-      // Click-to-move: walk toward the target, halting at the edge of any
-      // trigger sphere so the astronaut never walks through the buildings.
-      const dx = worldState.target.x - p.x;
-      const dz = worldState.target.z - p.z;
+    } else if (worldState.path.length && grounded && !inRoom) {
+      // Routed walk: head for the next waypoint; drop it on arrival.
+      const [tx, tz] = worldState.path[0];
+      const dx = tx - p.x;
+      const dz = tz - p.z;
       const dist = Math.hypot(dx, dz);
-      if (dist > 0.18) {
-        const step = Math.min(dist, SPEED * dt);
+      if (dist < 0.2) {
+        worldState.path.shift();
+        stall.current = 0;
+      } else {
+        const step = Math.min(dist, worldState.pathSpeed * dt);
         const res = resolveStep(p.x, p.z, p.x + (dx / dist) * step, p.z + (dz / dist) * step);
+        const moved = Math.hypot(res.x - p.x, res.z - p.z);
         p.x = res.x;
         p.z = res.z;
         worldState.heading = Math.atan2(dx, dz);
-        worldState.moving = !res.blocked;
-        if (res.blocked) worldState.hasTarget = false;
-      } else {
-        worldState.moving = false;
-        worldState.hasTarget = false;
+        worldState.moving = moved > 0.001;
+        // give up if something (a stone, an edge) keeps us from progressing
+        stall.current = moved < step * 0.2 ? stall.current + 1 : 0;
+        if (stall.current > 20) {
+          worldState.path = [];
+          stall.current = 0;
+        }
       }
+      if (!worldState.path.length) worldState.moving = false;
     } else {
       worldState.moving = false;
     }
     if (moving) moving.current = worldState.moving;
 
-    // Trigger sphere: detect the moment we cross inside a district's radius.
-    let nearZ = null;
-    let nearD = Infinity;
-    for (const z of zones) {
-      const d = Math.hypot(p.x - z.position[0], p.z - z.position[2]);
-      if (d < z.enterRadius && d < nearD) {
+    // The monolith we're standing at (drives its preview tag + the E key)
+    let nearId = null;
+    let nearD = MONOLITH_NEAR_R;
+    for (const m of MONOLITHS) {
+      const d = Math.hypot(p.x - m.position[0], p.z - m.position[1]);
+      if (d < nearD) {
         nearD = d;
-        nearZ = z;
+        nearId = m.id;
+        focus.current = m.position;
       }
     }
-    const insideId = nearZ ? nearZ.id : null;
-    insidePos.current = nearZ ? nearZ.position : null;
-    if (insideId !== insideZone.current) {
-      insideZone.current = insideId;
-      // Entering a sphere → GSAP-pivot the camera to frame the buildings (0.8s).
-      if (nearZ && !useStore.getState().enteredZone) {
-        const dirX = nearZ.position[0] - p.x;
-        const dirZ = nearZ.position[2] - p.z;
-        const face = Math.atan2(-dirX, -dirZ); // camera ends up opposite buildings
-        let dd = ((face - worldState.azimuth + Math.PI) % (Math.PI * 2)) - Math.PI;
-        if (dd < -Math.PI) dd += Math.PI * 2;
-        const targetA = worldState.azimuth + dd;
-        const proxy = { a: worldState.azimuth };
-        pivoting.current = true;
-        gsap.to(proxy, {
-          a: targetA,
-          duration: CAMERA_PIVOT_S,
-          ease: 'power2.inOut',
-          overwrite: true,
-          onUpdate() {
-            worldState.azimuth = proxy.a;
-            worldState.azimuthTarget = proxy.a;
-          },
-          onComplete() {
-            pivoting.current = false;
-          },
-        });
-      }
-    }
+    if (!nearId) focus.current = null;
+    setNearProject(nearId);
+    // where we are — the dock highlights it
+    const here = mesaAt(p.x, p.z) || (causewayAt(p.x, p.z) ? 'causeway' : null);
+    if (here) setNearZone(here);
 
     // __fastcam snaps the rig for deterministic screenshots (SwiftShader is slow
     // enough that the slow lerps never converge in the capture window).
@@ -268,10 +220,8 @@ export default function ExploreController({ astronautRef, moving }) {
     const camK = fast ? 0.6 : 0.08;
     const azK = fast ? 0.6 : DAMP;
 
-    // Damp the camera orbit toward its drag target (skipped while GSAP owns the
-    // azimuth during a pivot). Wrap-safe.
-    if (!pivoting.current)
-      worldState.azimuth = lerpAngle(worldState.azimuth, worldState.azimuthTarget, azK);
+    // Damp the camera orbit toward its drag target. Wrap-safe.
+    worldState.azimuth = lerpAngle(worldState.azimuth, worldState.azimuthTarget, azK);
 
     // Apply to astronaut (smooth heading). `altitude` is the Act 3 drop —
     // zero in normal play, tweened 50 → 0 by LandingDirector.
@@ -293,16 +243,29 @@ export default function ExploreController({ astronautRef, moving }) {
     camera.position.y += (camY - camera.position.y) * (dropping ? 0.2 : camK);
     camera.position.z += (desiredZ - camera.position.z) * camK;
 
-    // Look target: the astronaut normally; biased toward the district (and up
-    // toward the prompt) once inside the trigger so the cluster is framed.
-    // During the Act 3 drop the camera tilts up to follow the fall.
+    // Look target: the astronaut normally; biased toward the monolith (and up
+    // its face) when standing at one. During the drop the camera tilts up to
+    // follow the fall.
     let lx = p.x;
     let ly = p.y + 1.3 + worldState.altitude * 0.7;
     let lz = p.z;
-    if (insidePos.current) {
-      lx = THREE.MathUtils.lerp(p.x, insidePos.current[0], 0.45);
-      ly = THREE.MathUtils.lerp(p.y + 1.3, 3.2, 0.55);
-      lz = THREE.MathUtils.lerp(p.z, insidePos.current[2], 0.45);
+    if (focus.current) {
+      lx = THREE.MathUtils.lerp(p.x, focus.current[0], 0.5);
+      ly = 2.6;
+      lz = THREE.MathUtils.lerp(p.z, focus.current[1], 0.5);
+    } else if (!worldState.moving && !dropping) {
+      // Idle at a rim: lean the view out over the cloud sea
+      const edge = edgeDistance(p.x, p.z);
+      if (edge < 1.6) {
+        const m = mesaById(mesaAt(p.x, p.z));
+        const ox = p.x - m.center[0];
+        const oz = p.z - m.center[1];
+        const ol = Math.hypot(ox, oz) || 1;
+        const k = 1 - edge / 1.6;
+        lx += (ox / ol) * 5 * k;
+        lz += (oz / ol) * 5 * k;
+        ly -= 1.6 * k;
+      }
     }
     if (!lookInit.current) {
       lookAt.current.set(lx, ly, lz);
@@ -321,13 +284,6 @@ export default function ExploreController({ astronautRef, moving }) {
       worldState.shake *= 0.86;
     }
 
-    // Zone proximity → drives the ENTER prompt
-    let near = null;
-    for (const z of zones) {
-      const d = Math.hypot(p.x - z.position[0], p.z - z.position[2]);
-      if (d < z.enterRadius) near = z.id;
-    }
-    setNearZone(near);
   });
 
   return null;

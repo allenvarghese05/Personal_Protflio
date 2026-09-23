@@ -276,8 +276,106 @@ function PlatformReachPanel({ accent }) {
   );
 }
 
+/* ── AirCast Panel 1 — space-to-street data fusion ─────────────────────── */
+
+const AIRCAST_SOURCES = [
+  { name: 'NASA TEMPO', sub: 'satellite · 35,786 km', color: P.ice },
+  { name: 'OPENAQ', sub: 'ground sensors · 25 km', color: P.sand },
+  { name: 'OPENWEATHER', sub: 'live meteorology', color: P.jade },
+];
+const AIRCAST_OUTPUTS = ['6-HR FORECAST', 'AI BRIEF · A–F', '5 SAFETY PROFILES'];
+
+function FusionPanel({ accent }) {
+  const rowY = (i) => 30 + i * 62;
+  const CXc = 214;
+  const CYc = 92;
+  return (
+    <Panel heading="Space → Street Fusion" accent={accent}>
+      <svg viewBox="0 0 420 236" width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
+        {AIRCAST_SOURCES.map((src, i) => {
+          const y = rowY(i);
+          return (
+            <g key={src.name}>
+              <line className="pipe-dash" x1="130" y1={y + 14} x2={CXc - 30} y2={CYc} stroke={src.color} strokeOpacity="0.45" strokeWidth="0.75" style={{ animationDelay: `${i * 0.4}s` }} />
+              <rect x="4" y={y} width="126" height="30" rx="4" fill={P.surface2} />
+              <rect x="4" y={y} width="2" height="30" fill={src.color} />
+              <text x="14" y={y + 12} dominantBaseline="middle" fontSize="9.5" fontWeight="600" fill={src.color} fontFamily="monospace">{src.name}</text>
+              <text x="14" y={y + 23} dominantBaseline="middle" fontSize="8.5" fill={P.inkSubtle} fontFamily="monospace">{src.sub}</text>
+            </g>
+          );
+        })}
+
+        <circle cx={CXc} cy={CYc} r="30" fill={P.raised} stroke={accent} strokeWidth="1.5" style={{ filter: `drop-shadow(0 0 5px ${accent})` }} />
+        <text x={CXc} y={CYc} textAnchor="middle" dominantBaseline="middle" fontSize="9" fontWeight="700" fill={accent} fontFamily="monospace">FUSION</text>
+
+        {AIRCAST_OUTPUTS.map((o, i) => {
+          const y = 42 + i * 34;
+          return (
+            <g key={o}>
+              <line x1={CXc + 30} y1={CYc} x2="286" y2={y + 11} stroke={accent} strokeOpacity="0.5" strokeWidth="0.75" />
+              <rect x="286" y={y} width="130" height="22" rx="11" fill={P.surface2} stroke={alpha(accent, 0.5)} strokeWidth="0.75" />
+              <text x="351" y={y + 11} textAnchor="middle" dominantBaseline="middle" fontSize="8.5" fontWeight="600" fill={P.inkMuted} fontFamily="monospace">{o}</text>
+            </g>
+          );
+        })}
+
+        <text x="210" y="222" textAnchor="middle" fontSize="9" fill={P.inkSubtle} fontFamily="monospace">
+          accuracy = 100 − |tempo − ground| ÷ max × 100
+        </text>
+      </svg>
+    </Panel>
+  );
+}
+
+/* ── AirCast Panel 2 — the explainable forecast's drivers ─────────────────── */
+
+const FORECAST_DRIVERS = [
+  { driver: 'Wind', when: '> 15 mph', k: 0.75 },
+  { driver: 'Rain', when: 'any', k: 0.65 },
+  { driver: 'Overnight', when: '22–5 h', k: 0.95 },
+  { driver: 'Humidity', when: '> 80%', k: 1.05 },
+  { driver: 'Rush hour', when: '7–9 · 16–19 h', k: 1.15 },
+  { driver: 'Heat', when: '> 85°F', k: 1.2 },
+];
+
+function ForecastDriversPanel({ accent }) {
+  return (
+    <Panel heading="Forecast Drivers" accent={accent}>
+      <SubHeading>AQI multiplier per hour</SubHeading>
+      <div className="flex flex-col gap-2">
+        {FORECAST_DRIVERS.map((d) => {
+          const better = d.k < 1;
+          const color = better ? P.jade : accent;
+          // bar grows from the 1.0 midline: left = cleaner air, right = worse
+          const w = Math.min(50, Math.abs(1 - d.k) * 140);
+          return (
+            <div key={d.driver} className="grid items-center gap-3" style={{ gridTemplateColumns: '5.5rem 1fr 3rem' }}>
+              <div>
+                <div className="font-mono text-micro font-semibold text-ink">{d.driver}</div>
+                <div className="font-mono text-micro text-ink-subtle">{d.when}</div>
+              </div>
+              <div className="relative h-1.5 rounded-full" style={{ background: P.surface2 }}>
+                <span className="absolute top-[-3px] h-3 w-px" style={{ left: '50%', background: P.lineHi }} />
+                <span
+                  className="absolute top-0 h-1.5 rounded-full"
+                  style={{ background: color, width: `${w}%`, left: better ? `${50 - w}%` : '50%' }}
+                />
+              </div>
+              <div className="text-right font-mono text-micro font-semibold" style={{ color }}>
+                ×{d.k.toFixed(2)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-4 font-mono text-micro text-ink-subtle">±5 pts variation · 0.9 carry-over per hour · every hour returns its reason</div>
+    </Panel>
+  );
+}
+
 function ApprovalChainPanel({ project, accent }) {
   if (project.id === 'learnflow-ai') return <PipelineFlowPanel accent={accent} />;
+  if (project.id === 'aircast') return <FusionPanel accent={accent} />;
   const iet = project.id === 'iet';
   if (!iet) {
     return (
@@ -291,7 +389,7 @@ function ApprovalChainPanel({ project, accent }) {
             </div>
           ))}
         </div>
-        <EndPill text="SHIPPED" color={P.jade} />
+        <EndPill text={project.flowEnd || 'SHIPPED'} color={P.jade} />
       </Panel>
     );
   }
@@ -322,6 +420,7 @@ function SubHeading({ children }) {
 
 function GpsPhasePanel({ project, accent }) {
   if (project.id === 'learnflow-ai') return <PlatformReachPanel accent={accent} />;
+  if (project.id === 'aircast') return <ForecastDriversPanel accent={accent} />;
   if (project.id !== 'iet') {
     const items = project.secondaryStack?.length ? project.secondaryStack : project.tags || [];
     return (

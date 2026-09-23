@@ -1,7 +1,9 @@
 'use client';
 import { Suspense, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
+import { BlendFunction } from 'postprocessing';
+import * as THREE from 'three';
 import AllenWorld, { SKY } from './AllenWorld';
 import Astronaut from './Astronaut';
 import ExploreController from './ExploreController';
@@ -9,9 +11,9 @@ import LandingDirector from './LandingDirector';
 import { useStore } from '@/lib/store';
 
 /**
- * Allen's World (Act 4) — the walkable surface. Click the ground to move,
- * drag to orbit the camera; walking into a district triggers the ENTER prompt.
- * Reachable on its own at /?world=1 while the Big Bang landing is wired up.
+ * Allen's World — the walkable surface: mesas above a cloud sea at dusk.
+ * Click the stone to walk (routed across causeways), drag to look, walk up to
+ * a project monolith to open it. Reachable directly at /?world=1.
  */
 export default function WorldExperience() {
   const astronautRef = useRef();
@@ -27,14 +29,14 @@ export default function WorldExperience() {
       }}
     >
       <Canvas
-        shadows
+        shadows={{ type: THREE.PCFSoftShadowMap }}
         dpr={[1, 2]}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
-        camera={{ position: [0, 5.2, 15], fov: 50, near: 0.1, far: 300 }}
+        camera={{ position: [0, 5.2, 15], fov: 50, near: 0.1, far: 1200 }}
         onCreated={({ gl }) => gl.setClearColor(SKY.top, 1)}
       >
         {/* fog = the horizon colour, so the ground dissolves into the dusk */}
-        <fogExp2 attach="fog" args={[SKY.horizon, 0.012]} />
+        <fogExp2 attach="fog" args={[SKY.horizon, 0.0085]} />
         <Suspense fallback={null}>
           <AllenWorld />
           <Astronaut ref={astronautRef} moving={moving} />
@@ -42,8 +44,10 @@ export default function WorldExperience() {
         <ExploreController astronautRef={astronautRef} moving={moving} />
         {landing && <LandingDirector />}
         <EffectComposer multisampling={4}>
-          <Bloom intensity={0.6} luminanceThreshold={0.6} luminanceSmoothing={0.3} mipmapBlur />
-          <Vignette offset={0.3} darkness={0.55} />
+          <Bloom intensity={0.55} luminanceThreshold={0.7} luminanceSmoothing={0.3} mipmapBlur />
+          <Vignette eskil={false} offset={0.3} darkness={0.62} />
+          {/* same film grain as the intro — one continuous piece of footage */}
+          <Noise opacity={0.03} blendFunction={BlendFunction.OVERLAY} />
         </EffectComposer>
       </Canvas>
     </div>

@@ -12,7 +12,7 @@
 export const identity = {
   name: 'Allen Shaji Varghese',
   kicker: 'SOFTWARE ENGINEERING · DREXEL · CLASS OF 2027',
-  badge: 'NASA Space Apps — Global Nominee · Top 9% of 11,350+',
+  badge: 'NASA Space Apps 2025 — Global Nominee · top 1,219 of 11,500+ teams',
   tagline:
     'Building products that solve real problems through AI and technology.',
   links: {

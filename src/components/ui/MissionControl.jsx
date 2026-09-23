@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/lib/store';
 import { zoneById } from '@/data/world';
@@ -10,8 +10,8 @@ import BentoPanels from './BentoPanels';
 import DeploymentStatusStrip from './DeploymentStatusStrip';
 
 const accentFor = (kind) => ACCENTS[kind] || ACCENTS.project;
-const badgeWord = (kind) =>
-  ({ signature: 'SIGNATURE', current: 'CURRENT', project: 'PROJECT', classified: 'CLASSIFIED' }[kind] || 'PROJECT');
+const badgeWord = (p) =>
+  p.cardBadge || { signature: 'SIGNATURE', current: 'CURRENT', award: 'AWARD', project: 'PROJECT' }[p.kind] || 'PROJECT';
 const railGradient = (accent) => `linear-gradient(90deg, ${accent} 0%, transparent 70%)`;
 
 /* ───────────────────────────── TOP NAV BAR ────────────────────────────── */
@@ -68,26 +68,20 @@ function Badge({ accent, children, className = '' }) {
 
 function ProjectCard({ project, onSelect }) {
   const accent = accentFor(project.kind);
-  const locked = project.locked;
   return (
     <motion.button
       variants={cardVariant}
-      onClick={() => !locked && onSelect(project.id)}
-      aria-disabled={locked || undefined}
-      aria-label={locked ? 'Classified project — locked' : `Open brief: ${project.label}`}
-      className={`mc-card group relative flex flex-col p-6 text-left ${locked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+      onClick={() => onSelect(project.id)}
+      aria-label={`Open brief: ${project.label}`}
+      className="mc-card group relative flex cursor-pointer flex-col p-6 text-left"
       style={{ '--card-accent': accent }}
     >
       {/* accent rail */}
       <span className="pointer-events-none absolute inset-x-0 top-0 h-[3px]" style={{ background: railGradient(accent) }} />
 
-      <Badge accent={accent}>{badgeWord(project.kind)}</Badge>
+      <Badge accent={accent}>{badgeWord(project)}</Badge>
 
-      <div
-        className={`font-display mt-4 text-xl font-semibold leading-snug text-ink ${locked ? 'select-none blur-[5px]' : ''}`}
-      >
-        {project.label}
-      </div>
+      <div className="font-display mt-4 text-xl font-semibold leading-snug text-ink">{project.label}</div>
 
       <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-muted">{project.subtitle}</p>
 
@@ -99,12 +93,8 @@ function ProjectCard({ project, onSelect }) {
         ))}
       </div>
 
-      <span
-        className={`mt-auto pt-6 font-mono text-micro uppercase tracking-[0.14em] transition-colors duration-200 ${
-          locked ? 'text-ink-subtle' : 'text-ink-subtle group-hover:text-[var(--card-accent)]'
-        }`}
-      >
-        {locked ? 'Locked ◍' : 'Open brief →'}
+      <span className="mt-auto pt-6 font-mono text-micro uppercase tracking-[0.14em] text-ink-subtle transition-colors duration-200 group-hover:text-[var(--card-accent)]">
+        Open brief →
       </span>
     </motion.button>
   );
@@ -124,7 +114,7 @@ function Wall({ projects, onSelect }) {
           <div className="mc-label">Engineering District</div>
           <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Selected work</h1>
         </div>
-        <div className="mc-label hidden sm:block">{String(projects.length).padStart(2, '0')} files</div>
+        <div className="mc-label hidden sm:block">{String(projects.length).padStart(2, '0')} projects</div>
       </div>
 
       <motion.div
@@ -229,7 +219,7 @@ function Brief({ project }) {
         <h2 className="font-display mx-auto max-w-4xl text-4xl font-bold leading-[1.08] tracking-tight text-ink sm:text-5xl">
           {project.label}
         </h2>
-        <div className="mx-auto mb-10 mt-4 flex max-w-3xl flex-wrap justify-center gap-x-2 font-mono text-label text-ink-muted">
+        <div className="mx-auto mt-4 flex max-w-3xl flex-wrap justify-center gap-x-2 font-mono text-label text-ink-muted">
           {meta.map((seg, i) => (
             <span key={seg}>
               {seg}
@@ -237,6 +227,17 @@ function Brief({ project }) {
             </span>
           ))}
         </div>
+        {project.repo && (
+          <a
+            href={project.repo}
+            target="_blank"
+            rel="noreferrer"
+            className="hero-link mt-4 inline-block font-mono text-micro uppercase tracking-[0.16em] text-ink-muted"
+          >
+            View source on GitHub ↗
+          </a>
+        )}
+        <div className="mb-10" />
         <MetricStrip metrics={project.metrics} accent={accent} />
       </header>
 
@@ -290,16 +291,13 @@ function Brief({ project }) {
 export default function MissionControl() {
   const enteredZone = useStore((s) => s.enteredZone);
   const setEnteredZone = useStore((s) => s.setEnteredZone);
-  const [selected, setSelected] = useState(null);
+  const selected = useStore((s) => s.selectedProject);
+  const setSelected = useStore((s) => s.setSelectedProject);
 
   const open = !!enteredZone;
   const zone = enteredZone ? zoneById(enteredZone) : null;
   const projects = ENGINEERING_PROJECTS;
   const project = selected ? projectById(selected) : null;
-
-  useEffect(() => {
-    if (!open) setSelected(null);
-  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -310,7 +308,7 @@ export default function MissionControl() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, selected, setEnteredZone]);
+  }, [open, selected, setSelected, setEnteredZone]);
 
   const onBack = () => (selected ? setSelected(null) : setEnteredZone(null));
 

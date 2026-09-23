@@ -283,7 +283,7 @@ export function ControlHint() {
   return (
     <div
       ref={ref}
-      className="skip-btn pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap"
+      className="skip-btn pointer-events-none fixed bottom-6 left-6 z-30 hidden whitespace-nowrap md:inline-flex"
       style={{ opacity: 0, paddingRight: '1rem' }}
     >
       Click to walk <span className="skip-btn__key">WASD</span> <span className="skip-btn__key">Drag</span> to look

@@ -22,4 +22,12 @@ export const worldState = {
   altitude: 0, // extra Y offset above the ground (Fortnite drop)
   reveal: 1, // 0→1 multiplier on the world lights
   shake: 0, // camera shake impulse, decays each frame
+
+  // Navigation across the mesas: queued waypoints ([x, z]) and the pace to
+  // walk them (click-to-walk vs the faster dock travel).
+  path: [],
+  pathSpeed: 7,
+  // Meshes that consume a click themselves (project monoliths) — the
+  // controller skips walk-to when one of these is under the pointer.
+  interactives: [],
 };
