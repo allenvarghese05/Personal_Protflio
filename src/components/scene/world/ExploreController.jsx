@@ -12,8 +12,7 @@ const DIST_MIN = 4.5;
 const DIST_MAX = 24;
 const PITCH_MIN = 0.12;
 const PITCH_MAX = 1.2;
-const TURN_SPEED = 2.4; // A/D turn rate (rad/s)
-const LOOK_AHEAD = 2.6; // aim a little ahead of the astronaut — see where you're going
+const FOLLOW_AFTER_MS = 2600; // auto-follow waits this long after a manual look
 // Mouse-look sensitivity — slow + cinematic (≈60% slower than the old 0.004).
 const LOOK_SENS = 0.0016;
 const DAMP = 0.05; // rotation damping factor (cinematic)
@@ -66,22 +65,18 @@ export default function ExploreController({ astronautRef, moving }) {
       // No control until the landing cinematic hands off
       if (useStore.getState().journeyPhase !== 'world') return;
       down = { x: e.clientX, y: e.clientY, t: performance.now(), drag: 0 };
-      worldState.dragging = true;
     };
     const onMove = (e) => {
       if (!down) return;
       down.drag += Math.abs(e.movementX) + Math.abs(e.movementY);
       // Incremental (not cumulative) so it doesn't compound; damped in useFrame
       if (down.drag > 6) {
-        // free-look: yaw is an offset from "behind the astronaut" that springs
-        // back on release; tilt stays where you leave it
-        worldState.lookOffset = THREE.MathUtils.clamp(worldState.lookOffset - e.movementX * LOOK_SENS * 1.4, -Math.PI, Math.PI);
+        worldState.azimuthTarget -= e.movementX * LOOK_SENS;
         worldState.pitchTarget = THREE.MathUtils.clamp(worldState.pitchTarget + e.movementY * LOOK_SENS * 0.8, PITCH_MIN, PITCH_MAX);
         worldState.lastLook = performance.now();
       }
     };
     const onUp = (e) => {
-      worldState.dragging = false;
       if (!down) return;
       // Ignore world clicks while inside the Mission Control room
       if (useStore.getState().enteredZone) { down = null; return; }
@@ -180,19 +175,19 @@ export default function ExploreController({ astronautRef, moving }) {
     const grounded = worldState.altitude < 0.01;
     const inRoom = !!useStore.getState().enteredZone;
     if ((ix || iy) && grounded && !inRoom) {
-      // Follow-cam controls: A/D turn, W/S walk along the facing direction
       worldState.path = [];
-      worldState.heading -= ix * TURN_SPEED * dt;
-      if (iy) {
-        const mx = Math.sin(worldState.heading) * iy;
-        const mz = Math.cos(worldState.heading) * iy;
-        const res = resolveStep(p.x, p.z, p.x + mx * WALK_SPEED * dt, p.z + mz * WALK_SPEED * dt);
-        worldState.moving = Math.hypot(res.x - p.x, res.z - p.z) > 0.001;
-        p.x = res.x;
-        p.z = res.z;
-      } else {
-        worldState.moving = false;
-      }
+      const az = worldState.azimuth;
+      // forward = away from the camera; right = screen right
+      let mx = -Math.sin(az) * iy + Math.cos(az) * ix;
+      let mz = -Math.cos(az) * iy - Math.sin(az) * ix;
+      const ml = Math.hypot(mx, mz) || 1;
+      mx /= ml;
+      mz /= ml;
+      const res = resolveStep(p.x, p.z, p.x + mx * WALK_SPEED * dt, p.z + mz * WALK_SPEED * dt);
+      worldState.moving = Math.hypot(res.x - p.x, res.z - p.z) > 0.001;
+      p.x = res.x;
+      p.z = res.z;
+      worldState.heading = Math.atan2(mx, mz);
     } else if (worldState.path.length && grounded && !inRoom) {
       // Routed walk: head for the next waypoint; drop it on arrival.
       const [tx, tz] = worldState.path[0];
@@ -257,12 +252,13 @@ export default function ExploreController({ astronautRef, moving }) {
     const camK = fast ? 0.6 : 0.08;
     const azK = fast ? 0.6 : DAMP;
 
-    // The camera always rides behind the astronaut, looking the way they
-    // face — so wherever you're headed is in view. A drag adds a free-look
-    // offset that springs back once you let go.
+    // Travelling (click-walk or the dock): ease the camera in behind the
+    // astronaut so the view turns with the journey — unless you've just
+    // looked around yourself.
     const travelling = worldState.path.length > 0 && worldState.moving;
-    if (!worldState.dragging) worldState.lookOffset *= 0.92;
-    worldState.azimuthTarget = worldState.heading + Math.PI + worldState.lookOffset;
+    if (travelling && performance.now() - worldState.lastLook > FOLLOW_AFTER_MS) {
+      worldState.azimuthTarget = lerpAngle(worldState.azimuthTarget, worldState.heading + Math.PI, 0.035);
+    }
 
     // Damp the orbit (angle, tilt, distance) toward its targets. Wrap-safe.
     worldState.azimuth = lerpAngle(worldState.azimuth, worldState.azimuthTarget, azK);
@@ -295,10 +291,9 @@ export default function ExploreController({ astronautRef, moving }) {
     // Look target: the astronaut normally; biased toward the monolith (and up
     // its face) when standing at one. During the drop the camera tilts up to
     // follow the fall.
-    // aim a little ahead of the astronaut, along their facing
-    let lx = dropping ? p.x : p.x + Math.sin(worldState.heading) * LOOK_AHEAD;
+    let lx = p.x;
     let ly = p.y + 1.3 + worldState.altitude * 0.7;
-    let lz = dropping ? p.z : p.z + Math.cos(worldState.heading) * LOOK_AHEAD;
+    let lz = p.z;
     if (focus.current) {
       lx = THREE.MathUtils.lerp(p.x, focus.current[0], 0.5);
       ly = 2.6;

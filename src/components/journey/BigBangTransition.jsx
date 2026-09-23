@@ -286,7 +286,7 @@ export function ControlHint() {
       className="skip-btn pointer-events-none fixed bottom-6 left-6 z-30 hidden whitespace-nowrap md:inline-flex"
       style={{ opacity: 0, paddingRight: '1rem' }}
     >
-      Click to walk <span className="skip-btn__key">W S</span> move <span className="skip-btn__key">A D</span> turn <span className="skip-btn__key">Drag</span> look <span className="skip-btn__key">Scroll</span> zoom
+      Click to walk <span className="skip-btn__key">WASD</span> <span className="skip-btn__key">Drag</span> to look <span className="skip-btn__key">Scroll</span> to zoom
     </div>
   );
 }
