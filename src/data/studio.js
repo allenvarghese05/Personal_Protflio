@@ -1,72 +1,68 @@
+import media from './studioMedia.json';
+
 /**
  * The Studio — photography, film and sound.
  *
- *   photos — web versions of src/pictures (processed: rotation baked in,
- *            resized to 2400px + a 900px grid thumbnail, ALL metadata
- *            stripped — including GPS). Captions show the camera. Add a
- *            `title` to any photo to caption it.
- *   films  — embeds. YouTube: https://www.youtube.com/embed/<id>.
- *            Google Drive: https://drive.google.com/file/d/<id>/preview (the
- *            file must be shared "Anyone with the link").
- *   tracks — AAC versions of src/beats (~14 MB total instead of 137 MB).
+ * studioMedia.json is GENERATED — don't hand-edit it. Re-run
+ *   python3 scripts/process_studio_media.py <pictures_dir> <beats_dir>
+ * after adding photos or beats. It holds every photo's size + full metadata
+ * (camera, lens, exposure, capture date, GPS + place) and every beat's
+ * duration + real waveform. This file layers on what only you can write:
+ * track titles and the films.
+ *
+ * Films — YouTube: https://www.youtube.com/embed/<id>
+ *         Google Drive: https://drive.google.com/file/d/<id>/preview
+ *         (Drive files must be shared "Anyone with the link").
  */
+
+// One entry per beat, in the same (filename) order as the manifest.
+// `mood` picks the cover palette: 'cold' (drill) or 'warm' (guitar).
+const TRACK_INFO = [
+  { title: 'Extravegate', genre: 'UK drill', mood: 'cold' },
+  { title: 'Rebel', genre: 'UK drill', mood: 'cold' },
+  { title: 'Revolution', genre: 'Drill', mood: 'cold' },
+  { title: 'Slither', genre: 'Guitar beat · Kid LAROI type', mood: 'warm' },
+  { title: 'Snow', genre: 'Guitar trap', mood: 'warm' },
+  { title: 'Wild Anthem', genre: 'UK drill', mood: 'cold' },
+  // TODO(allen): real title/genre for this one (the file was "trytry.mp3")
+  { title: 'Trytry', genre: 'Beat', mood: 'warm' },
+];
+
 export const STUDIO = {
   intro: 'Away from the keyboard: photographs, short films and beats.',
-  photos: [
-    { src: '/studio/photos/01.jpg', thumb: '/studio/photos/01-sm.jpg', w: 1351, h: 2400, meta: "" },
-    { src: '/studio/photos/02.jpg', thumb: '/studio/photos/02-sm.jpg', w: 1350, h: 2400, meta: "Sony \u03b16400" },
-    { src: '/studio/photos/03.jpg', thumb: '/studio/photos/03-sm.jpg', w: 1600, h: 2400, meta: "Sony \u03b16400" },
-    { src: '/studio/photos/04.jpg', thumb: '/studio/photos/04-sm.jpg', w: 1600, h: 2400, meta: "Sony \u03b16400" },
-    { src: '/studio/photos/05.jpg', thumb: '/studio/photos/05-sm.jpg', w: 1600, h: 2400, meta: "Sony \u03b16400" },
-    { src: '/studio/photos/06.jpg', thumb: '/studio/photos/06-sm.jpg', w: 2400, h: 1600, meta: "Sony \u03b16400" },
-    { src: '/studio/photos/07.jpg', thumb: '/studio/photos/07-sm.jpg', w: 1600, h: 2400, meta: "Sony \u03b16400" },
-    { src: '/studio/photos/08.jpg', thumb: '/studio/photos/08-sm.jpg', w: 1600, h: 2400, meta: "Sony \u03b16400" },
-    { src: '/studio/photos/09.jpg', thumb: '/studio/photos/09-sm.jpg', w: 1600, h: 2400, meta: "Sony \u03b16400" },
-    { src: '/studio/photos/10.jpg', thumb: '/studio/photos/10-sm.jpg', w: 1600, h: 2400, meta: "Sony \u03b16400" },
-    { src: '/studio/photos/11.jpg', thumb: '/studio/photos/11-sm.jpg', w: 1352, h: 2400, meta: "Sony HX300" },
-    { src: '/studio/photos/12.jpg', thumb: '/studio/photos/12-sm.jpg', w: 1351, h: 2400, meta: "" },
-    { src: '/studio/photos/13.jpg', thumb: '/studio/photos/13-sm.jpg', w: 2400, h: 1351, meta: "" },
-    { src: '/studio/photos/14.jpg', thumb: '/studio/photos/14-sm.jpg', w: 1118, h: 2400, meta: "" },
-    { src: '/studio/photos/15.jpg', thumb: '/studio/photos/15-sm.jpg', w: 2400, h: 1800, meta: "" },
-    { src: '/studio/photos/16.jpg', thumb: '/studio/photos/16-sm.jpg', w: 1351, h: 2400, meta: "" },
-    { src: '/studio/photos/17.jpg', thumb: '/studio/photos/17-sm.jpg', w: 1600, h: 2400, meta: "Canon EOS 800D" },
-    { src: '/studio/photos/18.jpg', thumb: '/studio/photos/18-sm.jpg', w: 1600, h: 2400, meta: "Canon EOS 800D" },
-    { src: '/studio/photos/19.jpg', thumb: '/studio/photos/19-sm.jpg', w: 2400, h: 1600, meta: "Canon EOS 800D" },
-    { src: '/studio/photos/20.jpg', thumb: '/studio/photos/20-sm.jpg', w: 1350, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/21.jpg', thumb: '/studio/photos/21-sm.jpg', w: 1800, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/22.jpg', thumb: '/studio/photos/22-sm.jpg', w: 1800, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/23.jpg', thumb: '/studio/photos/23-sm.jpg', w: 1670, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/24.jpg', thumb: '/studio/photos/24-sm.jpg', w: 1800, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/25.jpg', thumb: '/studio/photos/25-sm.jpg', w: 2400, h: 1800, meta: "iPhone 6" },
-    { src: '/studio/photos/26.jpg', thumb: '/studio/photos/26-sm.jpg', w: 2400, h: 1800, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/27.jpg', thumb: '/studio/photos/27-sm.jpg', w: 1800, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/28.jpg', thumb: '/studio/photos/28-sm.jpg', w: 1800, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/29.jpg', thumb: '/studio/photos/29-sm.jpg', w: 1800, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/30.jpg', thumb: '/studio/photos/30-sm.jpg', w: 1800, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/31.jpg', thumb: '/studio/photos/31-sm.jpg', w: 1800, h: 2400, meta: "iPhone 14" },
-    { src: '/studio/photos/32.jpg', thumb: '/studio/photos/32-sm.jpg', w: 1800, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/33.jpg', thumb: '/studio/photos/33-sm.jpg', w: 1800, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/34.jpg', thumb: '/studio/photos/34-sm.jpg', w: 1800, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/35.jpg', thumb: '/studio/photos/35-sm.jpg', w: 1800, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/36.jpg', thumb: '/studio/photos/36-sm.jpg', w: 1887, h: 2400, meta: "iPhone 16 Pro" },
-    { src: '/studio/photos/37.jpg', thumb: '/studio/photos/37-sm.jpg', w: 1800, h: 2400, meta: "iPhone 16 Pro" },
-  ],
+  artist: 'Allen Varghese',
+  photos: media.photos,
   films: [
     // TODO(allen): give each film its real title + your role on it
     { title: 'Film 01', embed: 'https://www.youtube.com/embed/RFSHbN9bihI', meta: 'YouTube · worked on' },
     { title: 'Film 02', embed: 'https://drive.google.com/file/d/1Ut1YaweNFZFMH5mKmb5dn2lmDaGH7LKk/preview', meta: 'Worked on' },
   ],
-  tracks: [
-    { src: '/studio/sound/01.m4a', title: 'Extravegate', meta: 'UK drill · 1:03' },
-    { src: '/studio/sound/02.m4a', title: 'Rebel', meta: 'UK drill · 0:42' },
-    { src: '/studio/sound/03.m4a', title: 'Revolution', meta: 'Drill · 1:23' },
-    { src: '/studio/sound/04.m4a', title: 'Slither', meta: 'Guitar beat · Kid LAROI type · 2:10' },
-    { src: '/studio/sound/05.m4a', title: 'Snow', meta: 'Guitar trap · 1:07' },
-    { src: '/studio/sound/06.m4a', title: 'Wild Anthem', meta: 'UK drill · 1:29' },
-    // TODO(allen): real title/genre for this one (the file was "trytry.mp3")
-    { src: '/studio/sound/07.m4a', title: 'Trytry', meta: 'Beat · 2:35' },
-  ],
+  tracks: media.tracks.map((t, i) => ({ ...t, ...(TRACK_INFO[i] || { title: `Track ${i + 1}`, genre: 'Beat', mood: 'warm' }) })),
 };
 
 // How many placeholder frames to show while a section is empty
 export const PLACEHOLDER_COUNT = { photos: 9, films: 2, tracks: 4 };
+
+/** "2019:01:11 12:21:14" → "11 Jan 2019" */
+export function formatShotDate(exifDate) {
+  if (!exifDate) return null;
+  const [d] = exifDate.split(' ');
+  const [y, m, day] = d.split(':').map(Number);
+  if (!y || !m || !day) return null;
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${day} ${MONTHS[m - 1]} ${y}`;
+}
+
+/** [39.95589, -75.19102] → "39.9559° N · 75.1910° W" */
+export function formatCoords(gps) {
+  if (!gps) return null;
+  const [lat, lon] = gps;
+  return `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'} · ${Math.abs(lon).toFixed(4)}° ${lon >= 0 ? 'E' : 'W'}`;
+}
+
+/** 83.89 → "1:23" */
+export const formatTime = (s) => {
+  if (!Number.isFinite(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+};

@@ -735,6 +735,168 @@ html {
 }
 
 /* ============================================================
+   Studio — photo viewer + Now Playing
+   ============================================================ */
+.studio-photo__frame {
+  overflow: hidden;
+  border-radius: 10px;
+}
+.studio-photo__cap {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: translateY(4px);
+  transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.studio-photo:hover .studio-photo__cap {
+  transform: translateY(0);
+}
+.studio-track {
+  width: 100%;
+  cursor: pointer;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+.studio-track:hover {
+  background: var(--surface-2);
+  border-color: var(--line-hi);
+}
+.studio-track.is-current {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* photo viewer */
+.pv-card {
+  position: absolute;
+  top: 0.5rem;
+  right: 1.5rem;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 260px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  background: color-mix(in srgb, var(--void) 62%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+@media (max-width: 767px) {
+  .pv-card {
+    top: auto;
+    bottom: 0.5rem;
+    right: 1rem;
+    left: 1rem;
+    width: auto;
+  }
+}
+.pv-label {
+  margin-bottom: 3px;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-subtle);
+}
+.pv-strip {
+  display: flex;
+  gap: 6px;
+  padding: 10px 24px 22px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.pv-strip__item {
+  flex-shrink: 0;
+  height: 52px;
+  border-radius: 6px;
+  overflow: hidden;
+  opacity: 0.45;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: opacity 0.3s ease, outline-color 0.3s ease, transform 0.3s ease;
+}
+.pv-strip__item img {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+.pv-strip__item:hover {
+  opacity: 0.8;
+}
+.pv-strip__item.is-current {
+  opacity: 1;
+  outline-color: var(--accent);
+}
+
+/* Now Playing controls */
+.np-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  color: var(--ink-muted);
+  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.np-btn:hover {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--ink) 35%, transparent);
+}
+.np-play {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--void);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+}
+.np-play:hover {
+  transform: scale(1.06);
+  background: #fff;
+}
+.np-btn:active,
+.np-play:active {
+  transform: scale(0.96);
+}
+.np-btn:focus-visible,
+.np-play:focus-visible,
+.studio-track:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* the little "now playing" equaliser on a track row */
+.np-eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+.np-eq i {
+  width: 3px;
+  background: var(--accent);
+  border-radius: 1px;
+  animation: np-eq 0.9s ease-in-out infinite;
+}
+.np-eq i:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.np-eq i:nth-child(3) {
+  animation-delay: -0.6s;
+}
+@keyframes np-eq {
+  0%, 100% { height: 30%; }
+  50% { height: 100%; }
+}
+
+/* ============================================================
    Reduced-motion guard — kill all motion
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
