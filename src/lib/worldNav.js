@@ -1,4 +1,4 @@
-import { MESAS, CAUSEWAYS, MONOLITHS, MONOLITH_BLOCK_R, mesaById, zoneById } from '@/data/world';
+import { MESAS, CAUSEWAYS, OBSTACLES, mesaById, zoneById } from '@/data/world';
 import { worldState } from '@/lib/worldState';
 
 /**
@@ -55,7 +55,7 @@ export const isWalkable = (x, z) => !!(mesaAt(x, z) || causewayAt(x, z));
 
 /**
  * Resolve one movement step: stay on walkable ground (sliding along an edge
- * where possible) and never walk into a monolith.
+ * where possible) and never walk into a monolith or a station landmark.
  */
 export function resolveStep(px, pz, nx, nz) {
   let x = nx;
@@ -68,18 +68,18 @@ export function resolveStep(px, pz, nx, nz) {
     else if (isWalkable(px, nz)) x = px;
     else return { x: px, z: pz, blocked: true, edge: true };
   }
-  for (const m of MONOLITHS) {
+  for (const m of OBSTACLES) {
     let ex = x - m.position[0];
     let ez = z - m.position[1];
     let d = Math.hypot(ex, ez);
-    if (d < MONOLITH_BLOCK_R) {
+    if (d < m.r) {
       // dead centre has no direction — push back the way we came
       if (d < 1e-4) {
         ex = px - m.position[0];
         ez = pz - m.position[1];
         d = Math.hypot(ex, ez) || 1;
       }
-      const k = MONOLITH_BLOCK_R / d;
+      const k = m.r / d;
       x = m.position[0] + ex * k;
       z = m.position[1] + ez * k;
       if (!isWalkable(x, z)) return { x: px, z: pz, blocked: true };

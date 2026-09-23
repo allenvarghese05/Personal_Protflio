@@ -14,10 +14,19 @@ import { ENGINEERING_PROJECTS } from '@/data/projects';
 export const MESAS = [
   { id: 'landing', center: [0, 0], r: 9, label: 'Landing Site' },
   { id: 'engineering', center: [0, -34], r: 13, label: 'Engineering' },
+  { id: 'observatory', center: [-32, -4], r: 10, label: 'Observatory' },
+  { id: 'studio', center: [32, -4], r: 10, label: 'Studio' },
+  { id: 'comms', center: [0, 30], r: 8, label: 'Comms' },
 ];
 
 // Stone causeways between mesas: [mesaA, mesaB], `w` = walkable width.
-export const CAUSEWAYS = [{ id: 'landing-engineering', a: 'landing', b: 'engineering', w: 3.2 }];
+// Every district hangs off the landing site — a hub you can always return to.
+export const CAUSEWAYS = [
+  { id: 'landing-engineering', a: 'landing', b: 'engineering', w: 3.2 },
+  { id: 'landing-observatory', a: 'landing', b: 'observatory', w: 3.2 },
+  { id: 'landing-studio', a: 'landing', b: 'studio', w: 3.2 },
+  { id: 'landing-comms', a: 'landing', b: 'comms', w: 3.2 },
+];
 
 // Districts — what the dock and labels know about. `arrive` is where the
 // click-to-travel route ends (and where the camera frames the district).
@@ -38,7 +47,42 @@ export const zones = [
     color: PALETTE.accent,
     accent: PALETTE.accentHi,
   },
+  // Stations — each has a landmark you walk up to (`landmark`, obstacle
+  // radius `block`); within `near` of it, E or a click opens its room.
+  {
+    id: 'observatory',
+    label: 'Observatory',
+    blurb: 'About · journey · skills',
+    mesa: 'observatory',
+    arrive: [-30.2, -4],
+    landmark: [-35, -4.5],
+    block: 3.2,
+    near: 5.6,
+  },
+  {
+    id: 'studio',
+    label: 'Studio',
+    blurb: 'Photography · film · sound',
+    mesa: 'studio',
+    arrive: [30.2, -4],
+    landmark: [35, -4.5],
+    block: 3.9, // the pavilion is rectangular — cover its corners
+    near: 5.6,
+  },
+  {
+    id: 'comms',
+    label: 'Comms',
+    blurb: 'Contact · resume',
+    mesa: 'comms',
+    arrive: [0, 27.2],
+    landmark: [0, 32],
+    block: 1.7,
+    near: 5.2,
+  },
 ];
+
+/** Districts with a landmark you can walk up to and enter. */
+export const STATIONS = zones.filter((z) => z.landmark);
 
 export const zoneById = (id) => zones.find((z) => z.id === id);
 export const mesaById = (id) => MESAS.find((m) => m.id === id);
@@ -69,3 +113,9 @@ export const MONOLITHS = ENGINEERING_PROJECTS.map((p, i, all) => {
 
 export const MONOLITH_BLOCK_R = 1.25; // the astronaut stops this far from a stone
 export const MONOLITH_NEAR_R = 3.0; // within this, its preview tag shows + E opens it
+
+/** Everything solid you can't walk through: stones + station landmarks. */
+export const OBSTACLES = [
+  ...MONOLITHS.map((m) => ({ position: m.position, r: MONOLITH_BLOCK_R })),
+  ...zones.filter((z) => z.landmark).map((z) => ({ position: z.landmark, r: z.block })),
+];

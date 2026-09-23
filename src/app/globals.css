@@ -647,6 +647,94 @@ html {
 }
 
 /* ============================================================
+   Studio — photo wall, placeholders, sound player
+   ============================================================ */
+.studio-masonry {
+  columns: 3 240px;
+  column-gap: 14px;
+}
+.studio-masonry > * {
+  break-inside: avoid;
+  margin-bottom: 14px;
+}
+.studio-ph {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 12px 14px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(80% 70% at calc(20% + var(--ph-hue) * 7%) 15%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    radial-gradient(70% 60% at 90% 100%, color-mix(in srgb, var(--ice) 10%, transparent), transparent 70%),
+    var(--surface-2);
+}
+.studio-photo {
+  position: relative;
+  display: block;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+.studio-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.studio-photo:hover img {
+  transform: scale(1.03);
+}
+.studio-photo__cap {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 24px 12px 10px;
+  font-size: 12px;
+  text-align: left;
+  color: var(--ink);
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.studio-photo:hover .studio-photo__cap {
+  opacity: 1;
+}
+.studio-track {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.studio-track.is-disabled {
+  opacity: 0.7;
+}
+.studio-track__play {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--void);
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+.studio-track__play:disabled {
+  background: var(--raised);
+  color: var(--ink-subtle);
+}
+.studio-track__play:not(:disabled):hover {
+  transform: scale(1.06);
+}
+
+/* ============================================================
    Reduced-motion guard — kill all motion
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {

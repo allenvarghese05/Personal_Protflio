@@ -8,6 +8,7 @@ import { MESAS, CAUSEWAYS, mesaById } from '@/data/world';
 import { causewaySegments } from '@/lib/worldNav';
 import { PALETTE } from '@/lib/palette';
 import Monoliths from './Monoliths';
+import Landmarks from './Landmarks';
 
 /* ----------------------------------------------------------------------------
    Allen's World — stone mesas rising out of a sea of clouds at dusk, under the
@@ -159,7 +160,7 @@ function CloudBanks() {
     const arr = [];
     const warm = new THREE.Color('#b8957c');
     const cool = new THREE.Color('#3a4058');
-    for (let i = 0; i < 46; i++) {
+    for (let i = 0; i < 80; i++) {
       const m = MESAS[i % MESAS.length];
       const a = Math.random() * Math.PI * 2;
       const r = m.r + 2 + Math.random() * 14;
@@ -388,10 +389,11 @@ function DistantPillars() {
     let guard = 0;
     while (arr.length < 16 && guard++ < 300) {
       const a = Math.random() * Math.PI * 2;
-      const d = 55 + Math.random() * 150;
+      const d = 60 + Math.random() * 150;
       const x = Math.cos(a) * d;
-      const z = Math.sin(a) * d - 15;
-      if (Math.hypot(x, z + 17) < 50) continue;
+      const z = Math.sin(a) * d - 4;
+      // keep clear of every walkable mesa
+      if (MESAS.some((m) => Math.hypot(x - m.center[0], z - m.center[1]) < m.r + 22)) continue;
       arr.push({ center: [x, z], r: 2 + Math.random() * 6, top: -5 + Math.random() * 16, seed: arr.length * 3.7 + 1 });
     }
     return arr;
@@ -432,7 +434,7 @@ function WorldLighting() {
   const amb = useRef();
   const target = useMemo(() => {
     const o = new THREE.Object3D();
-    o.position.set(0, 0, -16);
+    o.position.set(0, 0, -4);
     return o;
   }, []);
   useFrame(() => {
@@ -456,13 +458,13 @@ function WorldLighting() {
         intensity={2.6}
         color={PALETTE.accentHi}
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[3072, 3072]}
         shadow-bias={-0.0004}
         shadow-normalBias={0.03}
-        shadow-camera-left={-42}
-        shadow-camera-right={42}
-        shadow-camera-top={42}
-        shadow-camera-bottom={-42}
+        shadow-camera-left={-56}
+        shadow-camera-right={56}
+        shadow-camera-top={56}
+        shadow-camera-bottom={-56}
         shadow-camera-near={1}
         shadow-camera-far={220}
       />
@@ -474,8 +476,6 @@ function WorldLighting() {
 }
 
 export default function AllenWorld() {
-  const landing = mesaById('landing');
-  const eng = mesaById('engineering');
   // keep rim boulders clear of each causeway's mouth
   const mouth = (m) =>
     CAUSEWAYS.filter((c) => c.a === m.id || c.b === m.id).map((c) => {
@@ -495,10 +495,12 @@ export default function AllenWorld() {
       {causewaySegments.map((s) => (
         <Causeway key={s.id} seg={s} />
       ))}
-      <RimBoulders mesa={landing} count={9} avoid={mouth(landing)} />
-      <RimBoulders mesa={eng} count={12} avoid={mouth(eng)} />
+      {MESAS.map((m) => (
+        <RimBoulders key={`b-${m.id}`} mesa={m} count={Math.round(m.r * 0.9)} avoid={mouth(m)} />
+      ))}
       <LandingMark />
       <Monoliths />
+      <Landmarks />
       <EngineeringSign />
     </group>
   );

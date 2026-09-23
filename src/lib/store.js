@@ -45,6 +45,12 @@ export const useStore = create((set) => ({
   setNearProject: (nearProject) =>
     set((s) => (s.nearProject === nearProject ? s : { nearProject })),
 
+  // The station landmark (observatory / studio / comms) within reach — E
+  // enters it. Set only when it changes.
+  nearStation: null,
+  setNearStation: (nearStation) =>
+    set((s) => (s.nearStation === nearStation ? s : { nearStation })),
+
   // The intro → landing → explore arc:
   //   'intro'   — galaxy hero + the two dives (ends in the Big Bang)
   //   'landing' — world visible, astronaut dropping in (control locked)

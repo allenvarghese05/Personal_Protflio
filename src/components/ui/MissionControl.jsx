@@ -12,6 +12,12 @@ import { ACCENTS, DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
 import ArchitectureGraph from './ArchitectureGraph';
 import BentoPanels from './BentoPanels';
 import DeploymentStatusStrip from './DeploymentStatusStrip';
+import ObservatoryPanel from './stations/ObservatoryPanel';
+import StudioPanel from './stations/StudioPanel';
+import CommsPanel from './stations/CommsPanel';
+
+// Station rooms share the Mission Control shell (nav, backdrop, motion).
+const STATION_ROOMS = { observatory: ObservatoryPanel, studio: StudioPanel, comms: CommsPanel };
 
 const accentFor = (kind) => ACCENTS[kind] || ACCENTS.project;
 const badgeWord = (p) =>
@@ -431,6 +437,7 @@ export default function MissionControl() {
 
   const open = !!enteredZone;
   const zone = enteredZone ? zoneById(enteredZone) : null;
+  const Room = STATION_ROOMS[enteredZone];
   const projects = ENGINEERING_PROJECTS;
   const project = selected ? projectById(selected) : null;
 
@@ -453,7 +460,7 @@ export default function MissionControl() {
         <motion.div
           role="dialog"
           aria-modal="true"
-          aria-label="Mission Control — engineering projects"
+          aria-label={`Mission Control — ${zone?.label || 'Engineering'}`}
           className="mc-root fixed inset-0 z-40 flex flex-col bg-void"
           initial={{ y: '100%' }}
           animate={{ y: 0, transition: { duration: DUR.slideIn, ease: EASE_OUT } }}
@@ -476,7 +483,9 @@ export default function MissionControl() {
           {/* Stage */}
           <div className="relative flex-1 overflow-y-auto">
             <AnimatePresence mode="wait" initial={false}>
-              {!project ? (
+              {Room ? (
+                <Room key={enteredZone} />
+              ) : !project ? (
                 <div key="wall" className="flex min-h-full items-center justify-center p-6 sm:p-12">
                   <Wall projects={projects} onSelect={setSelected} />
                 </div>

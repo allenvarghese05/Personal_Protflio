@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { worldState } from '@/lib/worldState';
 import { useStore } from '@/lib/store';
-import { MONOLITHS, MONOLITH_NEAR_R, mesaById } from '@/data/world';
+import { MONOLITHS, MONOLITH_NEAR_R, STATIONS, mesaById } from '@/data/world';
 import { resolveStep, isWalkable, walkTo, edgeDistance, mesaAt, causewayAt, WALK_SPEED } from '@/lib/worldNav';
 
 const CAM_DIST = 9;
@@ -40,6 +40,7 @@ export default function ExploreController({ astronautRef, moving }) {
   const { camera, gl } = useThree();
   const setNearZone = useStore((s) => s.setNearZone);
   const setNearProject = useStore((s) => s.setNearProject);
+  const setNearStation = useStore((s) => s.setNearStation);
 
   const focus = useRef(null); // [x,z] of the monolith we're standing at
   const stall = useRef(0); // frames without progress while following a path
@@ -91,12 +92,13 @@ export default function ExploreController({ astronautRef, moving }) {
       down = null;
     };
 
-    // Press E to open the project monolith you're standing at
+    // Press E to open the monolith or enter the station you're standing at
     const onKey = (e) => {
       if (e.key !== 'e' && e.key !== 'E') return;
       const s = useStore.getState();
       if (s.journeyPhase !== 'world' || s.enteredZone) return;
       if (s.nearProject) s.openProject(s.nearProject);
+      else if (s.nearStation) s.setEnteredZone(s.nearStation);
     };
 
     // Hold WASD / arrows to walk (camera-relative). Arrows are captured so
@@ -208,8 +210,19 @@ export default function ExploreController({ astronautRef, moving }) {
         focus.current = m.position;
       }
     }
-    if (!nearId) focus.current = null;
+    // …or the station landmark within reach
+    let stationId = null;
+    if (!nearId) {
+      focus.current = null;
+      for (const z of STATIONS) {
+        if (Math.hypot(p.x - z.landmark[0], p.z - z.landmark[1]) < z.near) {
+          stationId = z.id;
+          focus.current = z.landmark;
+        }
+      }
+    }
     setNearProject(nearId);
+    setNearStation(stationId);
     // where we are — the dock highlights it
     const here = mesaAt(p.x, p.z) || (causewayAt(p.x, p.z) ? 'causeway' : null);
     if (here) setNearZone(here);
