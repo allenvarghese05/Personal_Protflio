@@ -277,13 +277,13 @@ export default function BigBangTransition() {
 export function ControlHint() {
   const ref = useRef(null);
   useEffect(() => {
-    const tween = gsap.fromTo(ref.current, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 1, ease: 'expo.out' });
+    const tween = gsap.fromTo(ref.current, { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: 1, ease: 'expo.out' });
     return () => tween.kill();
   }, []);
   return (
     <div
       ref={ref}
-      className="skip-btn pointer-events-none fixed bottom-6 left-6 z-30 hidden whitespace-nowrap md:inline-flex"
+      className="skip-btn pointer-events-none fixed right-6 top-6 z-30 hidden whitespace-nowrap md:inline-flex"
       style={{ opacity: 0, paddingRight: '1rem' }}
     >
       Click to walk <span className="skip-btn__key">W S</span> move <span className="skip-btn__key">A D</span> turn <span className="skip-btn__key">Drag</span> look <span className="skip-btn__key">Scroll</span> zoom
