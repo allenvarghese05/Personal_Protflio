@@ -47,3 +47,6 @@ next-env.d.ts
 # copies in public/studio/ (see src/data/studio.js)
 /src/pictures/
 /src/beats/
+
+# python bytecode
+__pycache__/
