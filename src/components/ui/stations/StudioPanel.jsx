@@ -84,10 +84,11 @@ function Photos() {
     <>
       <div className="studio-masonry">
         {photos.map((p, i) => (
-          <motion.button key={p.src} variants={rise} onClick={() => setOpen(i)} className="studio-photo">
+          <motion.button key={p.src} variants={rise} onClick={() => setOpen(i)} className="studio-photo" aria-label={`Open photograph ${i + 1}`}>
+            {/* grid shows the light thumbnail; the lightbox loads the full size */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.src} alt={p.title || 'Photograph'} loading="lazy" />
-            {p.title && <span className="studio-photo__cap">{p.title}</span>}
+            <img src={p.thumb || p.src} alt={p.title || 'Photograph'} width={p.w} height={p.h} loading="lazy" decoding="async" />
+            {(p.title || p.meta) && <span className="studio-photo__cap">{p.title || p.meta}</span>}
           </motion.button>
         ))}
       </div>

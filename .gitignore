@@ -42,3 +42,8 @@ next-env.d.ts
 
 # local tooling output
 /.playwright-mcp/
+
+# original, full-resolution Studio media — the site serves the processed
+# copies in public/studio/ (see src/data/studio.js)
+/src/pictures/
+/src/beats/
