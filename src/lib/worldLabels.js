@@ -11,9 +11,19 @@ const ray = new THREE.Raycaster();
 const dir = new THREE.Vector3();
 const pt = new THREE.Vector3();
 
+const proj = new THREE.Vector3();
+
+/** Is this point in front of the camera and inside the frame? */
+function inView(camera, x, y, z) {
+  proj.set(x, y, z).project(camera);
+  return proj.z < 1 && Math.abs(proj.x) < 1.05 && Math.abs(proj.y) < 1.1;
+}
+
 export function canSee(camera, points) {
-  if (!worldState.occluders.length) return true;
   for (const [x, y, z] of points) {
+    // behind the camera or off-frame → never show (no mirrored labels)
+    if (!inView(camera, x, y, z)) continue;
+    if (!worldState.occluders.length) return true;
     pt.set(x, y, z);
     dir.subVectors(pt, camera.position);
     const dist = dir.length();
@@ -31,7 +41,10 @@ export function canSee(camera, points) {
  */
 export function labelVisibility(state, camera, { points, dist, near, far }) {
   state.frame = (state.frame || 0) + 1;
-  if (state.frame % 4 === 1 || state.seen === undefined) state.seen = canSee(camera, points);
+  // the in-view test is cheap — run it every frame; the raycast every few
+  const anyInView = points.some(([x, y, z]) => inView(camera, x, y, z));
+  if (!anyInView) state.seen = false;
+  else if (state.frame % 4 === 1 || state.seen === undefined) state.seen = canSee(camera, points);
   const range = THREE.MathUtils.smoothstep(dist, near, near + 4) * (1 - THREE.MathUtils.smoothstep(dist, far - 12, far));
   const target = state.seen ? range : 0;
   state.v = (state.v || 0) + (target - (state.v || 0)) * 0.12;
