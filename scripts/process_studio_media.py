@@ -122,9 +122,14 @@ def photo_sort_key(f):
     return (0 if dedicated else 1, f)
 
 
+# Files in the pictures folder that are NOT gallery photos (e.g. the
+# portrait used for the Meet Me helmet).
+EXCLUDE = {'allen.png'}
+
+
 def process_photos(src):
     os.makedirs(OUT_PHOTOS, exist_ok=True)
-    files = sorted((f for f in os.listdir(src) if not f.startswith('.')), key=photo_sort_key)
+    files = sorted((f for f in os.listdir(src) if not f.startswith('.') and f.lower() not in EXCLUDE), key=photo_sort_key)
     out = []
     with tempfile.TemporaryDirectory() as tmp:
         for i, f in enumerate(files, 1):

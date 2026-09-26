@@ -973,6 +973,34 @@ html {
 }
 
 /* ============================================================
+   Meet Me — the helmet reveal
+   ============================================================ */
+.meet-halo {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: min(90vh, 900px);
+  height: min(90vh, 900px);
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 16%, transparent) 0%, color-mix(in srgb, var(--accent-lo) 6%, transparent) 40%, transparent 70%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+.meet-cue {
+  width: 1px;
+  height: 36px;
+  background: linear-gradient(var(--ink-muted), transparent);
+  animation: meet-cue 2.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  transform-origin: top;
+}
+@keyframes meet-cue {
+  0% { transform: scaleY(0); opacity: 1; }
+  60% { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(1); opacity: 0; }
+}
+
+/* ============================================================
    Reduced-motion guard — kill all motion
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {

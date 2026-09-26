@@ -481,7 +481,7 @@ export default function MissionControl() {
           <NavBar zone={zone} project={project} onBack={onBack} onExit={() => setEnteredZone(null)} />
 
           {/* Stage */}
-          <div className="relative flex-1 overflow-y-auto">
+          <div data-mc-scroll className="relative flex-1 overflow-y-auto">
             <AnimatePresence mode="wait" initial={false}>
               {Room ? (
                 <Room key={enteredZone} />

@@ -29,6 +29,9 @@ export default function WorldExperience() {
       }}
     >
       <Canvas
+        // paused while a room is open — the world is blurred behind it anyway,
+        // and the room (e.g. the Meet Me helmet) gets the GPU to itself
+        frameloop={entered ? 'never' : 'always'}
         shadows={{ type: THREE.PCFSoftShadowMap }}
         dpr={[1, 2]}
         gl={{ antialias: true, powerPreference: 'high-performance' }}

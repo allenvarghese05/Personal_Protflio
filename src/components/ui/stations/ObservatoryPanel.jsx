@@ -4,6 +4,7 @@ import { ABOUT, JOURNEY, SKILLS, AWARDS } from '@/data/about';
 import { projectById } from '@/data/projects';
 import { useStore } from '@/lib/store';
 import { StationHeader, StationSection, stagger, rise } from './shared';
+import MeetMe from './meet/MeetMe';
 
 /**
  * The Observatory — who Allen is: a short bio, the journey so far, skills
@@ -24,6 +25,8 @@ function ProjectLink({ id }) {
 export default function ObservatoryPanel() {
   return (
     <motion.article variants={stagger} initial="hidden" animate="show" className="w-full">
+      {/* Meet me — the helmet opens first; the story continues below */}
+      <MeetMe />
       <StationHeader kicker="Observatory" title={ABOUT.headline} />
 
       <div className="mx-auto max-w-6xl px-6 pb-16 sm:px-12">
