@@ -1,5 +1,5 @@
 'use client';
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useReducedMotion } from 'framer-motion';
 import HelmetScene from './HelmetScene';
@@ -21,7 +21,18 @@ export default function MeetMe() {
   const progress = useRef(0);
   const hint = useRef(null);
   const title = useRef(null);
+  const stage = useRef(null);
   const reduced = useReducedMotion();
+  // only render the helmet while its stage is on screen
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const el = section.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => {
     const el = section.current;
@@ -39,6 +50,7 @@ export default function MeetMe() {
       const span = el.offsetHeight - scroller.clientHeight;
       const p = span > 0 ? (scroller.scrollTop - top) / span : 0;
       progress.current = Math.min(1, Math.max(0, p));
+      stage.current?.style.setProperty('--meet-p', progress.current.toFixed(3));
       if (hint.current) hint.current.style.opacity = String(Math.max(0, 1 - progress.current * 6));
       if (title.current) {
         const k = Math.min(1, Math.max(0, (progress.current - 0.72) / 0.18));
@@ -57,22 +69,24 @@ export default function MeetMe() {
 
   return (
     <section ref={section} className="relative" style={{ height: `${RUNWAY_VH}vh` }} aria-label="Meet Allen">
-      <div className="meet-stage sticky top-0 h-[calc(100dvh-3.5rem)] w-full overflow-hidden">
-        {/* warm halo behind the helmet */}
+      <div ref={stage} className="meet-stage sticky top-0 h-[calc(100dvh-3.5rem)] w-full overflow-hidden">
+        {/* the room behind — out-of-focus console light, warming with the power-on */}
+        <div aria-hidden className="meet-room" />
         <div aria-hidden className="meet-halo" />
         <Canvas
-          className="!absolute inset-0"
+          className="meet-canvas !absolute inset-0"
           dpr={[1, 2]}
+          frameloop={visible ? 'always' : 'never'}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-          camera={{ position: [0, 0.05, 5.1], fov: 30, near: 0.1, far: 50 }}
+          camera={{ position: [0, -0.24, 6.4], fov: 30, near: 0.1, far: 50 }}
         >
           <Suspense fallback={null}>
-            <HelmetScene progress={progress} />
+            <HelmetScene progress={progress} stage={stage} />
           </Suspense>
         </Canvas>
 
         <div className="pointer-events-none absolute inset-x-0 top-8 text-center">
-          <div className="mc-label">Observatory · Meet me</div>
+          <div className="mc-label">Meet me</div>
         </div>
 
         <div ref={hint} className="pointer-events-none absolute inset-x-0 bottom-10 flex flex-col items-center gap-3">
@@ -82,7 +96,7 @@ export default function MeetMe() {
 
         <div ref={title} className="pointer-events-none absolute inset-x-0 bottom-10 text-center" style={{ opacity: 0 }}>
           <div className="font-display text-3xl font-semibold tracking-[-0.03em] text-ink sm:text-4xl">{identity.name}</div>
-          <div className="mt-2 font-mono text-micro uppercase tracking-[0.22em] text-ink-subtle">Software engineer · Drexel University ’27</div>
+          <div className="mt-2 px-6 font-mono text-micro uppercase tracking-[0.16em] text-ink-subtle sm:tracking-[0.22em]">Software engineer · Drexel University ’27</div>
         </div>
       </div>
     </section>

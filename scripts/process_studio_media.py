@@ -124,7 +124,7 @@ def photo_sort_key(f):
 
 # Files in the pictures folder that are NOT gallery photos (e.g. the
 # portrait used for the Meet Me helmet).
-EXCLUDE = {'allen.png'}
+EXCLUDE = {'allen.png', 'chatgpt image sep 26, 2026, 03_47_25 pm.png'}  # portraits for Meet Me, not the gallery
 
 
 def process_photos(src):
