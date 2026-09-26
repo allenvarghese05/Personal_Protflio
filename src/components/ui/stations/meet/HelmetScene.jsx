@@ -1,7 +1,7 @@
 'use client';
-import { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Environment, Lightformer, useTexture } from '@react-three/drei';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal, useFrame, useThree } from '@react-three/fiber';
+import { Lightformer, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { PALETTE } from '@/lib/palette';
 
@@ -21,9 +21,14 @@ import { PALETTE } from '@/lib/palette';
  *   · Suit: shoulders + upper chest the helmet sits on, with a baked contact
  *     shadow under the neck ring. It fades into the page below (CSS mask).
  *
+ *   · Moon: far behind, it rises across the room as the visor opens — and
+ *     it's the scene's cool rim light, moving the shell's highlight with it.
+ *
  * `progress` is a ref (0→1) the page writes from scroll; nothing here
- * re-renders per frame. The light level is mirrored to `--meet-light` on
- * the stage so the room's CSS glow powers up with it.
+ * re-renders per frame. Visor, camera and moon all read ONE eased value
+ * (`reveal`), so they move as a single event and land on the same frame —
+ * then everything is still. The light level is mirrored to `--meet-light`
+ * on the stage so the room's CSS glow powers up with it.
  */
 
 const R = 1; // helmet radius
@@ -31,6 +36,15 @@ const MAX_LIFT = 1.3; // radians the visor swings up and back
 const STANDBY = 0.1; // interior light at rest — a silhouette through the gold
 const WINDOW = { rx: 0.6, ry: 0.5, cy: 0.02 }; // face opening on the unit sphere
 const f = (n) => n.toFixed(4);
+
+/** The reveal plays over this slice of the scroll, power2.out, then holds. */
+const REVEAL_FROM = 0.04;
+const REVEAL_TO = 0.8;
+const easeOut = (x) => 1 - (1 - x) * (1 - x);
+/** Camera: dolly + look height, rest → revealed. */
+const CAM = { z: [6.4, 5.3], lookY: [-0.42, -0.2], lift: 0.18 };
+/** Where the camera settles — the face plate is squared up to this point. */
+const CAM_END = new THREE.Vector3(0, CAM.lookY[1] + CAM.lift, CAM.z[1]);
 
 /** < 0 inside the face window, for a unit direction n. */
 const WIN_GLSL = /* glsl */ `
@@ -122,6 +136,13 @@ function Face({ lightRef }) {
     }),
     [tex]
   );
+  // The portrait is a photo taken square to its lens, so the plate faces
+  // the camera's settled position rather than the helmet's front (the head
+  // is turned ~11°; the photo carries that turn itself). Square to the
+  // lens there's no foreshortening to correct.
+  useLayoutEffect(() => {
+    mesh.current?.lookAt(CAM_END);
+  }, []);
   useFrame(({ camera }) => {
     const helmet = mesh.current?.parent;
     const u = mat.current?.uniforms;
@@ -143,7 +164,8 @@ function Face({ lightRef }) {
 /* ── materials ────────────────────────────────────────────────────────── */
 
 const shellMat = cutWindow(
-  new THREE.MeshPhysicalMaterial({ color: '#ebe6dc', roughness: 0.38, clearcoat: 0.8, clearcoatRoughness: 0.22, alphaToCoverage: true }),
+  // glossy enough that the moon's highlight reads as a crisp, travelling glint
+  new THREE.MeshPhysicalMaterial({ color: '#ebe6dc', roughness: 0.32, clearcoat: 0.9, clearcoatRoughness: 0.08, alphaToCoverage: true }),
   { keep: 'outside', neck: true }
 );
 const linerMat = cutWindow(
@@ -158,6 +180,10 @@ const visorMat = cutWindow(
     transparent: true,
     opacity: 0.74, // gold, but not fully opaque — a silhouette reads through it
     envMapIntensity: 1.9,
+    // a thin clear lacquer over the gold: the only layer that reflects the
+    // moon un-tinted — a faint cool pass, well under the gold
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.06,
     side: THREE.DoubleSide,
     depthWrite: false,
   }),
@@ -274,12 +300,12 @@ function useGlowTexture() {
   }, []);
 }
 
-function Helmet({ progressRef, lightRef, stageRef }) {
+function Helmet({ revealRef, lightRef, stageRef }) {
   const visor = useRef();
   const glow = useRef();
   const lamps = useRef([]);
   const flares = useRef([]);
-  const s = useRef({ angle: 0, vel: 0, on: false, onAt: 0, css: -1 });
+  const s = useRef({ on: false, onAt: 0, css: -1 });
   const glowTex = useGlowTexture();
 
   const sphere = useMemo(() => new THREE.SphereGeometry(R, 128, 96), []);
@@ -294,25 +320,19 @@ function Helmet({ progressRef, lightRef, stageRef }) {
     return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 256, 0.032, 12, true);
   }, []);
 
-  useFrame((state, delta) => {
-    const dt = Math.min(delta, 1 / 30);
+  useFrame((state) => {
     const t = state.clock.elapsedTime;
     const st = s.current;
+    const r = revealRef.current;
 
-    // Heavy lift: a slow, weighted start, then a damped spring settles it
-    // (slight overshoot, like real mass on a hinge).
-    const p = THREE.MathUtils.clamp((progressRef.current - 0.04) / 0.72, 0, 1);
-    const shaped = p * p * (3 - 2 * p) * 0.7 + p * p * 0.3;
-    const target = shaped * MAX_LIFT;
-    st.vel += ((target - st.angle) * 36 - st.vel * 8.6) * dt;
-    st.angle += st.vel * dt;
-    if (visor.current) visor.current.rotation.x = -st.angle;
+    // the hinge follows the shared reveal exactly — no spring, no overshoot
+    if (visor.current) visor.current.rotation.x = -r * MAX_LIFT;
 
     // The light: dim standby → powers up as the visor clears the face
-    if (st.angle > MAX_LIFT * 0.78 && !st.on) {
+    if (r > 0.85 && !st.on) {
       st.on = true;
       st.onAt = t;
-    } else if (st.angle < MAX_LIFT * 0.55 && st.on) {
+    } else if (r < 0.6 && st.on) {
       st.on = false;
     }
     let lt = STANDBY;
@@ -326,7 +346,8 @@ function Helmet({ progressRef, lightRef, stageRef }) {
       else lt = THREE.MathUtils.lerp(0.55, 1, THREE.MathUtils.smoothstep(k, 0.23, 0.8));
     }
     const snap = st.on && t - st.onAt < 0.25; // flicker = instant, ramp = eased
-    lightRef.current = snap ? lt : lightRef.current + (lt - lightRef.current) * 0.08;
+    const next = snap ? lt : lightRef.current + (lt - lightRef.current) * 0.08;
+    lightRef.current = Math.abs(next - lt) < 5e-4 ? lt : next; // settle, then stop
     const l = lightRef.current;
 
     if (glow.current) glow.current.intensity = 0.3 + l * 2.8;
@@ -393,34 +414,191 @@ function Helmet({ progressRef, lightRef, stageRef }) {
 }
 
 /**
- * The camera: starts wide enough to seat the helmet on its shoulders, and
- * eases in toward the face as the visor opens. A few degrees of parallax
- * follow the pointer. Narrow screens pull back to keep the helmet whole.
+ * The one clock for the reveal: scroll → power2.out over the reveal slice,
+ * followed with a critically-damped (never overshooting) smoothing so wheel
+ * notches don't step. Snaps when it arrives, so nothing creeps afterwards.
  */
-function Rig({ progressRef }) {
-  const cur = useRef({ x: 0, y: 0 });
-  useFrame(({ camera, size, pointer }, delta) => {
-    const k = Math.min(1, delta * 2.2);
-    cur.current.x += (pointer.x - cur.current.x) * k;
-    cur.current.y += (pointer.y - cur.current.y) * k;
-    const p = THREE.MathUtils.smoothstep(progressRef.current, 0.05, 0.95);
+function RevealDriver({ progressRef, revealRef }) {
+  const first = useRef(true);
+  useFrame((_, delta) => {
+    const x = THREE.MathUtils.clamp((progressRef.current - REVEAL_FROM) / (REVEAL_TO - REVEAL_FROM), 0, 1);
+    const target = easeOut(x);
+    if (first.current) {
+      first.current = false;
+      revealRef.current = target; // arrive where the page already is (reduced motion, deep links)
+      return;
+    }
+    const r = revealRef.current;
+    if (r === target) return;
+    const next = r + (target - r) * (1 - Math.exp(-Math.min(delta, 1 / 20) * 9));
+    revealRef.current = Math.abs(target - next) < 1e-4 ? target : next;
+  });
+  return null;
+}
+
+/**
+ * The camera: starts wide enough to seat the helmet on its shoulders, and
+ * dollies in toward the face on the shared reveal. No pointer parallax —
+ * once the reveal lands, the camera is fixed. Narrow screens pull back to
+ * keep the helmet whole.
+ */
+function Rig({ revealRef }) {
+  useFrame(({ camera, size }) => {
+    const r = revealRef.current;
     const aspect = size.width / size.height;
-    const z = Math.max(THREE.MathUtils.lerp(6.4, 5.3, p), 1.25 / (0.268 * aspect));
-    const lookY = THREE.MathUtils.lerp(-0.42, -0.2, p);
-    camera.position.set(cur.current.x * 0.35, lookY + 0.18 + cur.current.y * 0.16, z);
+    const z = Math.max(THREE.MathUtils.lerp(CAM.z[0], CAM.z[1], r), 1.25 / (0.268 * aspect));
+    const lookY = THREE.MathUtils.lerp(CAM.lookY[0], CAM.lookY[1], r);
+    camera.position.set(0, lookY + CAM.lift, z);
     camera.lookAt(0, lookY, 0);
   });
   return null;
 }
 
-export default function HelmetScene({ progress, stage }) {
-  const lightRef = useRef(STANDBY);
+/**
+ * The reflection map: a small room of light panels rendered into a cube map
+ * (what drei's <Environment> does), but re-rendered only when something in
+ * it moves — the moon — instead of never, or every frame.
+ */
+function ReflectionRoom({ dirtyRef, children }) {
+  const get = useThree((st) => st.get);
+  const [room] = useState(() => new THREE.Scene());
+  const fbo = useMemo(() => {
+    const t = new THREE.WebGLCubeRenderTarget(256);
+    t.texture.type = THREE.HalfFloatType;
+    return t;
+  }, []);
+  const cube = useMemo(() => new THREE.CubeCamera(0.1, 100, fbo), [fbo]);
+  useEffect(() => {
+    const { scene } = get();
+    const prev = scene.environment;
+    scene.environment = fbo.texture;
+    return () => {
+      scene.environment = prev;
+      fbo.dispose();
+    };
+  }, [get, fbo]);
+  useFrame(({ gl }) => {
+    if (!dirtyRef.current) return;
+    dirtyRef.current = false;
+    const ac = gl.autoClear;
+    gl.autoClear = true;
+    cube.update(gl, room);
+    gl.autoClear = ac;
+  });
+  return createPortal(children, room);
+}
+
+/* ── the moon ─────────────────────────────────────────────────────────── */
+
+const MOON_R = 1.25;
+const MOON_Z = -14;
+/** Moon path on the reveal: from below the right edge (off-frame), rising in
+ *  a shallow arc to sit up behind the helmet's right shoulder. */
+function moonAt(r, out) {
+  const x = THREE.MathUtils.lerp(12.5, 2.7, r);
+  const y = THREE.MathUtils.lerp(-1.8, 1.95, r) + Math.sin(Math.PI * r) * 0.6;
+  return out.set(x, y, MOON_Z);
+}
+/** The moon's light bearing: its direction, pulled toward the helmet's plane
+ *  so the glint rides the visible side of the shell rather than only the
+ *  far silhouette. Side-light at rest → back-rim when it settles. */
+function moonLightDir(pos, out) {
+  return out.set(pos.x, pos.y, -4.5).normalize();
+}
+
+const moonVert = /* glsl */ `
+  varying vec3 vObj;
+  varying float vMu;
+  void main() {
+    vObj = position;
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vMu = dot(normalize(normalMatrix * normal), normalize(-mv.xyz));
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+const moonFrag = /* glsl */ `
+  uniform vec3 uColor;
+  varying vec3 vObj;
+  varying float vMu;
+  float spot(vec3 n, vec3 c, float r) {
+    return 1.0 - smoothstep(r * 0.3, r, distance(n, normalize(c)));
+  }
+  void main() {
+    vec3 n = normalize(vObj);
+    // maria: broad, soft, muted
+    float m = spot(n, vec3(-0.35, 0.35, 0.87), 0.44) * 0.9;
+    m = max(m, spot(n, vec3(0.28, 0.42, 0.86), 0.3));
+    m = max(m, spot(n, vec3(0.08, -0.12, 0.99), 0.26) * 0.75);
+    m = max(m, spot(n, vec3(-0.5, -0.32, 0.8), 0.22) * 0.7);
+    // a few small craters
+    float c = spot(n, vec3(0.34, -0.55, 0.76), 0.08) + spot(n, vec3(-0.12, 0.72, 0.68), 0.07)
+            + spot(n, vec3(0.62, 0.12, 0.77), 0.06) + spot(n, vec3(-0.66, 0.1, 0.74), 0.05);
+    float mu = clamp(vMu, 0.0, 1.0);
+    vec3 col = uColor * (1.0 - 0.17 * m - 0.07 * min(c, 1.0));
+    col *= mix(0.8, 1.0, sqrt(mu));            // gentle limb darkening
+    float a = smoothstep(0.0, 0.55, mu);        // feathered limb: out of focus
+    gl_FragColor = vec4(col, a);
+    #include <colorspace_fragment>
+  }
+`;
+
+function Moon({ revealRef, lightRef, formerRef, envDirtyRef }) {
+  const moon = useRef();
+  const halo = useRef();
+  const last = useRef(-1);
+  const glowTex = useGlowTexture();
+  const tmp = useMemo(() => ({ p: new THREE.Vector3(), d: new THREE.Vector3() }), []);
+  const uniforms = useMemo(() => ({ uColor: { value: new THREE.Color('#efe7d6') } }), []);
+
+  useFrame(() => {
+    const r = revealRef.current;
+    if (r === last.current) return; // settled: nothing to move
+    last.current = r;
+    const p = moonAt(r, tmp.p);
+    moon.current?.position.copy(p);
+    halo.current?.position.set(p.x, p.y, p.z - 0.5);
+    const d = moonLightDir(p, tmp.d);
+    const light = lightRef.current;
+    if (light) {
+      light.position.copy(d).multiplyScalar(10);
+      // a grazing rim as it enters, a firmer edge once it's up
+      light.intensity = THREE.MathUtils.lerp(0.7, 1.6, r);
+    }
+    const lf = formerRef.current;
+    if (lf) {
+      lf.position.copy(d).multiplyScalar(8);
+      lf.lookAt(0, 0, 0);
+      envDirtyRef.current = true;
+    }
+  });
+
   return (
     <>
-      <Rig progressRef={progress} />
+      <sprite ref={halo} scale={MOON_R * 7} renderOrder={-2}>
+        <spriteMaterial map={glowTex} color="#dfe6f5" transparent opacity={0.42} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </sprite>
+      <mesh ref={moon} renderOrder={-1}>
+        <sphereGeometry args={[MOON_R, 64, 48]} />
+        <shaderMaterial uniforms={uniforms} vertexShader={moonVert} fragmentShader={moonFrag} transparent depthWrite={false} />
+      </mesh>
+    </>
+  );
+}
+
+export default function HelmetScene({ progress, stage }) {
+  const lightRef = useRef(STANDBY);
+  const revealRef = useRef(0);
+  const moonLight = useRef();
+  const moonFormer = useRef();
+  const envDirty = useRef(true);
+  return (
+    <>
+      <RevealDriver progressRef={progress} revealRef={revealRef} />
+      <Rig revealRef={revealRef} />
       {/* reflections — the same room the page shows: a warm sheen overhead
-          for the gold, an ice panel left and an amber console strip right */}
-      <Environment resolution={256}>
+          for the gold, an ice panel left and an amber console strip right,
+          and the moon, which moves */}
+      <ReflectionRoom dirtyRef={envDirty}>
         <Lightformer form="rect" intensity={0.7} color="#ffd9a8" position={[0, 5, 5]} scale={[16, 5, 1]} />
         {/* directly overhead — keeps the lifted visor gold over the crown */}
         <Lightformer form="rect" intensity={0.9} color="#ffc98a" position={[0, 6, -1]} scale={[8, 6, 1]} />
@@ -429,15 +607,20 @@ export default function HelmetScene({ progress, stage }) {
         <Lightformer form="rect" intensity={0.9} color="#9cc3ff" position={[-5, 0.4, 3]} scale={[1.2, 4, 1]} />
         <Lightformer form="rect" intensity={1.6} color="#ff9a3c" position={[4.5, -1.2, 3.5]} scale={[4, 0.35, 1]} />
         <Lightformer form="rect" intensity={0.5} color="#2a3150" position={[0, -3, 0]} rotation-x={Math.PI / 2} scale={[10, 10, 1]} />
-      </Environment>
+        {/* the moon, as the shell sees it */}
+        <Lightformer ref={moonFormer} form="circle" intensity={3} color="#e6eeff" position={[8, -1, -3]} scale={1.4} />
+      </ReflectionRoom>
       <ambientLight intensity={0.14} />
       <directionalLight position={[-3, 3.5, 4]} intensity={1.8} color="#ffe6c8" />
-      <directionalLight position={[3.5, 1, -3]} intensity={1.0} color={PALETTE.ice} />
+      {/* moonlight — the cool rim; it travels with the moon (and replaces the
+          old fixed ice rim). Never reaches the face: the portrait is unlit. */}
+      <directionalLight ref={moonLight} position={[9, -1, -3]} intensity={0.7} color="#dce8ff" />
+      <Moon revealRef={revealRef} lightRef={moonLight} formerRef={moonFormer} envDirtyRef={envDirty} />
       {/* the body squares up to the viewer; the head turns a touch more */}
       <group rotation={[0.03, -0.1, 0]}>
         <Suit lightRef={lightRef} />
         <group rotation={[0.01, -0.1, 0]}>
-          <Helmet progressRef={progress} lightRef={lightRef} stageRef={stage} />
+          <Helmet revealRef={revealRef} lightRef={lightRef} stageRef={stage} />
         </group>
       </group>
     </>
