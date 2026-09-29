@@ -360,7 +360,8 @@ visorMat.customProgramCacheKey = () => 'visor-slide';
  */
 const GLASS = { fog: { value: 1 }, clear: { value: 0 }, glow: { value: STANDBY } };
 const glassMat = cutWindow(
-  new THREE.MeshPhysicalMaterial({ color: '#000000', roughness: 0.03, metalness: 0, transparent: true, depthWrite: false, envMapIntensity: 1.2 }),
+  // a softened direct highlight — a pinpoint moon glint read as a sparkle on the face
+  new THREE.MeshPhysicalMaterial({ color: '#000000', roughness: 0.12, metalness: 0, specularIntensity: 0.35, transparent: true, depthWrite: false, envMapIntensity: 1.2 }),
   { keep: 'inside' }
 );
 {
@@ -1273,14 +1274,14 @@ function Moon({ revealRef, moonDirRef, moonPosRef, discRef, skyRef, envDirtyRef 
 
 /**
  * A calm, dotted Earth high in the frame, behind the helmet and the name —
- * depth and a place in the world, not a storyteller. It settles in with the
- * resting layout; Bhopal and Philadelphia are marked, and once, as the
- * headline lands, an amber flight path draws the great circle between them
- * and stays as a faint trace. Lit by the moon like everything else. Then it
- * holds still.
+ * depth and a place in the world, not a storyteller. It's there from the
+ * first frame, through the face and the name; Bhopal and Philadelphia are
+ * marked, and once, as the headline lands, an amber flight path draws the
+ * great circle between them and stays as a faint trace. Lit by the moon like
+ * everything else. It fades away as the story arrives.
  *
  * Land dots come from public/meet/earth-dots.bin (scripts/bake-earth-dots.mjs);
- * without it the globe is just its rim, the markers and the route.
+ * until that file exists the globe stays hidden (a bare rim reads as a ring).
  */
 const EARTH = { z: -8, ndc: [0.02, 1.22], r: 0.86 }; // centre (frame units) + radius (half-heights)
 const PLACES = {
@@ -1369,7 +1370,7 @@ const rimFrag = /* glsl */ `
   varying float vRim;
   varying float vLit;
   void main() {
-    float a = pow(clamp(vRim, 0.0, 1.0), 3.0) * uOpacity * (0.3 + 0.7 * vLit);
+    float a = pow(clamp(vRim, 0.0, 1.0), 4.0) * uOpacity * (0.25 + 0.75 * vLit);
     gl_FragColor = vec4(uColor, a);
   }
 `;
@@ -1388,7 +1389,7 @@ function useRingTexture() {
   }, []);
 }
 
-function Earth({ layoutRef, moonDirRef }) {
+function Earth({ layoutRef, moonDirRef, storyInRef }) {
   const group = useRef();
   const dots = useRef();
   const rim = useRef();
@@ -1400,7 +1401,7 @@ function Earth({ layoutRef, moonDirRef }) {
   const glowTex = useGlowTexture();
   const ringTex = useRingTexture();
   const st = useRef({ key: '', played: false, t0: 0, done: false });
-  const routeGeo = useMemo(() => new THREE.TubeGeometry(ROUTE, ROUTE_SEG, 0.0055, ROUTE_RADIAL, false), []);
+  const routeGeo = useMemo(() => new THREE.TubeGeometry(ROUTE, ROUTE_SEG, 0.011, ROUTE_RADIAL, false), []);
   const tip = useMemo(() => new THREE.Vector3(), []);
   const dotUniforms = useMemo(() => ({ uColor: { value: new THREE.Color(PALETTE.ink) }, uOpacity: { value: 0 }, uMoon: { value: new THREE.Vector3(1, 0, 0) }, uPx: { value: 2 } }), []);
   const rimUniforms = useMemo(() => ({ uColor: { value: new THREE.Color(PALETTE.ice) }, uOpacity: { value: 0 }, uMoon: { value: new THREE.Vector3(1, 0, 0) } }), []);
@@ -1430,7 +1431,9 @@ function Earth({ layoutRef, moonDirRef }) {
     if (!g) return;
     const L = layoutRef.current;
     const s = st.current;
-    const k = THREE.MathUtils.smoothstep(L, 0.2, 0.85);
+    const away = storyInRef?.current ?? 0;
+    // present from the first frame; leaves as the story comes in
+    const k = dotGeo ? 1 - THREE.MathUtils.smoothstep(away, 0, 0.7) : 0;
 
     // the flight: plays once when the layout lands, resets if it's undone
     const now = clock.elapsedTime;
@@ -1440,27 +1443,27 @@ function Earth({ layoutRef, moonDirRef }) {
     const flying = s.played && !s.done;
     if (s.played && age > FLIGHT.dur + 1.4) s.done = true;
 
-    const key = `${L}|${size.width}|${size.height}|${camera.position.z.toFixed(3)}|${moonDirRef.current.x.toFixed(4)}|${s.played}|${s.done}`;
+    const key = `${L}|${away}|${!!dotGeo}|${size.width}|${size.height}|${camera.position.z.toFixed(3)}|${moonDirRef.current.x.toFixed(4)}|${s.played}|${s.done}`;
     if (!flying && key === s.key) return; // settled: nothing moves
     s.key = key;
 
-    // place: high in the frame, sized to it; it settles down a touch as it fades in
+    // place: high in the frame, sized to it; it drifts up a touch as it leaves
     const d = camera.position.z - EARTH.z;
     const half = d * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
     const aspect = size.width / size.height;
-    g.position.set(EARTH.ndc[0] * half * aspect, CAM.lookY[1] + (EARTH.ndc[1] + (1 - k) * 0.08) * half, EARTH.z);
+    g.position.set(EARTH.ndc[0] * half * aspect, CAM.lookY[1] + (EARTH.ndc[1] + (1 - k) * 0.1) * half, EARTH.z);
     g.scale.setScalar(EARTH.r * half);
     g.visible = k > 1e-3;
 
     const du = dots.current?.material.uniforms;
     if (du) {
-      du.uOpacity.value = 0.55 * k;
+      du.uOpacity.value = 0.72 * k;
       du.uMoon.value.copy(moonDirRef.current);
-      du.uPx.value = 1.7 * viewport.dpr;
+      du.uPx.value = 2.5 * viewport.dpr;
     }
     const ru = rim.current?.material.uniforms;
     if (ru) {
-      ru.uOpacity.value = 0.22 * k;
+      ru.uOpacity.value = 0.14 * k;
       ru.uMoon.value.copy(moonDirRef.current);
     }
     markers.current.forEach((m) => m && (m.material.opacity = 0.85 * k));
@@ -1487,7 +1490,7 @@ function Earth({ layoutRef, moonDirRef }) {
       if (!ring) return;
       const q = s.played ? THREE.MathUtils.clamp(t / 1.4, 0, 1) : 0;
       ring.visible = q > 0 && q < 1;
-      ring.scale.setScalar(0.02 + q * 0.16);
+      ring.scale.setScalar(0.04 + q * 0.26);
       ring.material.opacity = k * (1 - q) * 0.7;
     });
   });
@@ -1505,19 +1508,19 @@ function Earth({ layoutRef, moonDirRef }) {
         </points>
       )}
       {/* a faint moonlit rim of atmosphere */}
-      <mesh ref={rim} scale={1.02} renderOrder={-2}>
+      <mesh ref={rim} scale={1.06} renderOrder={-2}>
         <sphereGeometry args={[1, 64, 48]} />
         <shaderMaterial uniforms={rimUniforms} vertexShader={rimVert} fragmentShader={rimFrag} transparent depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.BackSide} />
       </mesh>
       <mesh ref={route} geometry={routeGeo} visible={false} renderOrder={-1}>
         <meshBasicMaterial color={PALETTE.accent} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
       </mesh>
-      <sprite ref={head} scale={0.05} visible={false} renderOrder={-1}>
+      <sprite ref={head} scale={0.09} visible={false} renderOrder={-1}>
         <spriteMaterial map={glowTex} color={PALETTE.accentHi} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
       </sprite>
       {places.map((p, i) => (
         <group key={i} position={p}>
-          <sprite ref={(el) => (markers.current[i] = el)} scale={0.028}>
+          <sprite ref={(el) => (markers.current[i] = el)} scale={0.06}>
             <spriteMaterial map={glowTex} color={PALETTE.accent} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </sprite>
           <sprite ref={(el) => (pulses.current[i] = el)} visible={false}>
@@ -1837,7 +1840,7 @@ function Finish({ revealRef, layoutRef, apertureRef, frameRef }) {
 // fetch the portrait as soon as this module loads (well before the room opens)
 if (typeof window !== 'undefined') useTexture.preload('/meet/allen-face.webp');
 
-export default function HelmetScene({ progress, layoutProgress, frame, lines, headline, still = false, onReady }) {
+export default function HelmetScene({ progress, layoutProgress, frame, lines, headline, storyIn, still = false, onReady }) {
   const lightRef = useRef(STANDBY);
   const revealRef = useRef(0);
   const layoutRef = useRef(0);
@@ -1887,7 +1890,7 @@ export default function HelmetScene({ progress, layoutProgress, frame, lines, he
         shadow-camera-far={20}
       />
       <Moon revealRef={revealRef} moonDirRef={moonDir} moonPosRef={moonPos} discRef={moonDisc} skyRef={moonSky} envDirtyRef={envDirty} />
-      <Earth layoutRef={layoutRef} moonDirRef={moonDir} />
+      <Earth layoutRef={layoutRef} moonDirRef={moonDir} storyInRef={storyIn} />
 
       <Layout layoutRef={layoutRef} moonDirRef={moonDir} lightRef={moonLight} camBaseRef={camBase} bodyRef={body} headRef={head}>
         {/* aimed at the lens by <Layout>: the body half-way, the head the rest */}

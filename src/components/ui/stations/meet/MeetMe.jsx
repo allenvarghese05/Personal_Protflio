@@ -5,6 +5,7 @@ import { useReducedMotion } from 'framer-motion';
 import HelmetScene from './HelmetScene';
 import MeetHeadline from './MeetHeadline';
 import MeetStory from './MeetStory';
+import { MEET } from '@/data/about';
 
 /**
  * Meet Me — the opening of the About room. One stage stays pinned for the
@@ -14,10 +15,9 @@ import MeetStory from './MeetStory';
  *      moon rises (scene clock: `progress`)
  *   2. one stage-height more — the helmet glides to the left third while the
  *      headline rises into place on the right (scene clock: `layoutProgress`)
- *   3. a short hold — helmet and headline both pinned, so the resting frame
- *      always resolves, even after a fast flick
- *   4. the story chapters (MEET.story) scroll past on the right; the helmet
- *      stays pinned left until the last one has gone by
+ *   3. a short hold — helmet and headline both pinned
+ *   4. the story (MEET.story): the headline scrolls away as the story panel
+ *      rises in and pins beside the helmet, one chapter per step
  *
  * One scroll gesture from rest plays 1–2 through at their own pace and
  * lands on the headline (and one from there plays it back); anywhere else
@@ -31,7 +31,8 @@ const REVEAL_VH = 210; // scroll length of the reveal runway
 const HOLD_VH = 45; // the resting frame holds this long before the story scrolls on
 /** One-gesture playback: forward (reveal + glide), back, and the beat after
  *  landing during which input is swallowed (trackpad momentum). ms. */
-const PLAY = { forward: 3400, back: 2400, cooldown: 800 };
+const PLAY = { forward: 3400, back: 2400, toStory: 1500, chapter: 950, cooldown: 800 };
+const CHAPTER_VH = 70; // scroll length per story chapter
 const STAGE_H = 'calc(100dvh - 3.5rem)'; // the stage: the viewport under the nav
 
 export default function MeetMe() {
@@ -48,6 +49,10 @@ export default function MeetMe() {
   const lines = useRef({ group: null, els: [] });
   // the headline block — the scene drifts it with the camera (parallax)
   const headline = useRef(null);
+  const holdWrap = useRef(null);
+  // how far the story has arrived (0 → 1): the globe leaves as it comes in
+  const storyIn = useRef(0);
+  const [chapter, setChapter] = useState(0);
   const reduced = useReducedMotion();
   const [shown, setShown] = useState(false);
   // only render the helmet while its stage is on screen
@@ -75,43 +80,61 @@ export default function MeetMe() {
       if (s) Object.assign(frame.current, { left: s.left - r.left, top: s.top - r.top, w: s.width, h: s.height, rootW: r.width, rootH: r.height });
       lines.current.group?.setAttribute('viewBox', `0 0 ${frame.current.w} ${frame.current.h}`);
     };
-    measure();
-    if (reduced) {
-      progress.current = 1;
-      layoutProgress.current = 1;
-      if (hint.current) hint.current.style.opacity = '0';
-      if (label.current) label.current.style.opacity = '0';
-      window.addEventListener('resize', measure);
-      return () => window.removeEventListener('resize', measure);
-    }
-    let isShown = false;
-    const update = () => {
-      // scroll into the section, independent of positioned ancestors
-      const top = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
-      const s = scroller.scrollTop - top;
+
+    // the section's landmarks, in scroll px from its top
+    const sectionTop = () => el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+    const marks = () => {
       const run = runway.current?.offsetHeight || 1;
       const h = stage.current?.offsetHeight || 1;
-      const p1 = Math.min(1, Math.max(0, s / run));
-      const p2 = Math.min(1, Math.max(0, (s - run) / h));
-      progress.current = p1;
-      layoutProgress.current = p2;
+      const hold = Math.max(0, (holdWrap.current?.offsetHeight || h) - h);
+      const band = (CHAPTER_VH / 100) * scroller.clientHeight;
+      const storyStart = run + 2 * h + hold; // the story panel pins here
+      return { run, h, hold, band, storyStart };
+    };
+    const N = MEET.story.length;
+
+    let isShown = false;
+    let chapterNow = 0;
+    const update = () => {
+      const s = scroller.scrollTop - sectionTop();
+      const m = marks();
+      progress.current = reduced ? 1 : Math.min(1, Math.max(0, s / m.run));
+      const p2 = Math.min(1, Math.max(0, (s - m.run) / m.h));
+      layoutProgress.current = reduced ? 1 : p2;
+      // the story arriving: 0 as the headline starts to leave → 1 as the story pins
+      storyIn.current = Math.min(1, Math.max(0, (s - (m.run + m.h + m.hold)) / m.h));
       measure();
-      if (hint.current) hint.current.style.opacity = String(Math.max(0, 1 - p1 * 6));
+      if (hint.current) hint.current.style.opacity = reduced ? '0' : String(Math.max(0, 1 - progress.current * 6));
       if (label.current) label.current.style.opacity = String(Math.max(0, 1 - p2 * 3));
       // the headline resolves as the helmet settles (with hysteresis)
-      const next = isShown ? p2 > 0.3 : p2 > 0.6;
+      const next = reduced || (isShown ? p2 > 0.3 : p2 > 0.6);
       if (next !== isShown) setShown((isShown = next));
+      // which chapter is live
+      const c = N ? Math.min(N - 1, Math.max(0, Math.floor((s - m.storyStart) / m.band))) : 0;
+      if (c !== chapterNow) setChapter((chapterNow = c));
     };
     update();
+    scroller.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    if (reduced) {
+      return () => {
+        scroller.removeEventListener('scroll', update);
+        window.removeEventListener('resize', update);
+      };
+    }
 
-    // ── one gesture plays the whole reveal ──────────────────────────────
-    // From rest, a single scroll (wheel notch, swipe, or key) carries the
-    // page through the reveal and the glide at the sequence's own pace and
-    // lands it on the resting layout; input is absorbed while it plays (and
-    // for a beat after, to swallow trackpad momentum). The same in reverse
-    // from the resting layout. Anywhere else, the page scrolls normally.
-    const sectionTop = () => el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
-    const landing = () => (runway.current?.offsetHeight || 0) + (stage.current?.offsetHeight || 0);
+    // ── one gesture = one step ──────────────────────────────────────────
+    // The section has stops: rest → the headline → each chapter. At a stop,
+    // a single scroll (wheel notch, swipe, or key) carries the page to the
+    // next stop (or the previous one) at the sequence's own pace; input is
+    // absorbed while it plays, and for a beat after, to swallow trackpad
+    // momentum. Between stops, and past the last chapter, the page scrolls
+    // freely.
+    const stops = () => {
+      const m = marks();
+      return [0, m.run + m.h, ...MEET.story.map((_, i) => m.storyStart + (i + 0.5) * m.band)];
+    };
+    const duration = (from, to) => (from === 0 && to === 1 ? PLAY.forward : from === 1 && to === 0 ? PLAY.back : Math.min(from, to) === 1 ? PLAY.toStory : PLAY.chapter);
     let play = null;
     let quietUntil = 0;
     const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
@@ -125,24 +148,18 @@ export default function MeetMe() {
         quietUntil = now + PLAY.cooldown;
       }
     };
-    const start = (dir) => {
-      const top = sectionTop();
-      play = { from: scroller.scrollTop, to: dir > 0 ? top + landing() : top, t0: performance.now(), ms: dir > 0 ? PLAY.forward : PLAY.back };
-      requestAnimationFrame(step);
-    };
-    // where the page is relative to the two ends of the sequence
-    const where = () => {
-      const s = scroller.scrollTop - sectionTop();
-      if (Math.abs(s) < 6) return 'rest';
-      if (Math.abs(s - landing()) < 30) return 'landed';
-      return 'between';
-    };
     const busy = () => play || performance.now() < quietUntil;
     const trigger = (dir) => {
-      const at = where();
-      if (dir > 0 && at === 'rest') return start(1), true;
-      if (dir < 0 && at === 'landed') return start(-1), true;
-      return false;
+      const top = sectionTop();
+      const s = scroller.scrollTop - top;
+      const list = stops();
+      const at = list.findIndex((v) => Math.abs(s - v) < 40);
+      if (at < 0) return false;
+      const to = at + dir;
+      if (to < 0 || to >= list.length) return false; // past the ends: free scroll
+      play = { from: scroller.scrollTop, to: top + list[to], t0: performance.now(), ms: duration(at, to) };
+      requestAnimationFrame(step);
+      return true;
     };
     const onWheel = (e) => {
       if (busy()) return e.preventDefault();
@@ -166,20 +183,18 @@ export default function MeetMe() {
       if (busy()) return e.preventDefault();
       if (trigger(dir)) e.preventDefault();
     };
-    scroller.addEventListener('scroll', update, { passive: true });
     scroller.addEventListener('wheel', onWheel, { passive: false });
     scroller.addEventListener('touchstart', onTouchStart, { passive: true });
     scroller.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('keydown', onKey);
-    window.addEventListener('resize', update);
     return () => {
       play = null;
       scroller.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
       scroller.removeEventListener('wheel', onWheel);
       scroller.removeEventListener('touchstart', onTouchStart);
       scroller.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('keydown', onKey);
-      window.removeEventListener('resize', update);
     };
   }, [reduced]);
 
@@ -197,7 +212,7 @@ export default function MeetMe() {
           camera={{ position: [0, -0.24, 6.4], fov: 30, near: 0.1, far: 50 }}
         >
           <Suspense fallback={null}>
-            <HelmetScene progress={progress} layoutProgress={layoutProgress} frame={frame} lines={lines} headline={headline} still={!!reduced} onReady={onReady} />
+            <HelmetScene progress={progress} layoutProgress={layoutProgress} frame={frame} lines={lines} headline={headline} storyIn={storyIn} still={!!reduced} onReady={onReady} />
           </Suspense>
         </Canvas>
 
@@ -241,7 +256,7 @@ export default function MeetMe() {
         {/* the headline: centred on the resting helmet's height (wide), or
             under it (narrow); it rises into place, then holds (sticky)
             through the hold */}
-        <div style={{ height: `calc(${STAGE_H} + ${HOLD_VH}vh)` }}>
+        <div ref={holdWrap} style={{ height: `calc(${STAGE_H} + ${HOLD_VH}vh)` }}>
           <div
             className="pointer-events-auto sticky top-0 flex items-end bg-[linear-gradient(to_top,var(--void)_38%,transparent_75%)] px-6 pb-[9vh] sm:px-12 wide:bg-none wide:ml-auto wide:w-1/2 wide:items-center wide:pb-[6vh] wide:pl-0 wide:pr-[7vw]"
             style={{ height: STAGE_H }}
@@ -252,8 +267,16 @@ export default function MeetMe() {
           </div>
         </div>
 
-        {/* 4 · the story continues on the right while the helmet stays pinned */}
-        <MeetStory />
+        {/* 3 · the story: it rises in as the headline scrolls away, then pins
+            beside the helmet — one chapter per step */}
+        <div style={{ height: `calc(${MEET.story.length * CHAPTER_VH}vh + ${STAGE_H})` }}>
+          <div
+            className="pointer-events-none sticky top-0 flex items-end bg-[linear-gradient(to_top,var(--void)_42%,transparent_78%)] px-6 pb-[12vh] sm:px-12 wide:bg-none wide:ml-auto wide:w-1/2 wide:items-center wide:pb-[6vh] wide:pl-0 wide:pr-[7vw]"
+            style={{ height: STAGE_H }}
+          >
+            <MeetStory active={chapter} />
+          </div>
+        </div>
       </div>
     </section>
   );
