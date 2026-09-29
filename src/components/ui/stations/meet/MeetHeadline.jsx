@@ -9,13 +9,16 @@ import { EASE_OUT } from '@/lib/motion';
  * quiet proof, staggered in that order.
  *
  * The name is the landing hero's title treatment — each line rises out of a
- * clipped mask. Everything else fades up cleanly. (The site has no
+ * clipped mask. Everything else fades up cleanly, and the block as a whole
+ * settles with a soft spring. (The site has no
  * decode/scramble effect for micro-labels, so none is invented here.)
  * Copy lives in `MEET` (src/data/about.js) and `identity.credential`.
  */
+// the block itself lands with a little weight — a soft spring that runs a
+// hair past and settles, like the helmet's glide
 const container = {
-  hidden: { transition: { staggerChildren: 0.05, staggerDirection: -1 } },
-  show: { transition: { staggerChildren: 0.13, delayChildren: 0.05 } },
+  hidden: { y: 14, transition: { staggerChildren: 0.05, staggerDirection: -1 } },
+  show: { y: 0, transition: { staggerChildren: 0.13, delayChildren: 0.05, y: { type: 'spring', stiffness: 90, damping: 11, mass: 1.1 } } },
 };
 const rise = {
   hidden: { y: '110%', transition: { duration: 0.5, ease: [0.7, 0, 0.84, 0] } },

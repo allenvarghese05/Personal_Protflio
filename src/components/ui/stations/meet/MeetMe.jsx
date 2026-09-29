@@ -42,6 +42,8 @@ export default function MeetMe() {
   // leading-line elements — both read by the scene's frame loop
   const frame = useRef({ left: 0, top: 0, w: 1, h: 1, rootW: 1, rootH: 1 });
   const lines = useRef({ group: null, els: [] });
+  // the headline block — the scene drifts it with the camera (parallax)
+  const headline = useRef(null);
   const reduced = useReducedMotion();
   const [shown, setShown] = useState(false);
   // only render the helmet while its stage is on screen
@@ -119,7 +121,7 @@ export default function MeetMe() {
           camera={{ position: [0, -0.24, 6.4], fov: 30, near: 0.1, far: 50 }}
         >
           <Suspense fallback={null}>
-            <HelmetScene progress={progress} layoutProgress={layoutProgress} frame={frame} lines={lines} still={!!reduced} onReady={onReady} />
+            <HelmetScene progress={progress} layoutProgress={layoutProgress} frame={frame} lines={lines} headline={headline} still={!!reduced} onReady={onReady} />
           </Suspense>
         </Canvas>
 
@@ -168,7 +170,9 @@ export default function MeetMe() {
             className="pointer-events-auto sticky top-0 flex items-end bg-[linear-gradient(to_top,var(--void)_38%,transparent_75%)] px-6 pb-[9vh] sm:px-12 wide:bg-none wide:ml-auto wide:w-1/2 wide:items-center wide:pb-[6vh] wide:pl-0 wide:pr-[7vw]"
             style={{ height: STAGE_H }}
           >
-            <MeetHeadline shown={shown || !!reduced} />
+            <div ref={headline} className="will-change-transform">
+              <MeetHeadline shown={shown || !!reduced} />
+            </div>
           </div>
         </div>
 
