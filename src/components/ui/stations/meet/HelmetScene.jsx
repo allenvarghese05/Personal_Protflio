@@ -785,7 +785,7 @@ function pace(ch, raw, delta, first) {
 const SETTLE = { amp: 0.028, dur: 0.6 };
 const settleHump = (k) => Math.sin(Math.PI * k) * (1 - k);
 
-function RevealDriver({ progressRef, layoutProgressRef, revealRef, layoutRef }) {
+function RevealDriver({ progressRef, layoutProgressRef, revealRef, layoutRef, settleRef }) {
   const first = useRef(true);
   const ch = useRef({ reveal: newChannel(), layout: newChannel(), settle: -1 });
   useFrame((_, delta) => {
@@ -803,6 +803,7 @@ function RevealDriver({ progressRef, layoutProgressRef, revealRef, layoutRef }) 
       bump = SETTLE.amp * settleHump(c.settle / SETTLE.dur);
     }
     layoutRef.current = l + bump;
+    settleRef.current = bump; // the headline lands on the same beat
     first.current = false;
   });
   return null;
@@ -816,7 +817,7 @@ function RevealDriver({ progressRef, layoutProgressRef, revealRef, layoutRef }) 
  *  reads as filmed. It fades out whenever anything is moving, and is off for
  *  reduced motion. */
 const DRIFT = { amp: 0.014 };
-function Rig({ revealRef, layoutRef, camBaseRef, still, headlineRef }) {
+function Rig({ revealRef, layoutRef, camBaseRef, still, headlineRef, settleRef }) {
   const w = useRef(0);
   const txt = useRef('');
   useFrame(({ camera, size, clock }, delta) => {
@@ -839,11 +840,17 @@ function Rig({ revealRef, layoutRef, camBaseRef, still, headlineRef }) {
     camera.lookAt(ox * 0.4, lookY + oy * 0.4, 0);
 
     // the headline sits in the same space: it takes the drift as parallax
-    // (a nearer layer, so a touch more than the helmet does)
+    // (a nearer layer, so a touch more than the helmet does), and the
+    // landing settle — the exact same overshoot, on the same frame, as the
+    // helmet's glide — so the whole frame lands as one
     const el = headlineRef?.current;
     if (el) {
       const px = size.height / 2 / (z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
-      const v = `translate3d(${(-ox * px * 0.9).toFixed(2)}px, ${(oy * px * 0.9).toFixed(2)}px, 0)`;
+      const rest = restingLayout(aspect);
+      const b = settleRef?.current ?? 0;
+      const sx = b * rest.x * (size.width / 2);
+      const sy = -b * rest.y * (size.height / 2);
+      const v = `translate3d(${(sx - ox * px * 0.9).toFixed(2)}px, ${(sy + oy * px * 0.9).toFixed(2)}px, 0)`;
       if (v !== txt.current) {
         txt.current = v;
         el.style.setProperty('transform', v);
@@ -1467,6 +1474,7 @@ export default function HelmetScene({ progress, layoutProgress, frame, lines, he
   const lightRef = useRef(STANDBY);
   const revealRef = useRef(0);
   const layoutRef = useRef(0);
+  const settleRef = useRef(0);
   const moonDir = useRef(new THREE.Vector3(1, 0, 0.4).normalize());
   const aperture = useRef({ x: 0, y: 0, rad: 0, dShell: 0, dFace: 0, crown: new THREE.Vector3(0, 1, 0) });
   const moonPos = useRef(new THREE.Vector3(12, -2, MOON_Z));
@@ -1481,8 +1489,8 @@ export default function HelmetScene({ progress, layoutProgress, frame, lines, he
   return (
     <>
       <color attach="background" args={[PALETTE.void]} />
-      <RevealDriver progressRef={progress} layoutProgressRef={layoutProgress} revealRef={revealRef} layoutRef={layoutRef} />
-      <Rig revealRef={revealRef} layoutRef={layoutRef} camBaseRef={camBase} still={still} headlineRef={headline} />
+      <RevealDriver progressRef={progress} layoutProgressRef={layoutProgress} revealRef={revealRef} layoutRef={layoutRef} settleRef={settleRef} />
+      <Rig revealRef={revealRef} layoutRef={layoutRef} camBaseRef={camBase} still={still} headlineRef={headline} settleRef={settleRef} />
 
       {/* reflections: the moon's disc and the broad patch of sky it lights
           (which also keeps the shadow side from crushing to black), the
