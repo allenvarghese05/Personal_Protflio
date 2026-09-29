@@ -24,6 +24,12 @@ import { FilmEffect } from './FilmEffect';
  *     opens; the direct light, the shadows, the reflections and the rim
  *     shadow on the face all follow its position.
  *
+ *   · Glass: the clear pressure bubble in the opening — it mirrors the moon
+ *     and the room, and its condensation clears the moment the face lights.
+ *
+ * The helmet always aims its opening at the lens (the suit follows half-way),
+ * so the frontal portrait and the shell agree from every position.
+ *
  * `progress` is a ref (0→1) the page writes from scroll; nothing here
  * re-renders per frame. Everything that moves — hinge, camera, moon, focus
  * rack, leading lines — reads ONE value, `reveal`: the same ease over the
@@ -40,6 +46,18 @@ const VISOR_OPEN = HOUSING_Y + 0.03;
 const STANDBY = 0.1; // interior level at rest — a silhouette through the gold
 const WINDOW = { rx: 0.6, ry: 0.5, cy: 0.02 }; // face opening on the unit sphere
 const f = (n) => n.toFixed(4);
+/** A small seeded PRNG, so generated detail (stars, dust) is identical every
+ *  visit and never calls Math.random during render. */
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 /* ── the one clock ────────────────────────────────────────────────────── */
 
@@ -333,6 +351,58 @@ visorMat.onBeforeCompile = (sh) => {
 };
 visorMat.customProgramCacheKey = () => 'visor-slide';
 
+/**
+ * The pressure bubble — clear glass across the opening, just inside the
+ * shell. No diffuse colour at all: it only shows what it reflects (moon,
+ * stars, the headline), with alpha carried by that reflection, plus a mottled
+ * condensation that clears from the centre outward once the face lights.
+ */
+const GLASS = { fog: { value: 1 }, clear: { value: 0 }, glow: { value: STANDBY } };
+const glassMat = cutWindow(
+  new THREE.MeshPhysicalMaterial({ color: '#000000', roughness: 0.03, metalness: 0, transparent: true, depthWrite: false, envMapIntensity: 1.2 }),
+  { keep: 'inside' }
+);
+{
+  const cut = glassMat.onBeforeCompile;
+  glassMat.onBeforeCompile = (sh) => {
+    cut(sh);
+    sh.uniforms.uFog = GLASS.fog;
+    sh.uniforms.uClear = GLASS.clear;
+    sh.uniforms.uGlow = GLASS.glow;
+    sh.fragmentShader = sh.fragmentShader
+      .replace(
+        '#include <common>',
+        /* glsl */ `#include <common>
+        uniform float uFog;
+        uniform float uClear;
+        uniform float uGlow;
+        float gh(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+        float gnoise(vec3 x) {
+          vec3 i = floor(x); vec3 k = fract(x); k = k * k * (3.0 - 2.0 * k);
+          return mix(mix(mix(gh(i), gh(i + vec3(1, 0, 0)), k.x), mix(gh(i + vec3(0, 1, 0)), gh(i + vec3(1, 1, 0)), k.x), k.y),
+                     mix(mix(gh(i + vec3(0, 0, 1)), gh(i + vec3(1, 0, 1)), k.x), mix(gh(i + vec3(0, 1, 1)), gh(i + vec3(1, 1, 1)), k.x), k.y), k.z);
+        }`
+      )
+      .replace(
+        '#include <opaque_fragment>',
+        /* glsl */ `{
+          vec3 n = normalize(vObj);
+          // the glass is only as visible as what it mirrors
+          float refl = dot(outgoingLight, vec3(0.2126, 0.7152, 0.0722));
+          float a = clamp(refl * 1.8, 0.0, 0.6);
+          // condensation: mottled, heavier toward the rim, clearing centre-out
+          float rr = sqrt(clamp(winField(n, 0.0) + 1.0, 0.0, 1.0)); // 0 centre → 1 rim
+          float mottle = 0.6 * gnoise(n * 9.0) + 0.4 * gnoise(n * 21.0);
+          float fog = uFog * smoothstep(uClear - 0.2, uClear + 0.04, rr) * mix(0.5, 1.0, mottle) * mix(0.7, 1.0, rr);
+          vec3 fogCol = vec3(0.22, 0.235, 0.26) * (0.55 + 0.9 * uGlow); // lit from inside by the face
+          vec3 col = mix(outgoingLight, fogCol, clamp(fog, 0.0, 1.0) * 0.9);
+          gl_FragColor = vec4(col, max(a, fog * 0.62) * diffuseColor.a);
+        }`
+      );
+  };
+  glassMat.customProgramCacheKey = () => 'glass-bubble';
+}
+
 /** The visor housing over the crown: a cap of shell with a trimmed lip the
  *  visor slides in under. */
 const housingMat = new THREE.MeshPhysicalMaterial({ color: '#e6e1d7', roughness: 0.34, clearcoat: 0.8, clearcoatRoughness: 0.12, side: THREE.DoubleSide });
@@ -448,7 +518,7 @@ function useGlowTexture() {
 }
 
 function Helmet({ revealRef, lightRef, moonDirRef, apertureRef }) {
-  const s = useRef({ on: false, onAt: 0 });
+  const s = useRef({ on: false, onAt: 0, clear: 0 });
 
   const sphere = useMemo(() => new THREE.SphereGeometry(R, 128, 96), []);
   const gasket = useMemo(() => {
@@ -488,7 +558,7 @@ function Helmet({ revealRef, lightRef, moonDirRef, apertureRef }) {
     []
   );
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
     const st = s.current;
     const r = revealRef.current;
@@ -518,6 +588,13 @@ function Helmet({ revealRef, lightRef, moonDirRef, apertureRef }) {
     const snap = st.on && t - st.onAt < 0.25; // flicker = instant, ramp = eased
     const next = snap ? lt : lightRef.current + (lt - lightRef.current) * 0.08;
     lightRef.current = Math.abs(next - lt) < 5e-4 ? lt : next; // settle, then stop
+
+    // the glass clears from the centre out as the face warms up, then stays
+    // clear; it mists back over if the visor closes again
+    const clearTo = st.on ? THREE.MathUtils.smoothstep(t - st.onAt, 0.12, 1.9) * 1.3 : 0;
+    st.clear = st.on ? clearTo : Math.max(0, st.clear - Math.min(delta, 1 / 20) * 1.5);
+    GLASS.clear.value = st.clear;
+    GLASS.glow.value = lightRef.current;
   });
 
   return (
@@ -556,6 +633,8 @@ function Helmet({ revealRef, lightRef, moonDirRef, apertureRef }) {
       ))}
 
       <Face lightRef={lightRef} moonDirRef={moonDirRef} apertureRef={apertureRef} />
+      {/* the pressure bubble across the opening */}
+      <mesh geometry={sphere} material={glassMat} scale={0.996} renderOrder={1} />
 
       {/* the visor, on its track between shell and housing */}
       <mesh geometry={sphere} material={visorMat} scale={1.02} renderOrder={2} />
@@ -621,14 +700,29 @@ function pace(ch, raw, delta, first) {
  * first runway; `layout` (the glide to the resting layout) over the second —
  * the same pacing, then the same ease.
  */
+/** The helmet has weight: when the glide lands, it runs a hair past its mark
+ *  and eases back once — a single hump, then still. */
+const SETTLE = { amp: 0.028, dur: 0.6 };
+const settleHump = (k) => Math.sin(Math.PI * k) * (1 - k);
+
 function RevealDriver({ progressRef, layoutProgressRef, revealRef, layoutRef }) {
   const first = useRef(true);
-  const ch = useRef({ reveal: newChannel(), layout: newChannel() });
+  const ch = useRef({ reveal: newChannel(), layout: newChannel(), settle: -1 });
   useFrame((_, delta) => {
-    const p = pace(ch.current.reveal, progressRef.current, delta, first.current);
-    const l = pace(ch.current.layout, layoutProgressRef.current, delta, first.current);
+    const c = ch.current;
+    const p = pace(c.reveal, progressRef.current, delta, first.current);
+    const l = revealEase(pace(c.layout, layoutProgressRef.current, delta, first.current));
     revealRef.current = revealEase(THREE.MathUtils.clamp((p - REVEAL_FROM) / (REVEAL_TO - REVEAL_FROM), 0, 1));
-    layoutRef.current = revealEase(l);
+
+    // arrival settle (not on the first frame, and re-armed once it leaves)
+    if (l >= 1 && c.settle < 0 && !first.current && layoutRef.current < 1) c.settle = 0;
+    if (l < 0.98) c.settle = -1;
+    let bump = 0;
+    if (c.settle >= 0 && c.settle < SETTLE.dur) {
+      c.settle = Math.min(SETTLE.dur, c.settle + Math.min(delta, 1 / 20));
+      bump = SETTLE.amp * settleHump(c.settle / SETTLE.dur);
+    }
+    layoutRef.current = l + bump;
     first.current = false;
   });
   return null;
@@ -637,14 +731,31 @@ function RevealDriver({ progressRef, layoutProgressRef, revealRef, layoutRef }) 
 /** The camera dollies in on the reveal, then holds — the layout moves the
  *  helmet, not the camera (so the moon, a far background, stays put). No
  *  pointer parallax. Narrow screens pull back to keep the helmet whole. */
-function Rig({ revealRef }) {
-  useFrame(({ camera, size }) => {
+/** Held moments (at rest, and once everything has settled) get a barely-there
+ *  handheld drift — about 0.15°, on slow, never-repeating sines — so the frame
+ *  reads as filmed. It fades out whenever anything is moving, and is off for
+ *  reduced motion. */
+const DRIFT = { amp: 0.014 };
+function Rig({ revealRef, layoutRef, camBaseRef, still }) {
+  const w = useRef(0);
+  useFrame(({ camera, size, clock }, delta) => {
     const r = revealRef.current;
+    const L = layoutRef.current;
     const aspect = size.width / size.height;
     const z = Math.max(THREE.MathUtils.lerp(CAM.z[0], CAM.z[1], r), 1.25 / (0.268 * aspect));
     const lookY = THREE.MathUtils.lerp(CAM.lookY[0], CAM.lookY[1], r);
-    camera.position.set(0, lookY + CAM.lift, z);
-    camera.lookAt(0, lookY, 0);
+    camBaseRef.current.set(0, lookY + CAM.lift, z);
+
+    const S = THREE.MathUtils.smoothstep;
+    const moving = S(L, 0, 0.04) * (1 - S(L, 0.96, 1));
+    const held = still ? 0 : Math.max(1 - S(r, 0, 0.06), S(r, 0.94, 1) * (1 - moving));
+    w.current += (held - w.current) * (1 - Math.exp(-Math.min(delta, 1 / 20) * 1.2));
+    const t = clock.elapsedTime;
+    const a = DRIFT.amp * w.current;
+    const ox = a * (0.7 * Math.sin(t * 0.31) + 0.3 * Math.sin(t * 0.73 + 1.3));
+    const oy = a * 0.7 * (0.7 * Math.sin(t * 0.23 + 0.6) + 0.3 * Math.sin(t * 0.61 + 2.1));
+    camera.position.set(ox, lookY + CAM.lift + oy, z);
+    camera.lookAt(ox * 0.4, lookY + oy * 0.4, 0);
   });
   return null;
 }
@@ -660,7 +771,12 @@ function restingLayout(aspect) {
  * the resting layout on `layout`, then pin. The moonlight's shadow frame
  * follows the helmet so its shadow on the suit stays exact.
  */
-function Layout({ layoutRef, moonDirRef, lightRef, children }) {
+/** An extra turn of the head relative to the lens, in radians (+ = toward the
+ *  viewer's right). Zero while the portrait is a frontal photo — the hook for
+ *  a later head-turn sequence. */
+const LOOK = { yaw: 0, pitch: 0 };
+
+function Layout({ layoutRef, moonDirRef, lightRef, camBaseRef, bodyRef, headRef, children }) {
   const group = useRef();
   useFrame(({ camera, size }) => {
     const g = group.current;
@@ -672,6 +788,19 @@ function Layout({ layoutRef, moonDirRef, lightRef, children }) {
     const y = CAM.lookY[1] + rest.y * half; // helmet centre, world
     g.position.set(x * L, y * L, 0);
     g.scale.setScalar(THREE.MathUtils.lerp(1, rest.s, L));
+
+    // aim: the helmet's opening points straight at the lens from wherever it
+    // sits in frame (the camera's base pose, not its drift), so the frontal
+    // portrait and the shell always agree. The body follows half-way, like a
+    // head turning over the shoulders.
+    const c = camBaseRef.current;
+    const dx = c.x - g.position.x;
+    const dy = c.y - g.position.y;
+    const dz = c.z - g.position.z;
+    const yaw = Math.atan2(dx, dz) + LOOK.yaw;
+    const pitch = -Math.atan2(dy, Math.hypot(dx, dz)) + LOOK.pitch;
+    bodyRef.current?.rotation.set(pitch * 0.5, yaw * 0.5, 0, 'YXZ');
+    headRef.current?.rotation.set(pitch * 0.5, yaw * 0.5, 0, 'YXZ');
 
     const light = lightRef.current;
     if (light) {
@@ -714,6 +843,97 @@ function ReflectionRoom({ dirtyRef, children }) {
     gl.autoClear = ac;
   });
   return createPortal(children, room);
+}
+
+/** A sparse starfield for the reflection map: pinpricks the clearcoat and the
+ *  glass pick up. Static, generated once from a fixed seed. */
+const starGeo = (() => {
+  const rand = rng(7);
+  const n = 700;
+  const pos = new Float32Array(n * 3);
+  const col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const u = rand() * 2 - 1;
+    const th = rand() * Math.PI * 2;
+    const q = Math.sqrt(1 - u * u);
+    pos.set([q * Math.cos(th) * 40, u * 40, q * Math.sin(th) * 40], i * 3);
+    const b = 0.25 + Math.pow(rand(), 6) * 2.2; // mostly faint, a few bright
+    col.set([b * 0.92, b * 0.96, b], i * 3);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
+})();
+
+function Stars() {
+  return (
+    <points geometry={starGeo}>
+      <pointsMaterial vertexColors size={1.6} sizeAttenuation={false} toneMapped={false} />
+    </points>
+  );
+}
+
+/**
+ * The headline, as the helmet sees it: the name on a panel off to the right
+ * and toward the viewer — where the text sits in frame — so once the helmet
+ * glides beside it, the shell and glass carry a faint, mirrored, curved
+ * reflection of it. Fades in with the layout; the map re-renders only while
+ * that changes.
+ */
+function HeadlineReflection({ layoutRef, dirtyRef }) {
+  const mesh = useRef();
+  const last = useRef(-1);
+  const canvas = useMemo(() => {
+    const c = document.createElement('canvas');
+    c.width = 1024;
+    c.height = 512;
+    return c;
+  }, []);
+  const tex = useMemo(() => new THREE.CanvasTexture(canvas), [canvas]);
+
+  useEffect(() => {
+    // draw in the site's display face once it has loaded
+    const probe = document.createElement('span');
+    probe.className = 'font-display';
+    document.body.appendChild(probe);
+    const family = getComputedStyle(probe).fontFamily || 'sans-serif';
+    probe.remove();
+    let live = true;
+    const draw = () => {
+      if (!live) return;
+      const g = canvas.getContext('2d');
+      g.clearRect(0, 0, 1024, 512);
+      g.fillStyle = '#fff';
+      g.font = `600 170px ${family}`;
+      g.fillText('Allen Shaji', 30, 210);
+      g.fillText('Varghese', 30, 390);
+      const m = mesh.current;
+      if (m) m.material.map.needsUpdate = true;
+      dirtyRef.current = true;
+    };
+    draw();
+    document.fonts?.ready.then(draw);
+    return () => {
+      live = false;
+    };
+  }, [canvas, dirtyRef]);
+
+  useFrame(() => {
+    const m = mesh.current;
+    const l = layoutRef.current;
+    if (!m || l === last.current) return;
+    last.current = l;
+    m.material.color.setScalar(1.1 * THREE.MathUtils.smoothstep(l, 0.45, 1));
+    dirtyRef.current = true;
+  });
+
+  return (
+    <mesh ref={mesh} position={[4.2, 0.35, 3.3]} onUpdate={(self) => self.lookAt(0, 0, 0)}>
+      <planeGeometry args={[3.6, 1.8]} />
+      <meshBasicMaterial map={tex} color="#000000" transparent toneMapped={false} side={THREE.DoubleSide} />
+    </mesh>
+  );
 }
 
 /* ── the moon ─────────────────────────────────────────────────────────── */
@@ -880,22 +1100,84 @@ const beamFrag = /* glsl */ `
   }
 `;
 
+/** Dust drifting through the beam: seeds for position along the shaft, angle,
+ *  radius and phase. Lit only inside the beam. */
+const DUST_N = 420;
+const dustGeo = (() => {
+  const rand = rng(11);
+  const seed = new Float32Array(DUST_N * 4);
+  for (let i = 0; i < DUST_N * 4; i++) seed[i] = rand();
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(DUST_N * 3), 3));
+  g.setAttribute('seed', new THREE.BufferAttribute(seed, 4));
+  g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e4); // positions come from the shader
+  return g;
+})();
+const dustVert = /* glsl */ `
+  attribute vec4 seed;
+  uniform float uLen;
+  uniform float uTime;
+  uniform float uPx;
+  varying float vS;
+  varying float vTw;
+  varying float vEnds;
+  void main() {
+    // drift slowly down the shaft (moon → crown), with a lazy sideways sway
+    float u = fract(seed.x - uTime * 0.0045 * (0.5 + seed.w));
+    float rad = mix(0.62, 0.95, u) * sqrt(seed.z) * 0.92;
+    float ang = seed.y * 6.2832 + uTime * 0.04 * (seed.w - 0.5);
+    vec3 p = vec3(cos(ang) * rad, (u - 0.5) * uLen, sin(ang) * rad);
+    p.x += sin(uTime * 0.13 + seed.w * 6.2832) * 0.035;
+    vS = 1.0 - u;
+    vEnds = smoothstep(0.0, 0.06, u) * (1.0 - smoothstep(0.94, 1.0, u));
+    vTw = 0.55 + 0.45 * sin(uTime * 0.6 + seed.w * 40.0);
+    vec4 mv = modelViewMatrix * vec4(p, 1.0);
+    gl_PointSize = clamp((0.7 + 1.6 * fract(seed.w * 13.1)) * uPx / max(-mv.z, 0.5), 1.0, 7.0);
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+const dustFrag = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uOpacity;
+  uniform float uReach;
+  varying float vS;
+  varying float vTw;
+  varying float vEnds;
+  void main() {
+    float d = length(gl_PointCoord - 0.5);
+    float disc = 1.0 - smoothstep(0.1, 0.5, d);
+    float inBeam = 1.0 - smoothstep(uReach - 0.12, uReach, vS);
+    gl_FragColor = vec4(uColor, disc * inBeam * vEnds * vTw * uOpacity);
+  }
+`;
+
 /**
  * A soft shaft of moonlight from the moon down onto the helmet's crown. It
  * fades in as the moon nears the top of its arc, its edge travels down to
  * the crown, and then it thins to a faint trace once the layout settles.
  * Updates only when something it depends on moves.
  */
-function Moonbeam({ revealRef, layoutRef, moonPosRef, apertureRef }) {
+function Moonbeam({ revealRef, layoutRef, moonPosRef, apertureRef, still }) {
   const mesh = useRef();
+  const dust = useRef();
+  const dustUniforms = useMemo(
+    () => ({ uColor: { value: new THREE.Color(MOON_LIGHT) }, uOpacity: { value: 0 }, uReach: { value: 0 }, uLen: { value: 1 }, uTime: { value: 0 }, uPx: { value: 11 } }),
+    []
+  );
   const last = useRef({ r: -1, l: -1 });
   const tmp = useMemo(() => ({ d: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0), c: new THREE.Vector3(), m: new THREE.Vector3() }), []);
   const uniforms = useMemo(() => ({ uColor: { value: new THREE.Color(MOON_LIGHT) }, uOpacity: { value: 0 }, uReach: { value: 0 } }), []);
 
-  useFrame(() => {
+  useFrame(({ clock, viewport }) => {
     const m = mesh.current;
     const crown = apertureRef.current.crown;
     if (!m) return;
+    // the dust keeps drifting (slowly) while the beam is there
+    const du = dust.current?.material.uniforms;
+    if (du) {
+      if (!still) du.uTime.value = clock.elapsedTime;
+      du.uPx.value = 11 * viewport.dpr;
+    }
     const r = revealRef.current;
     const l = layoutRef.current;
     const k = last.current;
@@ -915,15 +1197,87 @@ function Moonbeam({ revealRef, layoutRef, moonPosRef, apertureRef }) {
     u.uReach.value = beamReach(r);
     u.uOpacity.value = BEAM.peak * THREE.MathUtils.smoothstep(r, BEAM.fadeIn[0], BEAM.fadeIn[1]) * THREE.MathUtils.lerp(1, BEAM.rest, l);
     m.visible = u.uOpacity.value > 1e-4;
+
+    const dp = dust.current;
+    if (dp && du) {
+      dp.position.copy(m.position);
+      dp.quaternion.copy(m.quaternion);
+      du.uLen.value = len;
+      du.uReach.value = u.uReach.value;
+      du.uOpacity.value = Math.min(0.9, u.uOpacity.value * 5.5);
+      dp.visible = m.visible;
+    }
   });
 
   return (
-    <mesh ref={mesh} renderOrder={1} visible={false}>
-      {/* open-ended: moon end (top) ~ the moon's size, crown end a little narrower */}
-      <cylinderGeometry args={[0.95, 0.62, 1, 48, 1, true]} />
-      <shaderMaterial uniforms={uniforms} vertexShader={beamVert} fragmentShader={beamFrag} transparent depthWrite={false} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} />
-    </mesh>
+    <>
+      <mesh ref={mesh} renderOrder={1} visible={false}>
+        {/* open-ended: moon end (top) ~ the moon's size, crown end a little narrower */}
+        <cylinderGeometry args={[0.95, 0.62, 1, 48, 1, true]} />
+        <shaderMaterial uniforms={uniforms} vertexShader={beamVert} fragmentShader={beamFrag} transparent depthWrite={false} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} />
+      </mesh>
+      <points ref={dust} geometry={dustGeo} renderOrder={1} visible={false} frustumCulled={false}>
+        <shaderMaterial uniforms={dustUniforms} vertexShader={dustVert} fragmentShader={dustFrag} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+      </points>
+    </>
   );
+}
+
+/**
+ * Foreground: a couple of motes of dust very close to the lens. The focus
+ * blur turns them into soft discs, and the dolly carries them out through
+ * the frame edge — a layer in front of the subject, for depth.
+ */
+const MOTES = [
+  { p: [0.52, -0.63, 5.0], s: 0.05, o: 0.26 },
+  { p: [-0.6, -0.18, 4.85], s: 0.035, o: 0.18 },
+];
+function ForegroundMotes({ revealRef }) {
+  const refs = useRef([]);
+  const last = useRef(-1);
+  const glowTex = useGlowTexture();
+  useFrame(() => {
+    const r = revealRef.current;
+    if (r === last.current) return;
+    last.current = r;
+    const k = THREE.MathUtils.smoothstep(r, 0.0, 0.12) * (1 - THREE.MathUtils.smoothstep(r, 0.55, 0.8));
+    refs.current.forEach((sp, i) => {
+      if (!sp) return;
+      sp.material.opacity = MOTES[i].o * k;
+      sp.visible = k > 1e-3;
+    });
+  });
+  return MOTES.map((m, i) => (
+    <sprite key={i} ref={(el) => (refs.current[i] = el)} position={m.p} scale={m.s} renderOrder={3}>
+      <spriteMaterial map={glowTex} color={MOON_LIGHT} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+    </sprite>
+  ));
+}
+
+/**
+ * Hitch-free entrance: compile every material off the main thread (where the
+ * driver allows) before the first frame is drawn, then tell the page, which
+ * fades the canvas in.
+ */
+function Warmup({ onReady }) {
+  const gl = useThree((st) => st.gl);
+  const scene = useThree((st) => st.scene);
+  const camera = useThree((st) => st.camera);
+  useEffect(() => {
+    let live = true;
+    const done = () => {
+      if (live) onReady?.();
+      live = false;
+    };
+    const job = gl.compileAsync ? gl.compileAsync(scene, camera) : Promise.resolve(gl.compile(scene, camera));
+    job.then(done, done);
+    const guard = setTimeout(done, 1500); // never leave the stage blank
+    return () => {
+      live = false;
+      clearTimeout(guard);
+    };
+  }, [gl, scene, camera, onReady]);
+  return null;
 }
 
 /* ── overlay + finish, on the same clock ──────────────────────────────── */
@@ -1010,7 +1364,10 @@ function Finish({ revealRef, apertureRef, frameRef }) {
   );
 }
 
-export default function HelmetScene({ progress, layoutProgress, frame, lines }) {
+// fetch the portrait as soon as this module loads (well before the room opens)
+if (typeof window !== 'undefined') useTexture.preload('/meet/allen-face.webp');
+
+export default function HelmetScene({ progress, layoutProgress, frame, lines, still = false, onReady }) {
   const lightRef = useRef(STANDBY);
   const revealRef = useRef(0);
   const layoutRef = useRef(0);
@@ -1021,17 +1378,22 @@ export default function HelmetScene({ progress, layoutProgress, frame, lines }) 
   const moonDisc = useRef();
   const moonSky = useRef();
   const envDirty = useRef(true);
+  const camBase = useRef(new THREE.Vector3(0, 0, CAM.z[0]));
+  const body = useRef();
+  const head = useRef();
 
   return (
     <>
       <color attach="background" args={[PALETTE.void]} />
       <RevealDriver progressRef={progress} layoutProgressRef={layoutProgress} revealRef={revealRef} layoutRef={layoutRef} />
-      <Rig revealRef={revealRef} />
+      <Rig revealRef={revealRef} layoutRef={layoutRef} camBaseRef={camBase} still={still} />
 
-      {/* reflections: only what the moon puts there — its disc, and the broad
-          patch of sky it lights (which also keeps the shadow side from
-          crushing to black) */}
+      {/* reflections: the moon's disc and the broad patch of sky it lights
+          (which also keeps the shadow side from crushing to black), the
+          stars, and — once the layout resolves — the headline */}
       <ReflectionRoom dirtyRef={envDirty}>
+        <Stars />
+        <HeadlineReflection layoutRef={layoutRef} dirtyRef={envDirty} />
         <Lightformer ref={moonSky} form="circle" intensity={0.45} color={MOON_LIGHT} position={[8, -1, 4]} scale={16} />
         <Lightformer ref={moonDisc} form="circle" intensity={1} color={MOON_LIGHT} position={[8, -1, 4]} scale={1.3} />
       </ReflectionRoom>
@@ -1055,19 +1417,21 @@ export default function HelmetScene({ progress, layoutProgress, frame, lines }) 
       />
       <Moon revealRef={revealRef} moonDirRef={moonDir} moonPosRef={moonPos} discRef={moonDisc} skyRef={moonSky} envDirtyRef={envDirty} />
 
-      <Layout layoutRef={layoutRef} moonDirRef={moonDir} lightRef={moonLight}>
-        {/* the body squares up to the viewer; the head turns a touch more */}
-        <group rotation={[0.03, -0.1, 0]}>
+      <Layout layoutRef={layoutRef} moonDirRef={moonDir} lightRef={moonLight} camBaseRef={camBase} bodyRef={body} headRef={head}>
+        {/* aimed at the lens by <Layout>: the body half-way, the head the rest */}
+        <group ref={body}>
           <Suit />
-          <group rotation={[0.01, -0.1, 0]}>
+          <group ref={head}>
             <Helmet revealRef={revealRef} lightRef={lightRef} moonDirRef={moonDir} apertureRef={aperture} />
           </group>
         </group>
       </Layout>
 
-      <Moonbeam revealRef={revealRef} layoutRef={layoutRef} moonPosRef={moonPos} apertureRef={aperture} />
+      <Moonbeam revealRef={revealRef} layoutRef={layoutRef} moonPosRef={moonPos} apertureRef={aperture} still={still} />
+      <ForegroundMotes revealRef={revealRef} />
       <LeadingLines revealRef={revealRef} apertureRef={aperture} frameRef={frame} linesRef={lines} />
       <Finish revealRef={revealRef} apertureRef={aperture} frameRef={frame} />
+      <Warmup onReady={onReady} />
     </>
   );
 }

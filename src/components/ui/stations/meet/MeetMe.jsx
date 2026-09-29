@@ -1,5 +1,5 @@
 'use client';
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useReducedMotion } from 'framer-motion';
 import HelmetScene from './HelmetScene';
@@ -46,6 +46,9 @@ export default function MeetMe() {
   const [shown, setShown] = useState(false);
   // only render the helmet while its stage is on screen
   const [visible, setVisible] = useState(true);
+  // shaders compiled: start drawing, and fade the canvas in
+  const [ready, setReady] = useState(false);
+  const onReady = useCallback(() => setReady(true), []);
 
   useEffect(() => {
     const el = section.current;
@@ -107,15 +110,16 @@ export default function MeetMe() {
       {/* the pinned stage — stays put for the whole section */}
       <div ref={stage} className="meet-stage sticky top-0 w-full overflow-hidden" style={{ height: STAGE_H }}>
         <Canvas
-          className="meet-canvas !absolute inset-0"
+          className="meet-canvas !absolute inset-0 transition-opacity delay-100 duration-700"
+          style={{ opacity: ready ? 1 : 0 }}
           dpr={[1, 2]}
           shadows
-          frameloop={visible ? 'always' : 'never'}
+          frameloop={visible && ready ? 'always' : 'never'}
           gl={{ antialias: false, alpha: false, powerPreference: 'high-performance' }}
           camera={{ position: [0, -0.24, 6.4], fov: 30, near: 0.1, far: 50 }}
         >
           <Suspense fallback={null}>
-            <HelmetScene progress={progress} layoutProgress={layoutProgress} frame={frame} lines={lines} />
+            <HelmetScene progress={progress} layoutProgress={layoutProgress} frame={frame} lines={lines} still={!!reduced} onReady={onReady} />
           </Suspense>
         </Canvas>
 
