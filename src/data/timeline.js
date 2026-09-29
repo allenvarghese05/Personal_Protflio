@@ -12,6 +12,8 @@
 export const identity = {
   name: 'Allen Shaji Varghese',
   kicker: 'SOFTWARE ENGINEERING · DREXEL · CLASS OF 2027',
+  // the credential line under the name — landing hero + Meet Me share it
+  credential: 'Software Engineer — Drexel University ’27',
   badge: 'NASA Space Apps 2025 — Global Nominee · top 1,219 of 11,500+ teams',
   tagline:
     'Building products that solve real problems through AI and technology.',

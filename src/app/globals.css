@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* wide frames (landscape): the Meet Me helmet sits left, text right.
+   Keep in step with restingLayout() in HelmetScene. */
+@custom-variant wide (@media (min-aspect-ratio: 23/20));
+
 /* ============================================================
    MISSION ALLEN — Space Odyssey Design System
    ============================================================ */

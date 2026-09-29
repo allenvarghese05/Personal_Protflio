@@ -3,30 +3,40 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useReducedMotion } from 'framer-motion';
 import HelmetScene from './HelmetScene';
-import { identity } from '@/data/timeline';
+import MeetHeadline from './MeetHeadline';
+import { MEET } from '@/data/about';
 
 /**
- * Meet Me — the opening of the About room. The helmet is pinned while the
- * visitor scrolls through a tall runway; scroll progress drives the visor
- * lift (the scene adds the weight + settle), and the interior light powers
- * up as it clears the face. The rest of the room continues below.
+ * Meet Me — the opening of the About room. One stage stays pinned for the
+ * whole section while a column of content scrolls past it:
+ *
+ *   1. the reveal runway — the visor slides up, the camera dollies in, the
+ *      moon rises (scene clock: `progress`)
+ *   2. one stage-height more — the helmet glides to the left third while the
+ *      headline rises into place on the right (scene clock: `layoutProgress`)
+ *   3. story blocks (MEET.story) scroll past on the right; the helmet stays
+ *      pinned left until the last one has gone by
  *
  * Scroll is read from the Mission Control stage (the room's own scroll
- * container), written to a ref — no React renders per scroll.
+ * container), written to refs — no React renders per scroll.
  */
-const RUNWAY_VH = 260; // how long the helmet stays pinned
+const REVEAL_VH = 170; // scroll length of the reveal runway
+const STAGE_H = 'calc(100dvh - 3.5rem)'; // the stage: the viewport under the nav
 
 export default function MeetMe() {
   const section = useRef(null);
+  const runway = useRef(null);
   const progress = useRef(0);
+  const layoutProgress = useRef(0);
   const hint = useRef(null);
-  const title = useRef(null);
+  const label = useRef(null);
   const stage = useRef(null);
   // the stage's place in the Mission Control root (for the dot grid) and the
   // leading-line elements — both read by the scene's frame loop
   const frame = useRef({ left: 0, top: 0, w: 1, h: 1, rootW: 1, rootH: 1 });
   const lines = useRef({ group: null, els: [] });
   const reduced = useReducedMotion();
+  const [shown, setShown] = useState(false);
   // only render the helmet while its stage is on screen
   const [visible, setVisible] = useState(true);
 
@@ -52,24 +62,29 @@ export default function MeetMe() {
     measure();
     if (reduced) {
       progress.current = 1;
-      window.addEventListener('resize', measure);
+      layoutProgress.current = 1;
       if (hint.current) hint.current.style.opacity = '0';
-      if (title.current) title.current.style.opacity = '1';
+      if (label.current) label.current.style.opacity = '0';
+      window.addEventListener('resize', measure);
       return () => window.removeEventListener('resize', measure);
     }
+    let isShown = false;
     const update = () => {
-      // section top within the scroller, independent of positioned ancestors
+      // scroll into the section, independent of positioned ancestors
       const top = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
-      const span = el.offsetHeight - scroller.clientHeight;
-      const p = span > 0 ? (scroller.scrollTop - top) / span : 0;
-      progress.current = Math.min(1, Math.max(0, p));
+      const s = scroller.scrollTop - top;
+      const run = runway.current?.offsetHeight || 1;
+      const h = stage.current?.offsetHeight || 1;
+      const p1 = Math.min(1, Math.max(0, s / run));
+      const p2 = Math.min(1, Math.max(0, (s - run) / h));
+      progress.current = p1;
+      layoutProgress.current = p2;
       measure();
-      if (hint.current) hint.current.style.opacity = String(Math.max(0, 1 - progress.current * 6));
-      if (title.current) {
-        const k = Math.min(1, Math.max(0, (progress.current - 0.72) / 0.18));
-        title.current.style.opacity = String(k);
-        title.current.style.transform = `translateY(${(1 - k) * 14}px)`;
-      }
+      if (hint.current) hint.current.style.opacity = String(Math.max(0, 1 - p1 * 6));
+      if (label.current) label.current.style.opacity = String(Math.max(0, 1 - p2 * 3));
+      // the headline resolves as the helmet settles (with hysteresis)
+      const next = isShown ? p2 > 0.3 : p2 > 0.6;
+      if (next !== isShown) setShown((isShown = next));
     };
     update();
     scroller.addEventListener('scroll', update, { passive: true });
@@ -81,8 +96,9 @@ export default function MeetMe() {
   }, [reduced]);
 
   return (
-    <section ref={section} className="relative" style={{ height: `${RUNWAY_VH}vh` }} aria-label="Meet Allen">
-      <div ref={stage} className="meet-stage sticky top-0 h-[calc(100dvh-3.5rem)] w-full overflow-hidden">
+    <section ref={section} className="relative" aria-label="Meet Allen">
+      {/* the pinned stage — stays put for the whole section */}
+      <div ref={stage} className="meet-stage sticky top-0 w-full overflow-hidden" style={{ height: STAGE_H }}>
         <Canvas
           className="meet-canvas !absolute inset-0"
           dpr={[1, 2]}
@@ -92,7 +108,7 @@ export default function MeetMe() {
           camera={{ position: [0, -0.24, 6.4], fov: 30, near: 0.1, far: 50 }}
         >
           <Suspense fallback={null}>
-            <HelmetScene progress={progress} frame={frame} lines={lines} />
+            <HelmetScene progress={progress} layoutProgress={layoutProgress} frame={frame} lines={lines} />
           </Suspense>
         </Canvas>
 
@@ -117,7 +133,7 @@ export default function MeetMe() {
           ))}
         </svg>
 
-        <div className="pointer-events-none absolute inset-x-0 top-8 text-center">
+        <div ref={label} className="pointer-events-none absolute inset-x-0 top-8 text-center">
           <div className="mc-label">Meet me</div>
         </div>
 
@@ -125,11 +141,40 @@ export default function MeetMe() {
           <span className="font-mono text-micro uppercase tracking-[0.22em] text-ink-muted">Scroll to open the visor</span>
           <span className="meet-cue" aria-hidden />
         </div>
+      </div>
 
-        <div ref={title} className="pointer-events-none absolute inset-x-0 bottom-10 text-center" style={{ opacity: 0 }}>
-          <div className="font-display text-3xl font-semibold tracking-[-0.03em] text-ink sm:text-4xl">{identity.name}</div>
-          <div className="mt-2 px-6 font-mono text-micro uppercase tracking-[0.16em] text-ink-subtle sm:tracking-[0.22em]">Software engineer · Drexel University ’27</div>
+      {/* the scrolling column, laid over the pinned stage */}
+      <div className="pointer-events-none relative z-10" style={{ marginTop: `calc(-1 * (${STAGE_H}))` }}>
+        {/* 1 · the reveal runway, then 2 · one stage-height for the glide */}
+        <div ref={runway} aria-hidden style={{ height: `${REVEAL_VH}vh` }} />
+        <div aria-hidden style={{ height: STAGE_H }} />
+
+        {/* the headline: centred on the resting helmet's height (wide), or
+            under it (narrow) */}
+        <div
+          className="pointer-events-auto flex items-end bg-[linear-gradient(to_top,var(--void)_38%,transparent_75%)] px-6 pb-[9vh] sm:px-12 wide:bg-none wide:ml-auto wide:w-1/2 wide:items-center wide:pb-[6vh] wide:pl-0 wide:pr-[7vw]"
+          style={{ height: STAGE_H }}
+        >
+          <MeetHeadline shown={shown || !!reduced} />
         </div>
+
+        {/* 3 · the story continues on the right while the helmet stays pinned */}
+        {MEET.story.map((b) => (
+          <article
+            key={b.id}
+            className="pointer-events-auto mx-6 mb-[30vh] rounded-xl bg-void/80 p-6 backdrop-blur-sm sm:mx-12 wide:mx-0 wide:ml-auto wide:w-1/2 wide:rounded-none wide:bg-transparent wide:p-0 wide:pr-[7vw] wide:backdrop-blur-none"
+          >
+            <div className="max-w-[34rem]">
+              {b.kicker && <div className="mc-label">{b.kicker}</div>}
+              {b.title && <h3 className="font-display mt-3 text-2xl font-semibold tracking-[-0.02em] text-ink">{b.title}</h3>}
+              {[].concat(b.body ?? []).map((para) => (
+                <p key={para} className="mt-4 text-body leading-relaxed text-ink-muted">
+                  {para}
+                </p>
+              ))}
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );

@@ -14,6 +14,24 @@ export const ABOUT = {
   ],
 };
 
+/**
+ * Meet Me — the headline beside the helmet once the visor is open, and the
+ * story blocks that scroll past it on the right.
+ *
+ * PLACEHOLDER COPY — TODO(allen): `mission` and `proof` are stand-ins until
+ * the wording is final. Edit them here; nothing else needs to change.
+ */
+export const MEET = {
+  // one sentence: the "why", not the "what"
+  mission: 'I build things people actually use — from AI tools with real users to fintech systems that move real money.',
+  // quiet proof: short labels, not a résumé list
+  proof: ['Overflow', 'LearnFlowAI', 'NASA Space Apps Nominee'],
+  // further story blocks, scrolled past on the right while the helmet stays
+  // pinned left. Each: { id, kicker?, title?, body? } — body is a string or
+  // an array of paragraphs.
+  story: [],
+};
+
 // Newest first. `dates` stays blank where it isn't on record yet.
 export const JOURNEY = [
   {
