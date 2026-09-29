@@ -1,30 +1,45 @@
-// Bakes the dotted Earth for the Meet Me globe: samples an even-ish lat/lng
-// grid, keeps the points that fall on land, and writes them as Int16 pairs
-// (lat × 100, lng × 100) to public/meet/earth-dots.bin — a few dozen KB,
-// shipped with the site so nothing is fetched at runtime.
+// Bakes the dotted Earth for the Meet Me globe from the Earth texture the
+// site already ships (public/cosmic/planets/earth.jpg, equirectangular):
+// samples an even-ish lat/lng grid, keeps the points that land on land (the
+// ocean is a uniform blue, so land = "not blue"), and writes them as Int16
+// pairs (lat × 100, lng × 100) to public/meet/earth-dots.bin.
 //
 //   node scripts/bake-earth-dots.mjs
 //
-// Land outline: Natural Earth 1:110m (public domain).
+// Local only — nothing is downloaded.
 import { writeFileSync, mkdirSync } from 'node:fs';
-import { geoContains } from 'd3-geo';
+import sharp from 'sharp';
 
-const SRC = 'https://raw.githubusercontent.com/martynafford/natural-earth-geojson/refs/heads/master/110m/physical/ne_110m_land.json';
-const STEP = 1.5; // degrees between dots, along a parallel at the equator
+const SRC = new URL('../public/cosmic/planets/earth.jpg', import.meta.url);
 const OUT = new URL('../public/meet/earth-dots.bin', import.meta.url);
+const STEP = 1.4; // degrees between dots along a parallel at the equator
+const LAT = [-58, 72]; // skip Antarctica and the texture's hazy polar cap
 
-const res = await fetch(SRC);
-if (!res.ok) throw new Error(`land data: HTTP ${res.status}`);
-const land = await res.json();
+const { data, info } = await sharp(SRC.pathname).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+const { width: W, height: H } = info;
+const px = (lng, lat) => {
+  const x = Math.min(W - 1, Math.max(0, Math.round(((lng + 180) / 360) * W)));
+  const y = Math.min(H - 1, Math.max(0, Math.round(((90 - lat) / 180) * H)));
+  const i = (y * W + x) * 3;
+  return [data[i], data[i + 1], data[i + 2]];
+};
+// land when the pixel isn't ocean-blue (vegetation, desert, ice, cities)
+const isLand = (lng, lat) => {
+  const [r, g, b] = px(lng, lat);
+  return b < r + 18 || r + g > b * 1.45;
+};
+// a little majority vote so single noisy pixels (lakes, specks) don't count
+const land = (lng, lat) => {
+  let n = 0;
+  for (const [dx, dy] of [[0, 0], [0.35, 0], [-0.35, 0], [0, 0.35], [0, -0.35]]) n += isLand(lng + dx, lat + dy) ? 1 : 0;
+  return n >= 3;
+};
 
 const pts = [];
-for (let lat = -84; lat <= 84; lat += STEP) {
-  // fewer dots toward the poles, so the spacing on the sphere stays even
+for (let lat = LAT[0]; lat <= LAT[1]; lat += STEP) {
   const step = STEP / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
   const offset = (Math.round(lat / STEP) % 2) * step * 0.5; // stagger rows
-  for (let lng = -180 + offset; lng < 180; lng += step) {
-    if (land.features.some((f) => geoContains(f, [lng, lat]))) pts.push(lat, lng);
-  }
+  for (let lng = -180 + offset; lng < 180; lng += step) if (land(lng, lat)) pts.push(lat, lng);
 }
 
 const buf = new Int16Array(pts.length);

@@ -2,8 +2,12 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatShotDate, formatCoords } from '@/data/studio';
+import DitherReveal from './DitherReveal';
 
 const EASE = [0.16, 1, 0.3, 1];
+/** Photos (by index) shown as a dither the cursor develops — a trial on the
+ *  first one; add indexes (or drop the check) to roll it out. */
+const DITHER_PHOTOS = [0];
 
 /**
  * The immersive photo viewer — the photograph is the whole show. It zooms
@@ -82,7 +86,7 @@ function InfoCard({ p }) {
 }
 
 /** Thumbnail first, the full image fades in over it once decoded. */
-function Progressive({ p, className }) {
+function Progressive({ p, className, dither = false }) {
   // remounts per photo (keyed by src upstream), so this starts false each time
   const [loaded, setLoaded] = useState(false);
   return (
@@ -97,6 +101,7 @@ function Progressive({ p, className }) {
         className="absolute inset-0 h-full w-full object-cover transition-opacity duration-500"
         style={{ opacity: loaded ? 1 : 0 }}
       />
+      {dither && loaded && <DitherReveal src={p.src} />}
     </div>
   );
 }
@@ -207,7 +212,7 @@ export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }
               '--tint': tint,
             }}
           >
-            <Progressive p={p} className="w-full" />
+            <Progressive p={p} className="w-full" dither={DITHER_PHOTOS.includes(index)} />
           </motion.div>
         </AnimatePresence>
 
