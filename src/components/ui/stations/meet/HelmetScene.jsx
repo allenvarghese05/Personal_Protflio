@@ -100,14 +100,13 @@ const PLATE_DEPTH = 0.8;
 /** Plate geometry size — it only has to cover the aperture from any camera
  *  position on the dolly; the portrait is scaled inside it. */
 const PLATE = 1.8;
-/** The head in the portrait (hair-top → chin, ear → ear), in UV, measured
- *  from public/meet/allen-face.webp. Re-measure if the image changes. */
-const HEAD = { cx: 0.5, cy: 0.556, w: 0.616, h: 0.691 };
-/** Eye line in the portrait's UV (v) — the power-on waits for the visor's
- *  edge to clear it. */
-const EYES_V = 0.502;
-/** The head fills this much of the visible opening — the rest is even margin. */
-const HEAD_FILL = 0.8;
+/** The face in the portrait, in UV (v up): its centre, between the eyes and
+ *  the mouth; its ear-to-ear width; and the chin — measured from
+ *  public/meet/allen-face.webp. Re-measure if the image changes. */
+const FACE = { cx: 0.5, cy: 0.474, w: 0.514, chin: 0.21 };
+/** Ear-to-ear fills this much of the opening's width. The crown of the hair
+ *  runs up under the rim, as a face in a real visor does. */
+const FACE_FILL = 0.8;
 /** The opening's visible rim (just inside the gasket), helmet space — its
  *  on-screen outline is what the portrait is centred and fitted to. */
 const RIM = Array.from({ length: 24 }, (_, i) => {
@@ -174,7 +173,7 @@ const faceFrag = /* glsl */ `
  * one), squares up to the camera, and scales the head to fit the aperture.
  * It also reports the aperture's screen position and the focus distances.
  */
-function Face({ lightRef, moonDirRef, apertureRef, eyeRef }) {
+function Face({ lightRef, moonDirRef, apertureRef }) {
   const mesh = useRef();
   const mat = useRef();
   const tex = useTexture('/meet/allen-face.webp', (t) => {
@@ -186,7 +185,7 @@ function Face({ lightRef, moonDirRef, apertureRef, eyeRef }) {
       uMap: { value: tex },
       uLight: { value: STANDBY },
       uUvScale: { value: 1 },
-      uHead: { value: new THREE.Vector2(HEAD.cx, HEAD.cy) },
+      uHead: { value: new THREE.Vector2(FACE.cx, FACE.cy) },
       uCam: { value: new THREE.Vector3() },
       uMoon: { value: new THREE.Vector3(0, 0, 1) },
       uToHelmet: { value: new THREE.Matrix4() },
@@ -227,29 +226,25 @@ function Face({ lightRef, moonDirRef, apertureRef, eyeRef }) {
     const dW = W.distanceTo(camera.position);
     const D = dW + depth; // plate distance from the lens
 
-    // sit on the ray through the outline's centre, behind the glass, square
-    // to the lens
+    // sit on the ray through the outline's centre, behind the glass, and
+    // face the lens on both axes: lookAt aims the plate's normal at the
+    // camera's true 3D position (yaw and pitch), every frame
     const ray = tmp.ray.set(cx, cy, 0.5).unproject(camera).sub(camera.position).normalize();
     const P = tmp.p.copy(camera.position).addScaledVector(ray, D);
     plate.position.copy(helmet.worldToLocal(P));
     plate.lookAt(camera.position);
 
-    // fit the head to the outline's half-extents, taken at the plate's distance
+    // fit the face to the outline's half-extents, taken at the plate's
+    // distance: ear-to-ear across the opening, but never so big the chin
+    // drops under the rim
     const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
     const ay = ((y1 - y0) / 2) * D * tanH;
     const ax = ((x1 - x0) / 2) * D * tanH * (size.width / size.height);
+    const byWidth = (FACE_FILL * 2 * ax) / FACE.w;
+    const byChin = (0.92 * ay) / (FACE.cy - FACE.chin);
     // portrait size, in the plate's own (helmet-local) units
-    const s = (HEAD_FILL * Math.min(ay / (HEAD.h / 2), ax / (HEAD.w / 2))) / sc;
+    const s = Math.min(byWidth, byChin) / sc;
     u.uUvScale.value = PLATE / s;
-
-    // where the eyes cross the shell, seen from the camera (helmet-space y)
-    plate.updateMatrixWorld();
-    const eye = helmet.worldToLocal(plate.localToWorld(tmp.e.set((0.5 - HEAD.cx) * s, (EYES_V - HEAD.cy) * s, 0)));
-    const oc = helmet.worldToLocal(tmp.p.copy(camera.position));
-    const ed = eye.sub(oc).normalize();
-    const eb = oc.dot(ed);
-    const eh = eb * eb - (oc.lengthSq() - R * R);
-    if (eh > 0) eyeRef.current = (oc.y + ed.y * (-eb - Math.sqrt(eh))) / R;
 
     u.uToHelmet.value.copy(helmet.matrixWorld).invert();
     u.uCam.value.copy(camera.position).applyMatrix4(u.uToHelmet.value);
@@ -261,6 +256,7 @@ function Face({ lightRef, moonDirRef, apertureRef, eyeRef }) {
     a.x = (cx * 0.5 + 0.5) * size.width;
     a.y = (-cy * 0.5 + 0.5) * size.height;
     a.rad = ((y1 - y0) / 2) * (size.height / 2);
+    helmet.localToWorld(a.crown.set(0, 1.04 * R, 0.12));
     a.dShell = dW - 0.05 * sc;
     a.dFace = dW + depth;
   });
@@ -453,7 +449,6 @@ function useGlowTexture() {
 
 function Helmet({ revealRef, lightRef, moonDirRef, apertureRef }) {
   const s = useRef({ on: false, onAt: 0 });
-  const eyeRef = useRef(-0.04); // eye line on the shell, reported by the face
 
   const sphere = useMemo(() => new THREE.SphereGeometry(R, 128, 96), []);
   const gasket = useMemo(() => {
@@ -503,11 +498,12 @@ function Helmet({ revealRef, lightRef, moonDirRef, apertureRef }) {
     VISOR_EDGE.value = edge;
 
     // The face's exposure: a dim silhouette → it catches the moment the
-    // visor's edge clears the eyes (two quick flickers), then holds at full.
-    if (edge > eyeRef.current + 0.035 && !st.on) {
+    // moonbeam lands on the crown (two quick flickers), then holds at full.
+    const reach = beamReach(r);
+    if (reach >= 1 && !st.on) {
       st.on = true;
       st.onAt = t;
-    } else if (edge < eyeRef.current - 0.06 && st.on) {
+    } else if (reach < 0.85 && st.on) {
       st.on = false;
     }
     let lt = STANDBY;
@@ -559,7 +555,7 @@ function Helmet({ revealRef, lightRef, moonDirRef, apertureRef }) {
         </group>
       ))}
 
-      <Face lightRef={lightRef} moonDirRef={moonDirRef} apertureRef={apertureRef} eyeRef={eyeRef} />
+      <Face lightRef={lightRef} moonDirRef={moonDirRef} apertureRef={apertureRef} />
 
       {/* the visor, on its track between shell and housing */}
       <mesh geometry={sphere} material={visorMat} scale={1.02} renderOrder={2} />
@@ -569,27 +565,70 @@ function Helmet({ revealRef, lightRef, moonDirRef, apertureRef }) {
 
 /* ── clock, camera, layout ────────────────────────────────────────────── */
 
-/** Scroll → revealEase over [from, to], followed with a critically-damped
- *  (never overshooting) smoothing; snaps on arrival so nothing creeps. */
-function follow(ref, raw, from, to, delta, first) {
-  const target = revealEase(THREE.MathUtils.clamp((raw - from) / (to - from), 0, 1));
-  if (first) return (ref.current = target);
-  const v = ref.current;
-  if (v === target) return v;
-  const next = v + (target - v) * (1 - Math.exp(-Math.min(delta, 1 / 20) * 9));
-  return (ref.current = Math.abs(target - next) < 1e-4 ? target : next);
+/**
+ * Scroll → displayed progress, so a fast flick can never skip the sequence:
+ *
+ *   · the displayed value chases the raw scroll value with a damped step
+ *     (deliberate scrolling reads ~1:1), but can't move faster than one
+ *     full run per MIN_RUN seconds — a hard flick plays the whole sequence
+ *     at that top speed instead of jumping to its end
+ *   · snap-to-completion: once the scroll has settled (IDLE seconds), a
+ *     raw value above SNAP_HI glides the rest of the way to 1, and one
+ *     below SNAP_LO glides back to 0, over SNAP seconds — it holds there
+ *     until the scroll moves clearly away
+ *
+ * Only the picture is paced; the page scroll itself is never touched.
+ */
+const MIN_RUN = 1.1;
+const DAMP = 12;
+const SNAP = { hi: 0.85, lo: 0.1, dur: 0.42, idle: 0.16 };
+const newChannel = () => ({ cur: 0, raw: -1, still: 0, latch: null, from: 0, t: 0 });
+function pace(ch, raw, delta, first) {
+  const dt = Math.min(delta, 1 / 20);
+  if (first) {
+    ch.cur = ch.raw = raw; // arrive where the page already is
+    return raw;
+  }
+  // how long the scroll has been still
+  if (raw !== ch.raw) {
+    ch.raw = raw;
+    ch.still = 0;
+  } else ch.still += dt;
+
+  // release a snap once the scroll moves clearly away from it
+  if ((ch.latch === 1 && raw < SNAP.hi - 0.05) || (ch.latch === 0 && raw > SNAP.lo + 0.05)) ch.latch = null;
+  // engage one when the scroll settles near an end
+  if (ch.latch === null && ch.still > SNAP.idle) {
+    const to = raw >= SNAP.hi && ch.cur < 1 ? 1 : raw <= SNAP.lo && ch.cur > 0 ? 0 : null;
+    if (to !== null) Object.assign(ch, { latch: to, from: ch.cur, t: 0 });
+  }
+
+  if (ch.latch !== null) {
+    ch.t = Math.min(ch.t + dt, SNAP.dur);
+    const k = ch.t / SNAP.dur;
+    ch.cur = THREE.MathUtils.lerp(ch.from, ch.latch, 1 - (1 - k) * (1 - k));
+    return ch.cur;
+  }
+  const d = raw - ch.cur;
+  if (Math.abs(d) < 1e-4) return (ch.cur = raw);
+  const cap = dt / MIN_RUN;
+  ch.cur += THREE.MathUtils.clamp(d * (1 - Math.exp(-dt * DAMP)), -cap, cap);
+  return ch.cur;
 }
 
 /**
- * The clock. `reveal` (visor, dolly, moon, focus, lines) runs over the first
- * runway; `layout` (the glide to the resting layout) over the second — same
- * ease, same smoothing.
+ * The clock. `reveal` (visor, dolly, moon, beam, focus, lines) runs over the
+ * first runway; `layout` (the glide to the resting layout) over the second —
+ * the same pacing, then the same ease.
  */
 function RevealDriver({ progressRef, layoutProgressRef, revealRef, layoutRef }) {
   const first = useRef(true);
+  const ch = useRef({ reveal: newChannel(), layout: newChannel() });
   useFrame((_, delta) => {
-    follow(revealRef, progressRef.current, REVEAL_FROM, REVEAL_TO, delta, first.current);
-    follow(layoutRef, layoutProgressRef.current, 0, 1, delta, first.current);
+    const p = pace(ch.current.reveal, progressRef.current, delta, first.current);
+    const l = pace(ch.current.layout, layoutProgressRef.current, delta, first.current);
+    revealRef.current = revealEase(THREE.MathUtils.clamp((p - REVEAL_FROM) / (REVEAL_TO - REVEAL_FROM), 0, 1));
+    layoutRef.current = revealEase(l);
     first.current = false;
   });
   return null;
@@ -750,7 +789,7 @@ const moonFrag = /* glsl */ `
   }
 `;
 
-function Moon({ revealRef, moonDirRef, discRef, skyRef, envDirtyRef }) {
+function Moon({ revealRef, moonDirRef, moonPosRef, discRef, skyRef, envDirtyRef }) {
   const moon = useRef();
   const halo = useRef();
   const last = useRef({ r: -1, w: 0, h: 0 });
@@ -768,6 +807,7 @@ function Moon({ revealRef, moonDirRef, discRef, skyRef, envDirtyRef }) {
     const gain = moonGain(r);
     const p = moonAt(r, camera, size.width / size.height, tmp);
     moon.current?.position.copy(p);
+    moonPosRef.current.copy(p);
     if (moon.current) moon.current.material.uniforms.uGain.value = gain;
     if (halo.current) {
       halo.current.position.set(p.x, p.y, p.z - 0.5);
@@ -798,6 +838,91 @@ function Moon({ revealRef, moonDirRef, discRef, skyRef, envDirtyRef }) {
         <shaderMaterial uniforms={uniforms} vertexShader={moonVert} fragmentShader={moonFrag} transparent depthWrite={false} />
       </mesh>
     </>
+  );
+}
+
+/* ── the moonbeam ─────────────────────────────────────────────────────── */
+
+/** The beam's leading edge travels moon → crown over this slice of the
+ *  reveal; landing (reach = 1) is what powers the face on. Timed to land
+ *  just after the visor's edge clears the eyes. */
+const BEAM = { fadeIn: [0.2, 0.34], travel: [0.28, 0.52], peak: 0.13, rest: 0.12 };
+const beamReach = (r) => THREE.MathUtils.smoothstep(r, BEAM.travel[0], BEAM.travel[1]);
+
+const beamVert = /* glsl */ `
+  varying vec2 vUv;
+  varying float vFacing;
+  void main() {
+    vUv = uv;
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vFacing = abs(dot(normalize(normalMatrix * normal), normalize(-mv.xyz)));
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+const beamFrag = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uOpacity;
+  uniform float uReach;
+  varying vec2 vUv;
+  varying float vFacing;
+  float hash(vec2 p) {
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+  }
+  void main() {
+    float s = 1.0 - vUv.y;                                  // 0 at the moon → 1 at the crown
+    float front = 1.0 - smoothstep(uReach - 0.12, uReach, s); // soft leading edge
+    float along = mix(1.0, 0.5, s) * smoothstep(0.0, 0.1, s); // brightest by the moon
+    float sides = pow(clamp(vFacing, 0.0, 1.0), 1.6);       // feathered sides: a shaft, not a cone
+    float grain = 0.88 + 0.24 * (hash(floor(gl_FragCoord.xy)) - 0.5); // static dither: air, not plastic
+    gl_FragColor = vec4(uColor, uOpacity * front * along * sides * grain);
+  }
+`;
+
+/**
+ * A soft shaft of moonlight from the moon down onto the helmet's crown. It
+ * fades in as the moon nears the top of its arc, its edge travels down to
+ * the crown, and then it thins to a faint trace once the layout settles.
+ * Updates only when something it depends on moves.
+ */
+function Moonbeam({ revealRef, layoutRef, moonPosRef, apertureRef }) {
+  const mesh = useRef();
+  const last = useRef({ r: -1, l: -1 });
+  const tmp = useMemo(() => ({ d: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0), c: new THREE.Vector3(), m: new THREE.Vector3() }), []);
+  const uniforms = useMemo(() => ({ uColor: { value: new THREE.Color(MOON_LIGHT) }, uOpacity: { value: 0 }, uReach: { value: 0 } }), []);
+
+  useFrame(() => {
+    const m = mesh.current;
+    const crown = apertureRef.current.crown;
+    if (!m) return;
+    const r = revealRef.current;
+    const l = layoutRef.current;
+    const k = last.current;
+    if (k.r === r && k.l === l && tmp.c.equals(crown) && tmp.m.equals(moonPosRef.current)) return; // settled
+    Object.assign(k, { r, l });
+    tmp.c.copy(crown);
+    tmp.m.copy(moonPosRef.current);
+
+    const top = moonPosRef.current;
+    const d = tmp.d.subVectors(top, crown);
+    const len = d.length();
+    m.position.copy(crown).addScaledVector(d, 0.5);
+    m.quaternion.setFromUnitVectors(tmp.up, d.divideScalar(len));
+    m.scale.set(1, len, 1);
+
+    const u = m.material.uniforms;
+    u.uReach.value = beamReach(r);
+    u.uOpacity.value = BEAM.peak * THREE.MathUtils.smoothstep(r, BEAM.fadeIn[0], BEAM.fadeIn[1]) * THREE.MathUtils.lerp(1, BEAM.rest, l);
+    m.visible = u.uOpacity.value > 1e-4;
+  });
+
+  return (
+    <mesh ref={mesh} renderOrder={1} visible={false}>
+      {/* open-ended: moon end (top) ~ the moon's size, crown end a little narrower */}
+      <cylinderGeometry args={[0.95, 0.62, 1, 48, 1, true]} />
+      <shaderMaterial uniforms={uniforms} vertexShader={beamVert} fragmentShader={beamFrag} transparent depthWrite={false} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} />
+    </mesh>
   );
 }
 
@@ -890,7 +1015,8 @@ export default function HelmetScene({ progress, layoutProgress, frame, lines }) 
   const revealRef = useRef(0);
   const layoutRef = useRef(0);
   const moonDir = useRef(new THREE.Vector3(1, 0, 0.4).normalize());
-  const aperture = useRef({ x: 0, y: 0, rad: 0, dShell: 0, dFace: 0 });
+  const aperture = useRef({ x: 0, y: 0, rad: 0, dShell: 0, dFace: 0, crown: new THREE.Vector3(0, 1, 0) });
+  const moonPos = useRef(new THREE.Vector3(12, -2, MOON_Z));
   const moonLight = useRef();
   const moonDisc = useRef();
   const moonSky = useRef();
@@ -927,7 +1053,7 @@ export default function HelmetScene({ progress, layoutProgress, frame, lines }) 
         shadow-camera-near={1}
         shadow-camera-far={20}
       />
-      <Moon revealRef={revealRef} moonDirRef={moonDir} discRef={moonDisc} skyRef={moonSky} envDirtyRef={envDirty} />
+      <Moon revealRef={revealRef} moonDirRef={moonDir} moonPosRef={moonPos} discRef={moonDisc} skyRef={moonSky} envDirtyRef={envDirty} />
 
       <Layout layoutRef={layoutRef} moonDirRef={moonDir} lightRef={moonLight}>
         {/* the body squares up to the viewer; the head turns a touch more */}
@@ -939,6 +1065,7 @@ export default function HelmetScene({ progress, layoutProgress, frame, lines }) 
         </group>
       </Layout>
 
+      <Moonbeam revealRef={revealRef} layoutRef={layoutRef} moonPosRef={moonPos} apertureRef={aperture} />
       <LeadingLines revealRef={revealRef} apertureRef={aperture} frameRef={frame} linesRef={lines} />
       <Finish revealRef={revealRef} apertureRef={aperture} frameRef={frame} />
     </>

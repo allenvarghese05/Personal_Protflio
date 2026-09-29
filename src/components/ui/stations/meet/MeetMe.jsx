@@ -14,13 +14,20 @@ import { MEET } from '@/data/about';
  *      moon rises (scene clock: `progress`)
  *   2. one stage-height more — the helmet glides to the left third while the
  *      headline rises into place on the right (scene clock: `layoutProgress`)
- *   3. story blocks (MEET.story) scroll past on the right; the helmet stays
+ *   3. a short hold — helmet and headline both pinned, so the resting frame
+ *      always resolves, even after a fast flick
+ *   4. story blocks (MEET.story) scroll past on the right; the helmet stays
  *      pinned left until the last one has gone by
+ *
+ * The scene paces the picture (a fast flick plays the sequence at its top
+ * speed rather than skipping it), so these runways are sized to give that
+ * top speed room to finish.
  *
  * Scroll is read from the Mission Control stage (the room's own scroll
  * container), written to refs — no React renders per scroll.
  */
-const REVEAL_VH = 170; // scroll length of the reveal runway
+const REVEAL_VH = 210; // scroll length of the reveal runway
+const HOLD_VH = 45; // the resting frame holds this long before the story scrolls on
 const STAGE_H = 'calc(100dvh - 3.5rem)'; // the stage: the viewport under the nav
 
 export default function MeetMe() {
@@ -150,15 +157,18 @@ export default function MeetMe() {
         <div aria-hidden style={{ height: STAGE_H }} />
 
         {/* the headline: centred on the resting helmet's height (wide), or
-            under it (narrow) */}
-        <div
-          className="pointer-events-auto flex items-end bg-[linear-gradient(to_top,var(--void)_38%,transparent_75%)] px-6 pb-[9vh] sm:px-12 wide:bg-none wide:ml-auto wide:w-1/2 wide:items-center wide:pb-[6vh] wide:pl-0 wide:pr-[7vw]"
-          style={{ height: STAGE_H }}
-        >
-          <MeetHeadline shown={shown || !!reduced} />
+            under it (narrow); it rises into place, then holds (sticky)
+            through the hold */}
+        <div style={{ height: `calc(${STAGE_H} + ${HOLD_VH}vh)` }}>
+          <div
+            className="pointer-events-auto sticky top-0 flex items-end bg-[linear-gradient(to_top,var(--void)_38%,transparent_75%)] px-6 pb-[9vh] sm:px-12 wide:bg-none wide:ml-auto wide:w-1/2 wide:items-center wide:pb-[6vh] wide:pl-0 wide:pr-[7vw]"
+            style={{ height: STAGE_H }}
+          >
+            <MeetHeadline shown={shown || !!reduced} />
+          </div>
         </div>
 
-        {/* 3 · the story continues on the right while the helmet stays pinned */}
+        {/* 4 · the story continues on the right while the helmet stays pinned */}
         {MEET.story.map((b) => (
           <article
             key={b.id}
