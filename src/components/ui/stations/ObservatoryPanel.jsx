@@ -1,13 +1,14 @@
 'use client';
 import { motion } from 'framer-motion';
-import { ABOUT, JOURNEY, SKILLS, AWARDS } from '@/data/about';
+import { ABOUT, SKILLS, AWARDS } from '@/data/about';
 import { projectById } from '@/data/projects';
 import { useStore } from '@/lib/store';
 import { StationHeader, StationSection, stagger, rise } from './shared';
 import MeetMe from './meet/MeetMe';
 
 /**
- * The Observatory — who Allen is: a short bio, the journey so far, skills
+ * The Observatory — who Allen is: the helmet reveal and his story (Meet Me),
+ * a short bio, skills
  * backed by the projects that use them, and recognition. Project links jump
  * straight to that project's case study.
  */
@@ -38,26 +39,6 @@ export default function ObservatoryPanel() {
               </motion.p>
             ))}
           </div>
-        </StationSection>
-
-        <StationSection label="The journey">
-          <ol className="relative max-w-3xl">
-            <span aria-hidden className="absolute bottom-2 left-[5px] top-2 w-px bg-line-hi" />
-            {JOURNEY.map((j) => (
-              <motion.li key={j.title} variants={rise} className="relative pb-8 pl-8 last:pb-0">
-                <span aria-hidden className="absolute left-0 top-1.5 h-[11px] w-[11px] rounded-full border-2 border-accent bg-void" />
-                <div className="font-mono text-micro uppercase tracking-[0.16em] text-ink-subtle">{j.dates}</div>
-                <div className="font-display mt-1 text-lg font-semibold text-ink">{j.title}</div>
-                <div className="text-sm text-ink-muted">{j.org}</div>
-                <div className="mt-1.5 text-sm text-ink-subtle">{j.note}</div>
-                {j.project && (
-                  <div className="mt-3">
-                    <ProjectLink id={j.project} />
-                  </div>
-                )}
-              </motion.li>
-            ))}
-          </ol>
         </StationSection>
 
         <StationSection label="Skills">

@@ -4,7 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { useReducedMotion } from 'framer-motion';
 import HelmetScene from './HelmetScene';
 import MeetHeadline from './MeetHeadline';
-import { MEET } from '@/data/about';
+import MeetStory from './MeetStory';
 
 /**
  * Meet Me — the opening of the About room. One stage stays pinned for the
@@ -16,18 +16,22 @@ import { MEET } from '@/data/about';
  *      headline rises into place on the right (scene clock: `layoutProgress`)
  *   3. a short hold — helmet and headline both pinned, so the resting frame
  *      always resolves, even after a fast flick
- *   4. story blocks (MEET.story) scroll past on the right; the helmet stays
- *      pinned left until the last one has gone by
+ *   4. the story chapters (MEET.story) scroll past on the right; the helmet
+ *      stays pinned left until the last one has gone by
  *
- * The scene paces the picture (a fast flick plays the sequence at its top
- * speed rather than skipping it), so these runways are sized to give that
- * top speed room to finish.
+ * One scroll gesture from rest plays 1–2 through at their own pace and
+ * lands on the headline (and one from there plays it back); anywhere else
+ * the page scrolls freely, and the scene still paces the picture so a fling
+ * can't skip it.
  *
  * Scroll is read from the Mission Control stage (the room's own scroll
  * container), written to refs — no React renders per scroll.
  */
 const REVEAL_VH = 210; // scroll length of the reveal runway
 const HOLD_VH = 45; // the resting frame holds this long before the story scrolls on
+/** One-gesture playback: forward (reveal + glide), back, and the beat after
+ *  landing during which input is swallowed (trackpad momentum). ms. */
+const PLAY = { forward: 3400, back: 2400, cooldown: 800 };
 const STAGE_H = 'calc(100dvh - 3.5rem)'; // the stage: the viewport under the nav
 
 export default function MeetMe() {
@@ -99,10 +103,82 @@ export default function MeetMe() {
       if (next !== isShown) setShown((isShown = next));
     };
     update();
+
+    // ── one gesture plays the whole reveal ──────────────────────────────
+    // From rest, a single scroll (wheel notch, swipe, or key) carries the
+    // page through the reveal and the glide at the sequence's own pace and
+    // lands it on the resting layout; input is absorbed while it plays (and
+    // for a beat after, to swallow trackpad momentum). The same in reverse
+    // from the resting layout. Anywhere else, the page scrolls normally.
+    const sectionTop = () => el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+    const landing = () => (runway.current?.offsetHeight || 0) + (stage.current?.offsetHeight || 0);
+    let play = null;
+    let quietUntil = 0;
+    const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+    const step = (now) => {
+      if (!play) return;
+      const k = Math.min(1, (now - play.t0) / play.ms);
+      scroller.scrollTop = play.from + (play.to - play.from) * ease(k);
+      if (k < 1) requestAnimationFrame(step);
+      else {
+        play = null;
+        quietUntil = now + PLAY.cooldown;
+      }
+    };
+    const start = (dir) => {
+      const top = sectionTop();
+      play = { from: scroller.scrollTop, to: dir > 0 ? top + landing() : top, t0: performance.now(), ms: dir > 0 ? PLAY.forward : PLAY.back };
+      requestAnimationFrame(step);
+    };
+    // where the page is relative to the two ends of the sequence
+    const where = () => {
+      const s = scroller.scrollTop - sectionTop();
+      if (Math.abs(s) < 6) return 'rest';
+      if (Math.abs(s - landing()) < 30) return 'landed';
+      return 'between';
+    };
+    const busy = () => play || performance.now() < quietUntil;
+    const trigger = (dir) => {
+      const at = where();
+      if (dir > 0 && at === 'rest') return start(1), true;
+      if (dir < 0 && at === 'landed') return start(-1), true;
+      return false;
+    };
+    const onWheel = (e) => {
+      if (busy()) return e.preventDefault();
+      if (Math.abs(e.deltaY) > 2 && trigger(Math.sign(e.deltaY))) e.preventDefault();
+    };
+    let touchY = null;
+    const onTouchStart = (e) => (touchY = e.touches[0]?.clientY ?? null);
+    const onTouchMove = (e) => {
+      if (busy()) return e.preventDefault();
+      if (touchY === null) return;
+      const dy = touchY - (e.touches[0]?.clientY ?? touchY);
+      if (Math.abs(dy) > 12 && trigger(Math.sign(dy))) {
+        touchY = null;
+        e.preventDefault();
+      }
+    };
+    const onKey = (e) => {
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, button, a, [contenteditable]')) return;
+      const dir = { ArrowDown: 1, PageDown: 1, ' ': e.shiftKey ? -1 : 1, ArrowUp: -1, PageUp: -1 }[e.key];
+      if (!dir) return;
+      if (busy()) return e.preventDefault();
+      if (trigger(dir)) e.preventDefault();
+    };
     scroller.addEventListener('scroll', update, { passive: true });
+    scroller.addEventListener('wheel', onWheel, { passive: false });
+    scroller.addEventListener('touchstart', onTouchStart, { passive: true });
+    scroller.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('keydown', onKey);
     window.addEventListener('resize', update);
     return () => {
+      play = null;
       scroller.removeEventListener('scroll', update);
+      scroller.removeEventListener('wheel', onWheel);
+      scroller.removeEventListener('touchstart', onTouchStart);
+      scroller.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('keydown', onKey);
       window.removeEventListener('resize', update);
     };
   }, [reduced]);
@@ -177,22 +253,7 @@ export default function MeetMe() {
         </div>
 
         {/* 4 · the story continues on the right while the helmet stays pinned */}
-        {MEET.story.map((b) => (
-          <article
-            key={b.id}
-            className="pointer-events-auto mx-6 mb-[30vh] rounded-xl bg-void/80 p-6 backdrop-blur-sm sm:mx-12 wide:mx-0 wide:ml-auto wide:w-1/2 wide:rounded-none wide:bg-transparent wide:p-0 wide:pr-[7vw] wide:backdrop-blur-none"
-          >
-            <div className="max-w-[34rem]">
-              {b.kicker && <div className="mc-label">{b.kicker}</div>}
-              {b.title && <h3 className="font-display mt-3 text-2xl font-semibold tracking-[-0.02em] text-ink">{b.title}</h3>}
-              {[].concat(b.body ?? []).map((para) => (
-                <p key={para} className="mt-4 text-body leading-relaxed text-ink-muted">
-                  {para}
-                </p>
-              ))}
-            </div>
-          </article>
-        ))}
+        <MeetStory />
       </div>
     </section>
   );

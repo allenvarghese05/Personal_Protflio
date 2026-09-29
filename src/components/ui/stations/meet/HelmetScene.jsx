@@ -437,7 +437,77 @@ suitMat.onBeforeCompile = (sh) => {
 
 /* ── the suit ─────────────────────────────────────────────────────────── */
 
+/**
+ * Flag patches for the upper arms, drawn as woven patches: true colours,
+ * then knocked back (a fabric-dark wash + weave) so they read as cloth under
+ * moonlight, not stickers, and sit quietly beside the amber accent.
+ */
+function useFlagTexture(kind) {
+  return useMemo(() => {
+    const W = 256;
+    const H = 160;
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    const g = c.getContext('2d');
+    if (kind === 'india') {
+      [['#ff9933', 0], ['#f4f1ea', 1], ['#138808', 2]].forEach(([col, i]) => {
+        g.fillStyle = col;
+        g.fillRect(0, (H / 3) * i, W, H / 3 + 1);
+      });
+      // the Ashoka Chakra: a navy wheel of 24 spokes
+      g.strokeStyle = '#1b2a78';
+      g.lineWidth = 3;
+      g.beginPath();
+      g.arc(W / 2, H / 2, H / 7, 0, Math.PI * 2);
+      g.stroke();
+      g.lineWidth = 1.4;
+      for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * Math.PI * 2;
+        g.beginPath();
+        g.moveTo(W / 2, H / 2);
+        g.lineTo(W / 2 + Math.cos(a) * (H / 7), H / 2 + Math.sin(a) * (H / 7));
+        g.stroke();
+      }
+    } else {
+      for (let i = 0; i < 13; i++) {
+        g.fillStyle = i % 2 ? '#f4f1ea' : '#b22234';
+        g.fillRect(0, (H / 13) * i, W, H / 13 + 1);
+      }
+      const cw = W * 0.4;
+      const ch = (H / 13) * 7;
+      g.fillStyle = '#3c3b6e';
+      g.fillRect(0, 0, cw, ch);
+      g.fillStyle = '#f4f1ea';
+      for (let r = 0; r < 9; r++) {
+        const n = r % 2 ? 5 : 6;
+        for (let k = 0; k < n; k++) {
+          g.beginPath();
+          g.arc(((k + (r % 2 ? 1 : 0.5)) * cw) / 6, ((r + 0.7) * ch) / 9.6, 2.1, 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+    }
+    // knock it back: a fabric-dark wash, a fine weave, an embroidered edge
+    g.fillStyle = 'rgba(28, 28, 34, 0.3)';
+    g.fillRect(0, 0, W, H);
+    g.globalAlpha = 0.08;
+    g.fillStyle = '#000';
+    for (let y = 0; y < H; y += 3) g.fillRect(0, y, W, 1);
+    g.globalAlpha = 1;
+    g.strokeStyle = '#26272d';
+    g.lineWidth = 10;
+    g.strokeRect(0, 0, W, H);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  }, [kind]);
+}
+
 function Suit() {
+  const india = useFlagTexture('india');
+  const usa = useFlagTexture('usa');
   const geo = useMemo(() => {
     // collar → shoulder slope → rounded shoulder → chest, revolved; then
     // flattened front-to-back away from the (round) collar
@@ -463,6 +533,35 @@ function Suit() {
     return g;
   }, []);
 
+  // flags on the upper arms (a real EVA suit's placement): India on his
+  // right, the US on his left — each sat on the actual surface, facing out
+  const flags = useMemo(() => {
+    const p = geo.attributes.position;
+    const n = geo.attributes.normal;
+    return [
+      [-1.24, india],
+      [1.24, usa],
+    ].map(([x0, map]) => {
+      // the front-facing vertex nearest (x0, y0) on the fabric
+      const y0 = -1.46;
+      let best = -1;
+      let bd = Infinity;
+      for (let i = 0; i < p.count; i++) {
+        if (p.getZ(i) <= 0) continue;
+        const dd = Math.abs(p.getX(i) - x0) + Math.abs(p.getY(i) - y0);
+        if (dd < bd) {
+          bd = dd;
+          best = i;
+        }
+      }
+      const nrm = new THREE.Vector3(n.getX(best), n.getY(best), n.getZ(best)).normalize();
+      const pos = new THREE.Vector3(p.getX(best), p.getY(best), p.getZ(best)).addScaledVector(nrm, 0.012);
+      // face out along the surface normal, kept upright
+      const m = new THREE.Matrix4().lookAt(pos.clone().add(nrm), pos, new THREE.Vector3(0, 1, 0));
+      return { pos, q: new THREE.Quaternion().setFromRotationMatrix(m), map };
+    });
+  }, [geo, india, usa]);
+
   // a mission patch on the left chest, sat flush on the curved fabric
   const patch = useMemo(() => {
     // high on the chest, so it stays in frame at the closest zoom
@@ -486,6 +585,12 @@ function Suit() {
       <mesh position-y={-0.765} rotation-x={Math.PI / 2} material={accentPaintMat}>
         <torusGeometry args={[0.735, 0.009, 8, 128]} />
       </mesh>
+      {flags.map((fl, i) => (
+        <mesh key={i} position={fl.pos} quaternion={fl.q} receiveShadow>
+          <planeGeometry args={[0.25, 0.156]} />
+          <meshStandardMaterial map={fl.map} roughness={0.88} polygonOffset polygonOffsetFactor={-2} />
+        </mesh>
+      ))}
       <group position={patch.pos} quaternion={patch.q}>
         <mesh receiveShadow>
           <cylinderGeometry args={[0.1, 0.1, 0.014, 40]} />
@@ -1164,6 +1269,266 @@ function Moon({ revealRef, moonDirRef, moonPosRef, discRef, skyRef, envDirtyRef 
   );
 }
 
+/* ── the Earth ────────────────────────────────────────────────────────── */
+
+/**
+ * A calm, dotted Earth high in the frame, behind the helmet and the name —
+ * depth and a place in the world, not a storyteller. It settles in with the
+ * resting layout; Bhopal and Philadelphia are marked, and once, as the
+ * headline lands, an amber flight path draws the great circle between them
+ * and stays as a faint trace. Lit by the moon like everything else. Then it
+ * holds still.
+ *
+ * Land dots come from public/meet/earth-dots.bin (scripts/bake-earth-dots.mjs);
+ * without it the globe is just its rim, the markers and the route.
+ */
+const EARTH = { z: -8, ndc: [0.02, 1.22], r: 0.86 }; // centre (frame units) + radius (half-heights)
+const PLACES = {
+  bhopal: { lat: 23.2599, lng: 77.4126 },
+  philadelphia: { lat: 39.9526, lng: -75.1652 },
+};
+const FLIGHT = { delay: 0.35, dur: 2.6, trace: 0.35 };
+const latLng = ({ lat, lng }) => {
+  const a = THREE.MathUtils.degToRad(lat);
+  const o = THREE.MathUtils.degToRad(lng);
+  return new THREE.Vector3(Math.cos(a) * Math.sin(o), Math.sin(a), Math.cos(a) * Math.cos(o));
+};
+
+/** Turn the globe so the route's midpoint faces the viewer (a little below
+ *  centre, where the visible lower half of the globe is) and the route runs
+ *  level — India on the right, America on the left, as on a map. */
+const EARTH_TURN = (() => {
+  const b = latLng(PLACES.bhopal);
+  const p = latLng(PLACES.philadelphia);
+  const m = b.clone().add(p).normalize();
+  const c = b.clone().sub(p).addScaledVector(m, -b.clone().sub(p).dot(m)).normalize(); // Philly → Bhopal, across m
+  const nL = new THREE.Vector3().crossVectors(m, c);
+  const Z = new THREE.Vector3(0, -0.5, 0.87).normalize();
+  const X = new THREE.Vector3(1, 0, 0).addScaledVector(Z, -Z.x).normalize();
+  const Y = new THREE.Vector3().crossVectors(Z, X);
+  const local = new THREE.Matrix4().makeBasis(c, nL, m);
+  const world = new THREE.Matrix4().makeBasis(X, Y, Z);
+  return new THREE.Quaternion().setFromRotationMatrix(world.multiply(local.transpose()));
+})();
+
+/** The route: the great circle, lifted into a shallow arc above the surface. */
+const ROUTE = (() => {
+  const b = latLng(PLACES.bhopal);
+  const p = latLng(PLACES.philadelphia);
+  const pts = [];
+  for (let i = 0; i <= 96; i++) {
+    const t = i / 96;
+    const v = new THREE.Vector3().copy(b).lerp(p, t).normalize(); // nlerp ≈ slerp at this scale
+    pts.push(v.multiplyScalar(1.004 + Math.sin(Math.PI * t) * 0.07));
+  }
+  return new THREE.CatmullRomCurve3(pts);
+})();
+const ROUTE_SEG = 160;
+const ROUTE_RADIAL = 6;
+
+const earthDotVert = /* glsl */ `
+  uniform vec3 uMoon;
+  uniform float uPx;
+  varying float vLit;
+  varying float vFace;
+  void main() {
+    vec3 n = normalize(mat3(modelMatrix) * position);
+    vec4 wp = modelMatrix * vec4(position, 1.0);
+    vLit = smoothstep(-0.25, 0.6, dot(n, uMoon));
+    vFace = smoothstep(0.0, 0.4, dot(n, normalize(cameraPosition - wp.xyz)));
+    gl_PointSize = uPx;
+    gl_Position = projectionMatrix * viewMatrix * wp;
+  }
+`;
+const earthDotFrag = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uOpacity;
+  varying float vLit;
+  varying float vFace;
+  void main() {
+    float d = length(gl_PointCoord - 0.5);
+    float a = (1.0 - smoothstep(0.25, 0.5, d)) * uOpacity * (0.16 + 0.84 * vLit) * vFace;
+    gl_FragColor = vec4(uColor, a);
+  }
+`;
+const rimVert = /* glsl */ `
+  varying float vRim;
+  varying float vLit;
+  uniform vec3 uMoon;
+  void main() {
+    vec3 n = normalize(mat3(modelMatrix) * normal);
+    vec4 wp = modelMatrix * vec4(position, 1.0);
+    vRim = 1.0 - abs(dot(n, normalize(cameraPosition - wp.xyz)));
+    vLit = smoothstep(-0.3, 0.7, dot(n, uMoon));
+    gl_Position = projectionMatrix * viewMatrix * wp;
+  }
+`;
+const rimFrag = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uOpacity;
+  varying float vRim;
+  varying float vLit;
+  void main() {
+    float a = pow(clamp(vRim, 0.0, 1.0), 3.0) * uOpacity * (0.3 + 0.7 * vLit);
+    gl_FragColor = vec4(uColor, a);
+  }
+`;
+
+function useRingTexture() {
+  return useMemo(() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d');
+    g.strokeStyle = 'rgba(255,255,255,0.9)';
+    g.lineWidth = 5;
+    g.beginPath();
+    g.arc(64, 64, 56, 0, Math.PI * 2);
+    g.stroke();
+    return new THREE.CanvasTexture(c);
+  }, []);
+}
+
+function Earth({ layoutRef, moonDirRef }) {
+  const group = useRef();
+  const dots = useRef();
+  const rim = useRef();
+  const route = useRef();
+  const head = useRef();
+  const markers = useRef([]);
+  const pulses = useRef([]);
+  const [dotGeo, setDotGeo] = useState(null);
+  const glowTex = useGlowTexture();
+  const ringTex = useRingTexture();
+  const st = useRef({ key: '', played: false, t0: 0, done: false });
+  const routeGeo = useMemo(() => new THREE.TubeGeometry(ROUTE, ROUTE_SEG, 0.0055, ROUTE_RADIAL, false), []);
+  const tip = useMemo(() => new THREE.Vector3(), []);
+  const dotUniforms = useMemo(() => ({ uColor: { value: new THREE.Color(PALETTE.ink) }, uOpacity: { value: 0 }, uMoon: { value: new THREE.Vector3(1, 0, 0) }, uPx: { value: 2 } }), []);
+  const rimUniforms = useMemo(() => ({ uColor: { value: new THREE.Color(PALETTE.ice) }, uOpacity: { value: 0 }, uMoon: { value: new THREE.Vector3(1, 0, 0) } }), []);
+  const places = useMemo(() => [latLng(PLACES.bhopal).multiplyScalar(1.006), latLng(PLACES.philadelphia).multiplyScalar(1.006)], []);
+
+  useEffect(() => {
+    let live = true;
+    fetch('/meet/earth-dots.bin')
+      .then((r) => (r.ok ? r.arrayBuffer() : null))
+      .then((buf) => {
+        if (!live || !buf) return;
+        const ll = new Int16Array(buf);
+        const pos = new Float32Array((ll.length / 2) * 3);
+        for (let i = 0; i < ll.length / 2; i++) latLng({ lat: ll[i * 2] / 100, lng: ll[i * 2 + 1] / 100 }).toArray(pos, i * 3);
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        setDotGeo(g);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  useFrame(({ camera, size, clock, viewport }) => {
+    const g = group.current;
+    if (!g) return;
+    const L = layoutRef.current;
+    const s = st.current;
+    const k = THREE.MathUtils.smoothstep(L, 0.2, 0.85);
+
+    // the flight: plays once when the layout lands, resets if it's undone
+    const now = clock.elapsedTime;
+    if (L >= 0.9 && !s.played) Object.assign(s, { played: true, t0: now, done: false });
+    if (L < 0.4 && s.played) Object.assign(s, { played: false, done: false });
+    const age = s.played ? now - s.t0 - FLIGHT.delay : -1;
+    const flying = s.played && !s.done;
+    if (s.played && age > FLIGHT.dur + 1.4) s.done = true;
+
+    const key = `${L}|${size.width}|${size.height}|${camera.position.z.toFixed(3)}|${moonDirRef.current.x.toFixed(4)}|${s.played}|${s.done}`;
+    if (!flying && key === s.key) return; // settled: nothing moves
+    s.key = key;
+
+    // place: high in the frame, sized to it; it settles down a touch as it fades in
+    const d = camera.position.z - EARTH.z;
+    const half = d * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const aspect = size.width / size.height;
+    g.position.set(EARTH.ndc[0] * half * aspect, CAM.lookY[1] + (EARTH.ndc[1] + (1 - k) * 0.08) * half, EARTH.z);
+    g.scale.setScalar(EARTH.r * half);
+    g.visible = k > 1e-3;
+
+    const du = dots.current?.material.uniforms;
+    if (du) {
+      du.uOpacity.value = 0.55 * k;
+      du.uMoon.value.copy(moonDirRef.current);
+      du.uPx.value = 1.7 * viewport.dpr;
+    }
+    const ru = rim.current?.material.uniforms;
+    if (ru) {
+      ru.uOpacity.value = 0.22 * k;
+      ru.uMoon.value.copy(moonDirRef.current);
+    }
+    markers.current.forEach((m) => m && (m.material.opacity = 0.85 * k));
+
+    // route + head
+    const f = s.played ? THREE.MathUtils.clamp(age / FLIGHT.dur, 0, 1) : 0;
+    const e = f * f * (3 - 2 * f);
+    const r = route.current;
+    if (r) {
+      r.geometry.setDrawRange(0, Math.floor(e * ROUTE_SEG) * ROUTE_RADIAL * 6);
+      const landed = THREE.MathUtils.clamp((age - FLIGHT.dur) / 1.2, 0, 1);
+      r.material.opacity = k * THREE.MathUtils.lerp(0.9, FLIGHT.trace, landed);
+      r.visible = e > 0;
+    }
+    const h = head.current;
+    if (h) {
+      h.visible = f > 0 && f < 1;
+      if (h.visible) h.position.copy(ROUTE.getPointAt(e, tip));
+      h.material.opacity = k * Math.sin(Math.PI * f) * 0.9;
+    }
+    // one soft ring as it leaves Bhopal, one as it lands in Philadelphia
+    [age + FLIGHT.delay, age - FLIGHT.dur].forEach((t, i) => {
+      const ring = pulses.current[i];
+      if (!ring) return;
+      const q = s.played ? THREE.MathUtils.clamp(t / 1.4, 0, 1) : 0;
+      ring.visible = q > 0 && q < 1;
+      ring.scale.setScalar(0.02 + q * 0.16);
+      ring.material.opacity = k * (1 - q) * 0.7;
+    });
+  });
+
+  return (
+    <group ref={group} quaternion={EARTH_TURN} visible={false}>
+      {/* the solid body: hides the far side's dots (and the moon behind it) */}
+      <mesh renderOrder={-3}>
+        <sphereGeometry args={[0.995, 64, 48]} />
+        <meshBasicMaterial colorWrite={false} />
+      </mesh>
+      {dotGeo && (
+        <points ref={dots} geometry={dotGeo} renderOrder={-2}>
+          <shaderMaterial uniforms={dotUniforms} vertexShader={earthDotVert} fragmentShader={earthDotFrag} transparent depthWrite={false} />
+        </points>
+      )}
+      {/* a faint moonlit rim of atmosphere */}
+      <mesh ref={rim} scale={1.02} renderOrder={-2}>
+        <sphereGeometry args={[1, 64, 48]} />
+        <shaderMaterial uniforms={rimUniforms} vertexShader={rimVert} fragmentShader={rimFrag} transparent depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.BackSide} />
+      </mesh>
+      <mesh ref={route} geometry={routeGeo} visible={false} renderOrder={-1}>
+        <meshBasicMaterial color={PALETTE.accent} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </mesh>
+      <sprite ref={head} scale={0.05} visible={false} renderOrder={-1}>
+        <spriteMaterial map={glowTex} color={PALETTE.accentHi} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </sprite>
+      {places.map((p, i) => (
+        <group key={i} position={p}>
+          <sprite ref={(el) => (markers.current[i] = el)} scale={0.028}>
+            <spriteMaterial map={glowTex} color={PALETTE.accent} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          </sprite>
+          <sprite ref={(el) => (pulses.current[i] = el)} visible={false}>
+            <spriteMaterial map={ringTex} color={PALETTE.accent} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          </sprite>
+        </group>
+      ))}
+    </group>
+  );
+}
+
 /* ── the moonbeam ─────────────────────────────────────────────────────── */
 
 /** The beam's leading edge travels moon → crown over this slice of the
@@ -1440,7 +1805,7 @@ function LeadingLines({ revealRef, apertureRef, frameRef, linesRef }) {
  * face plate on the reveal while the bokeh opens up, so the background goes
  * softer and the face ends up the sharpest thing in frame.
  */
-function Finish({ revealRef, apertureRef, frameRef }) {
+function Finish({ revealRef, layoutRef, apertureRef, frameRef }) {
   const dof = useRef();
   const film = useMemo(() => new FilmEffect(), []);
   useEffect(() => () => film.dispose(), [film]);
@@ -1451,7 +1816,9 @@ function Finish({ revealRef, apertureRef, frameRef }) {
     if (e && a.dFace) {
       e.cocMaterial.focusDistance = THREE.MathUtils.lerp(a.dShell, a.dFace, r);
       e.cocMaterial.focusRange = THREE.MathUtils.lerp(2.4, 1.8, r);
-      e.bokehScale = THREE.MathUtils.lerp(3.5, 7, r);
+      // the background eases back into softer (not lost) focus once the
+      // layout resolves, so the globe reads
+      e.bokehScale = THREE.MathUtils.lerp(3.5, 7, r) * THREE.MathUtils.lerp(1, 0.42, layoutRef.current);
     }
     const fr = frameRef?.current;
     if (fr) {
@@ -1520,6 +1887,7 @@ export default function HelmetScene({ progress, layoutProgress, frame, lines, he
         shadow-camera-far={20}
       />
       <Moon revealRef={revealRef} moonDirRef={moonDir} moonPosRef={moonPos} discRef={moonDisc} skyRef={moonSky} envDirtyRef={envDirty} />
+      <Earth layoutRef={layoutRef} moonDirRef={moonDir} />
 
       <Layout layoutRef={layoutRef} moonDirRef={moonDir} lightRef={moonLight} camBaseRef={camBase} bodyRef={body} headRef={head}>
         {/* aimed at the lens by <Layout>: the body half-way, the head the rest */}
@@ -1534,7 +1902,7 @@ export default function HelmetScene({ progress, layoutProgress, frame, lines, he
       <Moonbeam revealRef={revealRef} layoutRef={layoutRef} moonPosRef={moonPos} apertureRef={aperture} still={still} />
       <ForegroundMotes revealRef={revealRef} />
       <LeadingLines revealRef={revealRef} apertureRef={aperture} frameRef={frame} linesRef={lines} />
-      <Finish revealRef={revealRef} apertureRef={aperture} frameRef={frame} />
+      <Finish revealRef={revealRef} layoutRef={layoutRef} apertureRef={aperture} frameRef={frame} />
       <Warmup onReady={onReady} />
     </>
   );
