@@ -361,7 +361,7 @@ visorMat.customProgramCacheKey = () => 'visor-slide';
 const GLASS = { fog: { value: 1 }, clear: { value: 0 }, glow: { value: STANDBY } };
 const glassMat = cutWindow(
   // a softened direct highlight — a pinpoint moon glint read as a sparkle on the face
-  new THREE.MeshPhysicalMaterial({ color: '#000000', roughness: 0.12, metalness: 0, specularIntensity: 0.35, transparent: true, depthWrite: false, envMapIntensity: 1.2 }),
+  new THREE.MeshPhysicalMaterial({ color: '#000000', roughness: 0.18, metalness: 0, specularIntensity: 0.2, transparent: true, depthWrite: false, envMapIntensity: 0.9 }),
   { keep: 'inside' }
 );
 {
@@ -391,6 +391,10 @@ const glassMat = cutWindow(
           vec3 n = normalize(vObj);
           // the glass is only as visible as what it mirrors
           float refl = dot(outgoingLight, vec3(0.2126, 0.7152, 0.0722));
+          // cap how bright a reflection can get: a mirrored moon on the glass
+          // reads as a sparkle on the face, so it's held to a soft sheen
+          outgoingLight *= min(1.0, 0.16 / max(refl, 1e-4));
+          refl = min(refl, 0.16);
           float a = clamp(refl * 1.8, 0.0, 0.6);
           // condensation: mottled, heavier toward the rim, clearing centre-out
           float rr = sqrt(clamp(winField(n, 0.0) + 1.0, 0.0, 1.0)); // 0 centre → 1 rim
@@ -1283,7 +1287,7 @@ function Moon({ revealRef, moonDirRef, moonPosRef, discRef, skyRef, envDirtyRef 
  * Land dots come from public/meet/earth-dots.bin (scripts/bake-earth-dots.mjs);
  * until that file exists the globe stays hidden (a bare rim reads as a ring).
  */
-const EARTH = { z: -8, ndc: [0.02, 1.22], r: 0.86 }; // centre (frame units) + radius (half-heights)
+const EARTH = { z: -8, ndc: [0.02, 1.02], r: 0.86 }; // centre (frame units) + radius (half-heights)
 const PLACES = {
   bhopal: { lat: 23.2599, lng: 77.4126 },
   philadelphia: { lat: 39.9526, lng: -75.1652 },
@@ -1370,7 +1374,7 @@ const rimFrag = /* glsl */ `
   varying float vRim;
   varying float vLit;
   void main() {
-    float a = pow(clamp(vRim, 0.0, 1.0), 4.0) * uOpacity * (0.25 + 0.75 * vLit);
+    float a = pow(clamp(vRim, 0.0, 1.0), 7.0) * uOpacity * (0.25 + 0.75 * vLit);
     gl_FragColor = vec4(uColor, a);
   }
 `;
@@ -1459,11 +1463,11 @@ function Earth({ layoutRef, moonDirRef, storyInRef }) {
     if (du) {
       du.uOpacity.value = 0.72 * k;
       du.uMoon.value.copy(moonDirRef.current);
-      du.uPx.value = 2.5 * viewport.dpr;
+      du.uPx.value = 1.8 * viewport.dpr;
     }
     const ru = rim.current?.material.uniforms;
     if (ru) {
-      ru.uOpacity.value = 0.14 * k;
+      ru.uOpacity.value = 0.07 * k;
       ru.uMoon.value.copy(moonDirRef.current);
     }
     markers.current.forEach((m) => m && (m.material.opacity = 0.85 * k));
@@ -1508,7 +1512,7 @@ function Earth({ layoutRef, moonDirRef, storyInRef }) {
         </points>
       )}
       {/* a faint moonlit rim of atmosphere */}
-      <mesh ref={rim} scale={1.06} renderOrder={-2}>
+      <mesh ref={rim} scale={1.012} renderOrder={-2}>
         <sphereGeometry args={[1, 64, 48]} />
         <shaderMaterial uniforms={rimUniforms} vertexShader={rimVert} fragmentShader={rimFrag} transparent depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.BackSide} />
       </mesh>

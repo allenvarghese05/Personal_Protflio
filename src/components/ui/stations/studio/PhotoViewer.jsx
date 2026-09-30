@@ -2,17 +2,15 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatShotDate, formatCoords } from '@/data/studio';
-import DitherReveal from './DitherReveal';
+import DitherBackdrop from './DitherBackdrop';
 
 const EASE = [0.16, 1, 0.3, 1];
-/** Photos (by index) shown as a dither the cursor develops — a trial on the
- *  first one; add indexes (or drop the check) to roll it out. */
-const DITHER_PHOTOS = [0];
 
 /**
  * The immersive photo viewer — the photograph is the whole show. It zooms
  * out of the grid (shared layout), thumbnail first, full image crossfading
- * in. The room takes a subtle tint of the photo's own mood colour, and the
+ * in. The room behind is the same photo as a dim dither the cursor warms
+ * (DitherBackdrop), and the
  * print is lifted off it: a soft bloom in that colour behind it, a deep
  * shadow, a fine edge highlight. Top right: the story of the shot.
  * Arrows / swipe / the edge buttons to move; I hides the card; Esc closes
@@ -86,7 +84,7 @@ function InfoCard({ p }) {
 }
 
 /** Thumbnail first, the full image fades in over it once decoded. */
-function Progressive({ p, className, dither = false }) {
+function Progressive({ p, className }) {
   // remounts per photo (keyed by src upstream), so this starts false each time
   const [loaded, setLoaded] = useState(false);
   return (
@@ -101,7 +99,6 @@ function Progressive({ p, className, dither = false }) {
         className="absolute inset-0 h-full w-full object-cover transition-opacity duration-500"
         style={{ opacity: loaded ? 1 : 0 }}
       />
-      {dither && loaded && <DitherReveal src={p.src} />}
     </div>
   );
 }
@@ -150,17 +147,18 @@ export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }
       aria-modal="true"
       aria-label="Photograph viewer"
     >
-      {/* a subtle tint of the photo's mood colour — the room, not a feature */}
+      {/* the room: the photograph again, huge and dim, as a dither in the two
+          inks — the cursor warms it; it crossfades with each photo */}
       <AnimatePresence>
         <motion.div
-          key={tint}
+          key={p.src}
           aria-hidden
           className="pointer-events-none absolute inset-0"
-          style={{ background: `radial-gradient(70% 65% at 50% 48%, color-mix(in srgb, ${tint} 34%, transparent) 0%, color-mix(in srgb, ${tint} 10%, transparent) 55%, transparent 85%)` }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { duration: 1.1, ease: EASE } }}
-          exit={{ opacity: 0, transition: { duration: 1.1, ease: EASE } }}
-        />
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.9, ease: EASE } }}
+        >
+          <DitherBackdrop src={p.src} />
+        </motion.div>
       </AnimatePresence>
       <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(100% 90% at 50% 50%, transparent 40%, rgba(7,8,12,0.75) 100%)' }} />
 
@@ -212,7 +210,7 @@ export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }
               '--tint': tint,
             }}
           >
-            <Progressive p={p} className="w-full" dither={DITHER_PHOTOS.includes(index)} />
+            <Progressive p={p} className="w-full" />
           </motion.div>
         </AnimatePresence>
 
