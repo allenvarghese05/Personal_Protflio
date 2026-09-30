@@ -60,7 +60,7 @@ void main() {
   float tone = adj < 0.33 ? 0.0 : (adj < 0.66 ? 0.5 : 1.0);
 
   // dim everywhere; brighter and a little of the real colour near the cursor
-  float level = mix(0.13, 0.42, near);
+  float level = mix(0.32, 0.7, near);
   vec3 ink = mix(uLight, col * 1.4, 0.35 * near);
   gl_FragColor = vec4(mix(uDark, ink, tone * level), 1.0);
 }

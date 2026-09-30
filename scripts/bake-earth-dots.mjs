@@ -1,6 +1,6 @@
 // Bakes the dotted Earth for the Meet Me globe from the Earth texture the
 // site already ships (public/cosmic/planets/earth.jpg, equirectangular):
-// samples an even-ish lat/lng grid, keeps the points that land on land (the
+// samples an even spread of points over the sphere, keeps the points that land on land (the
 // ocean is a uniform blue, so land = "not blue"), and writes them as Int16
 // pairs (lat × 100, lng × 100) to public/meet/earth-dots.bin.
 //
@@ -12,7 +12,6 @@ import sharp from 'sharp';
 
 const SRC = new URL('../public/cosmic/planets/earth.jpg', import.meta.url);
 const OUT = new URL('../public/meet/earth-dots.bin', import.meta.url);
-const STEP = 1.4; // degrees between dots along a parallel at the equator
 const LAT = [-58, 72]; // skip Antarctica and the texture's hazy polar cap
 
 const { data, info } = await sharp(SRC.pathname).removeAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -35,11 +34,18 @@ const land = (lng, lat) => {
   return n >= 3;
 };
 
+// an even spread over the sphere (a Fibonacci lattice) — no latitude rows,
+// so the globe never shows concentric ridges toward its edge
+const N = 26000;
 const pts = [];
-for (let lat = LAT[0]; lat <= LAT[1]; lat += STEP) {
-  const step = STEP / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
-  const offset = (Math.round(lat / STEP) % 2) * step * 0.5; // stagger rows
-  for (let lng = -180 + offset; lng < 180; lng += step) if (land(lng, lat)) pts.push(lat, lng);
+const golden = Math.PI * (3 - Math.sqrt(5));
+for (let i = 0; i < N; i++) {
+  const y = 1 - (2 * (i + 0.5)) / N;
+  const lat = (Math.asin(y) * 180) / Math.PI;
+  if (lat < LAT[0] || lat > LAT[1]) continue;
+  let lng = ((i * golden * 180) / Math.PI) % 360;
+  if (lng > 180) lng -= 360;
+  if (land(lng, lat)) pts.push(lat, lng);
 }
 
 const buf = new Int16Array(pts.length);

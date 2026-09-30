@@ -160,7 +160,7 @@ export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }
           <DitherBackdrop src={p.src} />
         </motion.div>
       </AnimatePresence>
-      <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(100% 90% at 50% 50%, transparent 40%, rgba(7,8,12,0.75) 100%)' }} />
+      <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(100% 90% at 50% 50%, transparent 45%, rgba(7,8,12,0.55) 100%)' }} />
 
       {/* top bar */}
       <motion.div

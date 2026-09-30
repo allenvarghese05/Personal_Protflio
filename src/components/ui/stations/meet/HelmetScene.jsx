@@ -1277,38 +1277,38 @@ function Moon({ revealRef, moonDirRef, moonPosRef, discRef, skyRef, envDirtyRef 
 /* ── the Earth ────────────────────────────────────────────────────────── */
 
 /**
- * A calm, dotted Earth high in the frame, behind the helmet and the name —
- * depth and a place in the world, not a storyteller. It's there from the
- * first frame, through the face and the name; Bhopal and Philadelphia are
- * marked, and once, as the headline lands, an amber flight path draws the
- * great circle between them and stays as a faint trace. Lit by the moon like
- * everything else. It fades away as the story arrives.
+ * A calm, dotted Earth high in the frame — whole, never cropped — behind the
+ * helmet's crown at first and behind the name once the layout resolves,
+ * paired with the moon beside it: depth and a place in the world, not a
+ * storyteller. Bhopal and Philadelphia are marked, and once, as the headline
+ * lands, a small amber point travels the great circle between them (no
+ * trail) with a soft ring at each end. Lit by the moon like everything else.
+ * It fades away as the story arrives.
  *
  * Land dots come from public/meet/earth-dots.bin (scripts/bake-earth-dots.mjs);
  * until that file exists the globe stays hidden (a bare rim reads as a ring).
  */
-const EARTH = { z: -8, ndc: [0.02, 1.02], r: 0.86 }; // centre (frame units) + radius (half-heights)
+const EARTH = { z: -8, ndc: [0.12, 0.62], r: 0.5 }; // centre (frame units) + radius (half-heights)
 const PLACES = {
   bhopal: { lat: 23.2599, lng: 77.4126 },
   philadelphia: { lat: 39.9526, lng: -75.1652 },
 };
-const FLIGHT = { delay: 0.35, dur: 2.6, trace: 0.35 };
+const FLIGHT = { delay: 0.35, dur: 2.6 };
 const latLng = ({ lat, lng }) => {
   const a = THREE.MathUtils.degToRad(lat);
   const o = THREE.MathUtils.degToRad(lng);
   return new THREE.Vector3(Math.cos(a) * Math.sin(o), Math.sin(a), Math.cos(a) * Math.cos(o));
 };
 
-/** Turn the globe so the route's midpoint faces the viewer (a little below
- *  centre, where the visible lower half of the globe is) and the route runs
- *  level — India on the right, America on the left, as on a map. */
+/** Turn the globe so the route's midpoint faces the viewer and the route
+ *  runs level — India on the right, America on the left, as on a map. */
 const EARTH_TURN = (() => {
   const b = latLng(PLACES.bhopal);
   const p = latLng(PLACES.philadelphia);
   const m = b.clone().add(p).normalize();
   const c = b.clone().sub(p).addScaledVector(m, -b.clone().sub(p).dot(m)).normalize(); // Philly → Bhopal, across m
   const nL = new THREE.Vector3().crossVectors(m, c);
-  const Z = new THREE.Vector3(0, -0.5, 0.87).normalize();
+  const Z = new THREE.Vector3(0, 0.08, 1).normalize();
   const X = new THREE.Vector3(1, 0, 0).addScaledVector(Z, -Z.x).normalize();
   const Y = new THREE.Vector3().crossVectors(Z, X);
   const local = new THREE.Matrix4().makeBasis(c, nL, m);
@@ -1328,8 +1328,6 @@ const ROUTE = (() => {
   }
   return new THREE.CatmullRomCurve3(pts);
 })();
-const ROUTE_SEG = 160;
-const ROUTE_RADIAL = 6;
 
 const earthDotVert = /* glsl */ `
   uniform vec3 uMoon;
@@ -1356,29 +1354,6 @@ const earthDotFrag = /* glsl */ `
     gl_FragColor = vec4(uColor, a);
   }
 `;
-const rimVert = /* glsl */ `
-  varying float vRim;
-  varying float vLit;
-  uniform vec3 uMoon;
-  void main() {
-    vec3 n = normalize(mat3(modelMatrix) * normal);
-    vec4 wp = modelMatrix * vec4(position, 1.0);
-    vRim = 1.0 - abs(dot(n, normalize(cameraPosition - wp.xyz)));
-    vLit = smoothstep(-0.3, 0.7, dot(n, uMoon));
-    gl_Position = projectionMatrix * viewMatrix * wp;
-  }
-`;
-const rimFrag = /* glsl */ `
-  uniform vec3 uColor;
-  uniform float uOpacity;
-  varying float vRim;
-  varying float vLit;
-  void main() {
-    float a = pow(clamp(vRim, 0.0, 1.0), 7.0) * uOpacity * (0.25 + 0.75 * vLit);
-    gl_FragColor = vec4(uColor, a);
-  }
-`;
-
 function useRingTexture() {
   return useMemo(() => {
     const c = document.createElement('canvas');
@@ -1396,8 +1371,6 @@ function useRingTexture() {
 function Earth({ layoutRef, moonDirRef, storyInRef }) {
   const group = useRef();
   const dots = useRef();
-  const rim = useRef();
-  const route = useRef();
   const head = useRef();
   const markers = useRef([]);
   const pulses = useRef([]);
@@ -1405,10 +1378,8 @@ function Earth({ layoutRef, moonDirRef, storyInRef }) {
   const glowTex = useGlowTexture();
   const ringTex = useRingTexture();
   const st = useRef({ key: '', played: false, t0: 0, done: false });
-  const routeGeo = useMemo(() => new THREE.TubeGeometry(ROUTE, ROUTE_SEG, 0.011, ROUTE_RADIAL, false), []);
   const tip = useMemo(() => new THREE.Vector3(), []);
   const dotUniforms = useMemo(() => ({ uColor: { value: new THREE.Color(PALETTE.ink) }, uOpacity: { value: 0 }, uMoon: { value: new THREE.Vector3(1, 0, 0) }, uPx: { value: 2 } }), []);
-  const rimUniforms = useMemo(() => ({ uColor: { value: new THREE.Color(PALETTE.ice) }, uOpacity: { value: 0 }, uMoon: { value: new THREE.Vector3(1, 0, 0) } }), []);
   const places = useMemo(() => [latLng(PLACES.bhopal).multiplyScalar(1.006), latLng(PLACES.philadelphia).multiplyScalar(1.006)], []);
 
   useEffect(() => {
@@ -1465,23 +1436,11 @@ function Earth({ layoutRef, moonDirRef, storyInRef }) {
       du.uMoon.value.copy(moonDirRef.current);
       du.uPx.value = 1.8 * viewport.dpr;
     }
-    const ru = rim.current?.material.uniforms;
-    if (ru) {
-      ru.uOpacity.value = 0.07 * k;
-      ru.uMoon.value.copy(moonDirRef.current);
-    }
     markers.current.forEach((m) => m && (m.material.opacity = 0.85 * k));
 
-    // route + head
+    // the traveller: a small point along the great circle, no trail
     const f = s.played ? THREE.MathUtils.clamp(age / FLIGHT.dur, 0, 1) : 0;
     const e = f * f * (3 - 2 * f);
-    const r = route.current;
-    if (r) {
-      r.geometry.setDrawRange(0, Math.floor(e * ROUTE_SEG) * ROUTE_RADIAL * 6);
-      const landed = THREE.MathUtils.clamp((age - FLIGHT.dur) / 1.2, 0, 1);
-      r.material.opacity = k * THREE.MathUtils.lerp(0.9, FLIGHT.trace, landed);
-      r.visible = e > 0;
-    }
     const h = head.current;
     if (h) {
       h.visible = f > 0 && f < 1;
@@ -1511,20 +1470,12 @@ function Earth({ layoutRef, moonDirRef, storyInRef }) {
           <shaderMaterial uniforms={dotUniforms} vertexShader={earthDotVert} fragmentShader={earthDotFrag} transparent depthWrite={false} />
         </points>
       )}
-      {/* a faint moonlit rim of atmosphere */}
-      <mesh ref={rim} scale={1.012} renderOrder={-2}>
-        <sphereGeometry args={[1, 64, 48]} />
-        <shaderMaterial uniforms={rimUniforms} vertexShader={rimVert} fragmentShader={rimFrag} transparent depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.BackSide} />
-      </mesh>
-      <mesh ref={route} geometry={routeGeo} visible={false} renderOrder={-1}>
-        <meshBasicMaterial color={PALETTE.accent} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
-      </mesh>
-      <sprite ref={head} scale={0.09} visible={false} renderOrder={-1}>
+      <sprite ref={head} scale={0.11} visible={false} renderOrder={-1}>
         <spriteMaterial map={glowTex} color={PALETTE.accentHi} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
       </sprite>
       {places.map((p, i) => (
         <group key={i} position={p}>
-          <sprite ref={(el) => (markers.current[i] = el)} scale={0.06}>
+          <sprite ref={(el) => (markers.current[i] = el)} scale={0.075}>
             <spriteMaterial map={glowTex} color={PALETTE.accent} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </sprite>
           <sprite ref={(el) => (pulses.current[i] = el)} visible={false}>
