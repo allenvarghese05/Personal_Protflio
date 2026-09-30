@@ -6,6 +6,7 @@ import { PALETTE } from '@/lib/palette';
  * The finishing pass over the whole composite frame, so the helmet, suit,
  * moon and room read as one photograph:
  *
+ *   · the entry power-up: the scene's exposure rises from dark
  *   · tone map (Khronos PBR Neutral — leaves the pre-graded portrait's
  *     colours alone below the highlights, unlike ACES)
  *   · the Mission Control dot grid, drawn where nothing was rendered, aligned
@@ -21,6 +22,7 @@ const frag = /* glsl */ `
   uniform vec4 uStage;   // stage rect in CSS px: left, top, width, height
   uniform vec2 uRoot;    // the Mission Control root size, CSS px
   uniform vec3 uInk;     // grid dot colour (display space)
+  uniform float uPower;  // the scene's exposure on entry: 0 (dark) → 1
 
   vec3 neutralTM(vec3 c) {
     const float start = 0.8 - 0.04;
@@ -56,6 +58,8 @@ const frag = /* glsl */ `
       texture2D(inputBuffer, uv + c * ca).b
     );
     col = toDisplay(neutralTM(max(col, 0.0)));
+    // power-up on entry: the scene's light comes up (the room's grid doesn't)
+    col *= uPower;
 
     // the room's dot grid, only on empty background and never over the moon
     vec2 css = vec2(uStage.x + uv.x * uStage.z, uStage.y + (1.0 - uv.y) * uStage.w);
@@ -84,6 +88,7 @@ export class FilmEffect extends Effect {
       uniforms: new Map([
         ['uStage', new THREE.Uniform(new THREE.Vector4(0, 0, 1, 1))],
         ['uRoot', new THREE.Uniform(new THREE.Vector2(1, 1))],
+        ['uPower', new THREE.Uniform(0)],
         ['uInk', new THREE.Uniform(new THREE.Color().setStyle(PALETTE.ink, THREE.LinearSRGBColorSpace))], // raw sRGB: display space
       ]),
     });

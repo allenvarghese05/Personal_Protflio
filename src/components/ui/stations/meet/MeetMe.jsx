@@ -203,7 +203,7 @@ export default function MeetMe() {
       {/* the pinned stage — stays put for the whole section */}
       <div ref={stage} className="meet-stage sticky top-0 w-full overflow-hidden" style={{ height: STAGE_H }}>
         <Canvas
-          className="meet-canvas !absolute inset-0 transition-opacity delay-100 duration-700"
+          className="meet-canvas !absolute inset-0 transition-opacity duration-300"
           style={{ opacity: ready ? 1 : 0 }}
           dpr={[1, 2]}
           shadows

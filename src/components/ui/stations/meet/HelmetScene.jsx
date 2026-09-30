@@ -121,11 +121,11 @@ const PLATE = 1.8;
 /** The face in the portrait, in UV (v up): its centre, between the eyes and
  *  the mouth; its ear-to-ear width; and the chin — measured from
  *  public/meet/allen-face.webp. Re-measure if the image changes. */
-const FACE = { cx: 0.5, cy: 0.4, w: 0.514, chin: 0.21 };
-/** Ear-to-ear spans the opening's full width — the ears run under the rim,
- *  so no gap shows between face and helmet. The crown of the hair runs up
- *  under the top edge; the frame is centred low enough that the chin stays. */
-const FACE_FILL = 1.0;
+const FACE = { cx: 0.5, cy: 0.43, w: 0.514, chin: 0.21 };
+/** Ear-to-ear runs past the opening's width, so the ears sit under the rim
+ *  (as they would in a real helmet) and the face fills the visor; centred
+ *  just under the eyes, the chin can tuck a touch under the lower edge. */
+const FACE_FILL = 1.16;
 /** The opening's visible rim (just inside the gasket), helmet space — its
  *  on-screen outline is what the portrait is centred and fitted to. */
 const RIM = Array.from({ length: 24 }, (_, i) => {
@@ -260,7 +260,7 @@ function Face({ lightRef, moonDirRef, apertureRef }) {
     const ay = ((y1 - y0) / 2) * D * tanH;
     const ax = ((x1 - x0) / 2) * D * tanH * (size.width / size.height);
     const byWidth = (FACE_FILL * 2 * ax) / FACE.w;
-    const byChin = (0.98 * ay) / (FACE.cy - FACE.chin);
+    const byChin = (1.2 * ay) / (FACE.cy - FACE.chin);
     // portrait size, in the plate's own (helmet-local) units
     const s = Math.min(byWidth, byChin) / sc;
     u.uUvScale.value = PLATE / s;
@@ -1332,9 +1332,13 @@ const ROUTE = (() => {
 const earthDotVert = /* glsl */ `
   uniform vec3 uMoon;
   uniform float uPx;
+  uniform float uIntro;  // 0 → 1: dots switch on one by one, scattered
   varying float vLit;
   varying float vFace;
+  varying float vOn;
   void main() {
+    float seed = fract(sin(dot(position, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+    vOn = smoothstep(seed * 0.8, seed * 0.8 + 0.2, uIntro);
     vec3 n = normalize(mat3(modelMatrix) * position);
     vec4 wp = modelMatrix * vec4(position, 1.0);
     vLit = smoothstep(-0.25, 0.6, dot(n, uMoon));
@@ -1348,9 +1352,10 @@ const earthDotFrag = /* glsl */ `
   uniform float uOpacity;
   varying float vLit;
   varying float vFace;
+  varying float vOn;
   void main() {
     float d = length(gl_PointCoord - 0.5);
-    float a = (1.0 - smoothstep(0.25, 0.5, d)) * uOpacity * (0.16 + 0.84 * vLit) * vFace;
+    float a = (1.0 - smoothstep(0.25, 0.5, d)) * uOpacity * (0.16 + 0.84 * vLit) * vFace * vOn;
     gl_FragColor = vec4(uColor, a);
   }
 `;
@@ -1379,7 +1384,8 @@ function Earth({ layoutRef, moonDirRef, storyInRef }) {
   const ringTex = useRingTexture();
   const st = useRef({ key: '', played: false, t0: 0, done: false });
   const tip = useMemo(() => new THREE.Vector3(), []);
-  const dotUniforms = useMemo(() => ({ uColor: { value: new THREE.Color(PALETTE.ink) }, uOpacity: { value: 0 }, uMoon: { value: new THREE.Vector3(1, 0, 0) }, uPx: { value: 2 } }), []);
+  const dotUniforms = useMemo(() => ({ uColor: { value: new THREE.Color(PALETTE.ink) }, uOpacity: { value: 0 }, uMoon: { value: new THREE.Vector3(1, 0, 0) }, uPx: { value: 2 }, uIntro: { value: 0 } }), []);
+  const intro = useRef({ t0: -1, k: 0 });
   const places = useMemo(() => [latLng(PLACES.bhopal).multiplyScalar(1.006), latLng(PLACES.philadelphia).multiplyScalar(1.006)], []);
 
   useEffect(() => {
@@ -1407,6 +1413,13 @@ function Earth({ layoutRef, moonDirRef, storyInRef }) {
     const L = layoutRef.current;
     const s = st.current;
     const away = storyInRef?.current ?? 0;
+    // the entry sparkle: from the first frame the dots are drawn, ~0.5s in,
+    // over ~1.8s
+    const it = intro.current;
+    if (dotGeo && it.t0 < 0) it.t0 = clock.elapsedTime;
+    const introK = it.t0 < 0 ? 0 : THREE.MathUtils.clamp((clock.elapsedTime - it.t0 - 0.5) / 1.8, 0, 1);
+    const introChanged = introK !== it.k;
+    it.k = introK;
     // present from the first frame; leaves as the story comes in
     const k = dotGeo ? 1 - THREE.MathUtils.smoothstep(away, 0, 0.7) : 0;
 
@@ -1419,7 +1432,7 @@ function Earth({ layoutRef, moonDirRef, storyInRef }) {
     if (s.played && age > FLIGHT.dur + 1.4) s.done = true;
 
     const key = `${L}|${away}|${!!dotGeo}|${size.width}|${size.height}|${camera.position.z.toFixed(3)}|${moonDirRef.current.x.toFixed(4)}|${s.played}|${s.done}`;
-    if (!flying && key === s.key) return; // settled: nothing moves
+    if (!flying && !introChanged && key === s.key) return; // settled: nothing moves
     s.key = key;
 
     // place: high in the frame, sized to it; it drifts up a touch as it leaves
@@ -1433,6 +1446,7 @@ function Earth({ layoutRef, moonDirRef, storyInRef }) {
     const du = dots.current?.material.uniforms;
     if (du) {
       du.uOpacity.value = 0.72 * k;
+      du.uIntro.value = introK;
       du.uMoon.value.copy(moonDirRef.current);
       du.uPx.value = 1.8 * viewport.dpr;
     }
@@ -1763,11 +1777,19 @@ function LeadingLines({ revealRef, apertureRef, frameRef, linesRef }) {
  * face plate on the reveal while the bokeh opens up, so the background goes
  * softer and the face ends up the sharpest thing in frame.
  */
+/** Entry power-up: from the first drawn frame, the light comes up over ~1.6s
+ *  (a soft S-curve, with a slow start like a lamp warming), then holds. */
+const POWER = { delay: 0.1, dur: 1.6 };
+
 function Finish({ revealRef, layoutRef, apertureRef, frameRef }) {
   const dof = useRef();
+  const t0 = useRef(-1);
   const film = useMemo(() => new FilmEffect(), []);
   useEffect(() => () => film.dispose(), [film]);
-  useFrame(() => {
+  useFrame(({ clock }) => {
+    if (t0.current < 0) t0.current = clock.elapsedTime;
+    const k = THREE.MathUtils.clamp((clock.elapsedTime - t0.current - POWER.delay) / POWER.dur, 0, 1);
+    film.uniforms.get('uPower').value = k * k * (3 - 2 * k);
     const e = dof.current;
     const a = apertureRef.current;
     const r = revealRef.current;

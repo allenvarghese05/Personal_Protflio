@@ -190,7 +190,8 @@ export default function DitherBackdrop({ src, radius = 320, className = '' }) {
       gl.deleteProgram(prog);
       gl.deleteBuffer(buf);
       gl.deleteTexture(tex);
-      gl.getExtension('WEBGL_lose_context')?.loseContext(); // free the context right away
+      // (no loseContext here: in dev, React re-runs effects on the same canvas,
+      // and a lost context would come straight back dead)
     };
   }, [src, radius, reduced]);
 
