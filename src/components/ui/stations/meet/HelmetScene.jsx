@@ -13,36 +13,32 @@ import { FilmEffect } from './FilmEffect';
  *
  *   · Shell + liner: full spheres whose face window and neck are cut in the
  *     fragment shader — a mathematically smooth, anti-aliased ellipse.
- *   · Visor: the gold sun visor rides a track on the shell, like an EMU
- *     helmet's EVVA — its straight leading edge slides up the face and the
- *     visor tucks into a housing over the crown.
+ *   · Visor: a slightly larger sphere segment cut the same way, gold over a
+ *     clear lacquer, pivoting on the side hinges (x-axis through the centre).
  *   · Face: the finished portrait, recessed behind the aperture. It's clipped
  *     to the window geometrically (each pixel traces its view ray back to the
  *     shell) and darkened where the aperture rim blocks the moon.
  *   · Suit: shoulders + upper chest the helmet sits on and shadows.
- *   · Moon: the scene's ONE light. It rises behind the helmet as the visor
- *     opens; the direct light, the shadows, the reflections and the rim
- *     shadow on the face all follow its position.
+ *   · Light: a warm studio (key light + warm reflections, which make the
+ *     gold glow) and the moon — a cool accent that rises as the visor opens,
+ *     casts the shadow, and drives the rim shadow on the face.
  *
  *   · Glass: the clear pressure bubble in the opening — it mirrors the moon
  *     and the room, and its condensation clears the moment the face lights.
  *
  * The helmet always aims its opening at the lens (the suit follows half-way),
- * so the frontal portrait and the shell agree from every position.
+ * so the frontal portrait and the shell agree from every position — plus a
+ * few degrees toward the cursor, as if it noticed you.
  *
  * `progress` is a ref (0→1) the page writes from scroll; nothing here
- * re-renders per frame. Everything that moves — hinge, camera, moon, focus
- * rack, leading lines — reads ONE value, `reveal`: the same ease over the
+ * re-renders per frame. Everything that moves — hinge, camera, moon, beam,
+ * focus rack — reads ONE value, `reveal`: the same ease over the
  * same scroll slice. When it lands, the frame is still. A second value on
  * the same ease, `layout`, then glides the helmet to its resting place.
  */
 
 const R = 1; // helmet radius
-/** Visor travel, as the height (unit-sphere y) of its leading edge: closed
- *  just under the face opening → tucked under the crown housing's lip. */
-const VISOR_CLOSED = -0.56;
-const HOUSING_Y = 0.62; // the housing's lip, where the visor disappears
-const VISOR_OPEN = HOUSING_Y + 0.03;
+const MAX_LIFT = 1.3; // radians the visor swings up and back on its hinges
 const STANDBY = 0.1; // interior level at rest — a silhouette through the gold
 const WINDOW = { rx: 0.6, ry: 0.5, cy: 0.02 }; // face opening on the unit sphere
 const f = (n) => n.toFixed(4);
@@ -270,7 +266,7 @@ function Face({ lightRef, moonDirRef, apertureRef }) {
     u.uMoon.value.copy(moonDirRef.current).transformDirection(u.uToHelmet.value);
     u.uLight.value = lightRef.current;
 
-    // for the leading lines + the focus rack
+    // for the focus rack (and the beam's landing point)
     const a = apertureRef.current;
     a.x = (cx * 0.5 + 0.5) * size.width;
     a.y = (-cy * 0.5 + 0.5) * size.height;
@@ -299,58 +295,23 @@ const linerMat = cutWindow(
   new THREE.MeshStandardMaterial({ color: '#141519', roughness: 0.9, side: THREE.BackSide, alphaToCoverage: true }),
   { keep: 'outside', neck: true }
 );
-/** Height (unit-sphere y) of the visor's leading edge — the one value the
- *  slide animates. */
-const VISOR_EDGE = { value: VISOR_CLOSED };
-/**
- * The sun visor: a sphere segment on the same centre as the shell, so moving
- * its edge is a true slide along the shell's curve. Its outline is a
- * rounded-corner "box" on the sphere — straight sides, one straight leading
- * edge (a line of latitude: level across the face, gently curved like the
- * shell) — with a dark trim lip along the edges.
- */
-const visorMat = new THREE.MeshPhysicalMaterial({
-  color: '#dcae68',
-  metalness: 1,
-  roughness: 0.14,
-  transparent: true,
-  opacity: 0.5, // a light gold wash: the face's silhouette reads through it
-  envMapIntensity: 1.6,
-  // a thin clear lacquer over the gold: reflects the moon un-tinted
-  clearcoat: 0.35,
-  clearcoatRoughness: 0.06,
-  side: THREE.DoubleSide,
-  depthWrite: false,
-});
-visorMat.onBeforeCompile = (sh) => {
-  sh.uniforms.uEdge = VISOR_EDGE;
-  sh.vertexShader = sh.vertexShader
-    .replace('#include <common>', '#include <common>\nvarying vec3 vObj;')
-    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObj = position;');
-  sh.fragmentShader = sh.fragmentShader
-    .replace('#include <common>', '#include <common>\nvarying vec3 vObj;\nuniform float uEdge;')
-    .replace(
-      '#include <alphatest_fragment>',
-      /* glsl */ `{
-        vec3 n = normalize(vObj);
-        // signed distance to the visor outline (< 0 inside): |x| < 0.72,
-        // y > edge, corners rounded
-        const float HALF = 0.72;
-        const float RC = 0.09;
-        vec2 q = vec2(abs(n.x) - (HALF - RC), (uEdge + RC) - n.y);
-        float sd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - RC;
-        if (n.z < 0.05) sd = 1.0;
-        float cov = clamp(-sd / max(fwidth(sd), 1e-4) + 0.5, 0.0, 1.0);
-        if (cov < 0.02) discard;
-        // trim lip: a dark, nearly opaque band just inside the outline
-        float trim = 1.0 - smoothstep(0.014, 0.026, -sd);
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.07, 0.07, 0.08), trim);
-        diffuseColor.a = mix(diffuseColor.a, 0.96, trim) * cov;
-      }
-      #include <alphatest_fragment>`
-    );
-};
-visorMat.customProgramCacheKey = () => 'visor-slide';
+const visorMat = cutWindow(
+  new THREE.MeshPhysicalMaterial({
+    color: '#e3ab55',
+    metalness: 1,
+    roughness: 0.14,
+    transparent: true,
+    opacity: 0.74, // gold, but not fully opaque — a silhouette reads through it
+    envMapIntensity: 1.9,
+    // a thin clear lacquer over the gold: the only layer that reflects the
+    // moon un-tinted — a faint cool pass, well under the gold
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.06,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  }),
+  { keep: 'inside', grow: 0.07 }
+);
 
 /**
  * The pressure bubble — clear glass across the opening, just inside the
@@ -409,14 +370,7 @@ const glassMat = cutWindow(
   glassMat.customProgramCacheKey = () => 'glass-bubble';
 }
 
-/** The visor housing over the crown: a cap of shell with a trimmed lip the
- *  visor slides in under. */
-const housingMat = new THREE.MeshPhysicalMaterial({ color: '#e6e1d7', roughness: 0.34, clearcoat: 0.8, clearcoatRoughness: 0.12, side: THREE.DoubleSide });
-const trimMat = new THREE.MeshStandardMaterial({ color: '#26272c', roughness: 0.55, metalness: 0.2 });
-const HOUSING = { r: 1.042, phi: 1.2 }; // radius; half-width around the front (rad)
 const rubberMat = new THREE.MeshStandardMaterial({ color: '#1b1c21', roughness: 0.7 });
-// lamp lenses: satin, low reflection — a lens must never out-shine the face
-const lensMat = new THREE.MeshPhysicalMaterial({ color: '#1d1f24', roughness: 0.35, clearcoat: 0.3, clearcoatRoughness: 0.3, envMapIntensity: 0.35 });
 const metalMat = new THREE.MeshStandardMaterial({ color: '#bdb8ae', roughness: 0.28, metalness: 0.85 });
 const darkMetalMat = new THREE.MeshStandardMaterial({ color: '#6f6b65', roughness: 0.35, metalness: 0.8 });
 const accentPaintMat = new THREE.MeshStandardMaterial({ color: PALETTE.accent, roughness: 0.6 });
@@ -628,87 +582,17 @@ function useGlowTexture() {
   }, []);
 }
 
-/**
- * The condensation leaving: as the glass clears, soft puffs of vapour vent
- * out from around the opening and drift off into the room — expanding,
- * thinning, gone — about three seconds, once per power-on. Then nothing
- * moves. Lives in helmet space, so the puffs leave from wherever it is.
- */
-const VENT_N = 22;
-const VENT_LIFE = 3.2;
-const VENT = (() => {
-  const rand = rng(23);
-  return Array.from({ length: VENT_N }, () => {
-    // start on the opening's rim (a little outside the glass)…
-    const t = rand() * Math.PI * 2;
-    const x = WINDOW.rx * Math.cos(t);
-    const y = WINDOW.cy + WINDOW.ry * Math.sin(t);
-    const n = new THREE.Vector3(x, y, Math.sqrt(Math.max(0, 1 - x * x - y * y)));
-    // …and drift out along the shell's normal, rising a little, spreading
-    const vel = n.clone().multiplyScalar(0.22 + rand() * 0.2).add(new THREE.Vector3((rand() - 0.5) * 0.12, 0.08 + rand() * 0.1, 0.1 + rand() * 0.12));
-    return { start: n.multiplyScalar(R * 1.03), vel, delay: rand() * 0.55, size: 0.22 + rand() * 0.24, grow: 1.6 + rand() * 1.6, spin: (rand() - 0.5) * 0.6, peak: 0.1 + rand() * 0.1 };
-  });
-})();
-function useSmokeTexture() {
-  return useMemo(() => {
-    const c = document.createElement('canvas');
-    c.width = c.height = 128;
-    const g = c.getContext('2d');
-    const rand = rng(5);
-    // a soft, lumpy puff: overlapping soft blobs inside a round falloff
-    for (let i = 0; i < 26; i++) {
-      const a = rand() * Math.PI * 2;
-      const d = Math.sqrt(rand()) * 34;
-      const x = 64 + Math.cos(a) * d;
-      const y = 64 + Math.sin(a) * d;
-      const r = 18 + rand() * 26;
-      const grd = g.createRadialGradient(x, y, 0, x, y, r);
-      grd.addColorStop(0, 'rgba(255,255,255,0.22)');
-      grd.addColorStop(1, 'rgba(255,255,255,0)');
-      g.fillStyle = grd;
-      g.fillRect(0, 0, 128, 128);
-    }
-    return new THREE.CanvasTexture(c);
-  }, []);
-}
-function VentPuffs({ ventRef }) {
-  const refs = useRef([]);
-  const done = useRef(true);
-  const tex = useSmokeTexture();
-  useFrame(({ clock }) => {
-    const t0 = ventRef.current;
-    const age = clock.elapsedTime - t0;
-    const live = t0 >= 0 && age < VENT_LIFE + 0.6;
-    if (!live) {
-      if (!done.current) refs.current.forEach((sp) => sp && (sp.visible = false));
-      done.current = true;
-      return; // idle: nothing to move
-    }
-    done.current = false;
-    VENT.forEach((v, i) => {
-      const sp = refs.current[i];
-      if (!sp) return;
-      const k = THREE.MathUtils.clamp((age - v.delay) / VENT_LIFE, 0, 1);
-      const slow = 1 - (1 - k) * (1 - k); // decelerating, like vapour
-      sp.position.copy(v.start).addScaledVector(v.vel, slow * 2.2);
-      sp.scale.setScalar(v.size * (1 + v.grow * slow));
-      sp.material.rotation = v.spin * slow * 3;
-      sp.material.opacity = v.peak * Math.sin(Math.PI * Math.min(1, k * 1.15)) * (k > 0 ? 1 : 0);
-      sp.visible = k > 0 && k < 1;
-    });
-  });
-  return VENT.map((v, i) => (
-    <sprite key={i} ref={(el) => (refs.current[i] = el)} visible={false} renderOrder={3}>
-      <spriteMaterial map={tex} color="#c9d3e2" transparent opacity={0} depthWrite={false} />
-    </sprite>
-  ));
-}
-
-function Helmet({ revealRef, lightRef, moonDirRef, apertureRef, still }) {
+function Helmet({ revealRef, lightRef, moonDirRef, apertureRef }) {
+  const visor = useRef();
+  const glow = useRef();
+  const lamps = useRef([]);
+  const flares = useRef([]);
   const s = useRef({ on: false, onAt: 0, clear: 0 });
-  const vent = useRef(-1); // clock time the vapour started venting (-1: never)
+  const glowTex = useGlowTexture();
 
   const sphere = useMemo(() => new THREE.SphereGeometry(R, 128, 96), []);
+  // the liner and the glass never show their silhouette — half the detail
+  const sphereLo = useMemo(() => new THREE.SphereGeometry(R, 64, 48), []);
   const gasket = useMemo(() => {
     const pts = [];
     for (let i = 0; i < 128; i++) {
@@ -720,40 +604,13 @@ function Helmet({ revealRef, lightRef, moonDirRef, apertureRef, still }) {
     return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 256, 0.032, 12, true);
   }, []);
 
-  // the crown housing: a cap over the top-front, and a trim loop round its
-  // edge (the lip the visor tucks under, and up over the crown each side)
-  const housing = useMemo(() => {
-    const T = Math.acos(HOUSING_Y);
-    const a = Math.PI / 2 - HOUSING.phi;
-    const b = Math.PI / 2 + HOUSING.phi;
-    const cap = new THREE.SphereGeometry(HOUSING.r, 96, 40, a, b - a, 0, T);
-    const at = (phi, th) => new THREE.Vector3(-Math.cos(phi) * Math.sin(th), Math.cos(th), Math.sin(phi) * Math.sin(th)).multiplyScalar(HOUSING.r + 0.004);
-    const pts = [];
-    for (let i = 0; i <= 48; i++) pts.push(at(a + ((b - a) * i) / 48, T));
-    for (let i = 1; i < 16; i++) pts.push(at(b, T * (1 - i / 16)));
-    for (let i = 1; i < 16; i++) pts.push(at(a, (T * i) / 16));
-    const lip = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true, 'centripetal'), 256, 0.022, 10, true);
-    return { cap, lip };
-  }, []);
-
-  // lamps ride the housing's flanks, angled out like an EMU's helmet lights
-  const lamps = useMemo(
-    () =>
-      [-1, 1].map((sd) => {
-        const dir = new THREE.Vector3(sd * 0.72, 0.5, 0.48).normalize();
-        return { sd, pos: dir.clone().multiplyScalar(HOUSING.r + 0.05), q: new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir) };
-      }),
-    []
-  );
-
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
     const st = s.current;
     const r = revealRef.current;
 
-    // the visor slides on the shared reveal exactly — no spring, no overshoot
-    const edge = THREE.MathUtils.lerp(VISOR_CLOSED, VISOR_OPEN, r);
-    VISOR_EDGE.value = edge;
+    // the visor swings up on its hinges on the shared reveal — no spring
+    if (visor.current) visor.current.rotation.x = -r * MAX_LIFT;
 
     // The face's exposure: a dim silhouette → it catches the moment the
     // moonbeam lands on the crown (two quick flickers), then holds at full.
@@ -761,7 +618,6 @@ function Helmet({ revealRef, lightRef, moonDirRef, apertureRef, still }) {
     if (reach >= 1 && !st.on) {
       st.on = true;
       st.onAt = t;
-      if (!still) vent.current = t + 0.12; // the vapour leaves as the glass starts to clear
     } else if (reach < 0.85 && st.on) {
       st.on = false;
     }
@@ -776,20 +632,29 @@ function Helmet({ revealRef, lightRef, moonDirRef, apertureRef, still }) {
     }
     const snap = st.on && t - st.onAt < 0.25; // flicker = instant, ramp = eased
     const next = snap ? lt : lightRef.current + (lt - lightRef.current) * 0.08;
-    lightRef.current = Math.abs(next - lt) < 5e-4 ? lt : next; // settle, then stop
+    const l = (lightRef.current = Math.abs(next - lt) < 5e-4 ? lt : next); // settle, then stop
+
+    // the helmet's own lamps and interior light wake with the face
+    if (glow.current) glow.current.intensity = 0.3 + l * 2.8;
+    lamps.current.forEach((m) => m && (m.emissiveIntensity = 0.1 + l * 2.2));
+    flares.current.forEach((sp) => {
+      if (!sp) return;
+      sp.material.opacity = l * 0.85;
+      sp.scale.setScalar(0.16 + l * 0.26);
+    });
 
     // the glass clears from the centre out as the face warms up, then stays
     // clear; it mists back over if the visor closes again
     const clearTo = st.on ? THREE.MathUtils.smoothstep(t - st.onAt, 0.12, 1.9) * 1.3 : 0;
     st.clear = st.on ? clearTo : Math.max(0, st.clear - Math.min(delta, 1 / 20) * 1.5);
     GLASS.clear.value = st.clear;
-    GLASS.glow.value = lightRef.current;
+    GLASS.glow.value = l;
   });
 
   return (
     <group>
       <mesh geometry={sphere} material={shellMat} castShadow />
-      <mesh geometry={sphere} material={linerMat} scale={0.97} />
+      <mesh geometry={sphereLo} material={linerMat} scale={0.97} />
       <mesh geometry={gasket} material={rubberMat} />
       {/* neck ring */}
       <mesh position-y={-0.73} rotation-x={Math.PI / 2} material={metalMat} castShadow>
@@ -801,33 +666,38 @@ function Helmet({ revealRef, lightRef, moonDirRef, apertureRef, still }) {
           <mesh material={metalMat}>
             <cylinderGeometry args={[0.13, 0.13, 0.06, 32]} />
           </mesh>
-          <mesh position-y={sd * 0.035} material={accentPaintMat}>
+          <mesh position-y={sd * 0.035}>
             <cylinderGeometry args={[0.05, 0.05, 0.02, 24]} />
+            <meshStandardMaterial color={PALETTE.accent} emissive={PALETTE.accent} emissiveIntensity={0.6} />
           </mesh>
         </group>
       ))}
-      {/* visor housing over the crown, with its trimmed lip */}
-      <mesh geometry={housing.cap} material={housingMat} castShadow />
-      <mesh geometry={housing.lip} material={trimMat} />
-      {/* helmet lamps — unlit: satin lenses that only faintly catch the moon */}
-      {lamps.map(({ sd, pos, q }) => (
-        <group key={sd} position={pos} quaternion={q}>
+      {/* helmet lamps — they wake with the interior light */}
+      {[-1, 1].map((sd, i) => (
+        <group key={sd} position={[sd * 0.66, 0.6, 0.46]} rotation={[-0.3, sd * 0.55, 0]}>
           <mesh material={rubberMat} castShadow>
-            <boxGeometry args={[0.19, 0.11, 0.12]} />
+            <boxGeometry args={[0.2, 0.12, 0.14]} />
           </mesh>
-          <mesh position-z={0.062} material={lensMat}>
-            <planeGeometry args={[0.14, 0.07]} />
+          <mesh position-z={0.072}>
+            <planeGeometry args={[0.15, 0.08]} />
+            <meshStandardMaterial ref={(el) => (lamps.current[i] = el)} color="#fff4e2" emissive="#ffd9a8" emissiveIntensity={0.1} toneMapped={false} />
           </mesh>
+          <sprite ref={(el) => (flares.current[i] = el)} position-z={0.1}>
+            <spriteMaterial map={glowTex} color="#ffd6a0" transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          </sprite>
         </group>
       ))}
 
       <Face lightRef={lightRef} moonDirRef={moonDirRef} apertureRef={apertureRef} />
+      {/* the interior light — standby glow, then the power-up */}
+      <pointLight ref={glow} position={[0.25, 0.25, 0.5]} color="#ffd6a0" intensity={0.3} distance={2.6} decay={2} />
       {/* the pressure bubble across the opening */}
-      <mesh geometry={sphere} material={glassMat} scale={0.996} renderOrder={1} />
-      <VentPuffs ventRef={vent} />
+      <mesh geometry={sphereLo} material={glassMat} scale={0.996} renderOrder={1} />
 
-      {/* the visor, on its track between shell and housing */}
-      <mesh geometry={sphere} material={visorMat} scale={1.02} renderOrder={2} />
+      {/* the visor, on its hinge (x-axis through the centre) */}
+      <group ref={visor}>
+        <mesh geometry={sphere} material={visorMat} scale={1.018} renderOrder={2} />
+      </group>
     </group>
   );
 }
@@ -986,9 +856,32 @@ function restingLayout(aspect) {
  *  a later head-turn sequence. */
 const LOOK = { yaw: 0, pitch: 0 };
 
-function Layout({ layoutRef, moonDirRef, lightRef, camBaseRef, bodyRef, headRef, children }) {
+/** The helmet notices you: it turns a few degrees toward the cursor (mouse
+ *  only), easing after it like a slow head turn. ~6° across the frame. */
+const TRACK = { yaw: 0.11, pitch: 0.07, ease: 2.6 };
+
+function Layout({ layoutRef, moonDirRef, lightRef, camBaseRef, bodyRef, headRef, still, children }) {
   const group = useRef();
-  useFrame(({ camera, size }) => {
+  const look = useRef({ x: 0, y: 0, tx: 0, ty: 0, sig: '' });
+  useEffect(() => {
+    if (still) return;
+    const onMove = (e) => {
+      if (e.pointerType && e.pointerType !== 'mouse') return;
+      look.current.tx = (e.clientX / window.innerWidth) * 2 - 1;
+      look.current.ty = -((e.clientY / window.innerHeight) * 2 - 1);
+    };
+    const onLeave = () => {
+      look.current.tx = 0;
+      look.current.ty = 0;
+    };
+    window.addEventListener('pointermove', onMove);
+    document.documentElement.addEventListener('pointerleave', onLeave);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      document.documentElement.removeEventListener('pointerleave', onLeave);
+    };
+  }, [still]);
+  useFrame(({ camera, size, gl }, delta) => {
     const g = group.current;
     if (!g) return;
     const L = layoutRef.current;
@@ -1007,8 +900,14 @@ function Layout({ layoutRef, moonDirRef, lightRef, camBaseRef, bodyRef, headRef,
     const dx = c.x - g.position.x;
     const dy = c.y - g.position.y;
     const dz = c.z - g.position.z;
-    const yaw = Math.atan2(dx, dz) + LOOK.yaw;
-    const pitch = -Math.atan2(dy, Math.hypot(dx, dz)) + LOOK.pitch;
+    const lk = look.current;
+    const kk = 1 - Math.exp(-Math.min(delta, 1 / 20) * TRACK.ease);
+    lk.x += (lk.tx - lk.x) * kk;
+    lk.y += (lk.ty - lk.y) * kk;
+    if (Math.abs(lk.tx - lk.x) < 1e-4) lk.x = lk.tx;
+    if (Math.abs(lk.ty - lk.y) < 1e-4) lk.y = lk.ty;
+    const yaw = Math.atan2(dx, dz) + LOOK.yaw + lk.x * TRACK.yaw;
+    const pitch = -Math.atan2(dy, Math.hypot(dx, dz)) + LOOK.pitch - lk.y * TRACK.pitch;
     bodyRef.current?.rotation.set(pitch * 0.5, yaw * 0.5, 0, 'YXZ');
     headRef.current?.rotation.set(pitch * 0.5, yaw * 0.5, 0, 'YXZ');
 
@@ -1017,6 +916,14 @@ function Layout({ layoutRef, moonDirRef, lightRef, camBaseRef, bodyRef, headRef,
       light.target.position.copy(g.position);
       light.target.updateMatrixWorld();
       light.position.copy(g.position).addScaledVector(moonDirRef.current, 9);
+    }
+
+    // the shadow map only redraws when something that casts it has moved
+    gl.shadowMap.autoUpdate = false;
+    const sig = `${g.position.x.toFixed(4)}|${g.position.y.toFixed(4)}|${g.scale.x.toFixed(4)}|${yaw.toFixed(4)}|${pitch.toFixed(4)}|${moonDirRef.current.x.toFixed(4)}|${moonDirRef.current.y.toFixed(4)}`;
+    if (sig !== lk.sig) {
+      lk.sig = sig;
+      gl.shadowMap.needsUpdate = true;
     }
   });
   return <group ref={group}>{children}</group>;
@@ -1081,71 +988,6 @@ function Stars() {
     <points geometry={starGeo}>
       <pointsMaterial vertexColors size={1.6} sizeAttenuation={false} toneMapped={false} />
     </points>
-  );
-}
-
-/**
- * The headline, as the helmet sees it: the name on a panel off to the right
- * and toward the viewer — where the text sits in frame — so once the helmet
- * glides beside it, the shell and glass carry a faint, mirrored, curved
- * reflection of it. Fades in with the layout; the map re-renders only while
- * that changes.
- */
-function HeadlineReflection({ layoutRef, dirtyRef }) {
-  const mesh = useRef();
-  const last = useRef(-1);
-  const canvas = useMemo(() => {
-    const c = document.createElement('canvas');
-    c.width = 1024;
-    c.height = 512;
-    return c;
-  }, []);
-  const tex = useMemo(() => new THREE.CanvasTexture(canvas), [canvas]);
-
-  useEffect(() => {
-    // draw in the site's display face once it has loaded
-    const probe = document.createElement('span');
-    probe.className = 'font-display';
-    document.body.appendChild(probe);
-    const family = getComputedStyle(probe).fontFamily || 'sans-serif';
-    probe.remove();
-    let live = true;
-    const draw = () => {
-      if (!live) return;
-      const g = canvas.getContext('2d');
-      g.clearRect(0, 0, 1024, 512);
-      g.fillStyle = '#fff';
-      g.font = `600 170px ${family}`;
-      g.fillText('Allen Shaji', 30, 210);
-      g.fillText('Varghese', 30, 390);
-      const m = mesh.current;
-      if (m) m.material.map.needsUpdate = true;
-      dirtyRef.current = true;
-    };
-    draw();
-    document.fonts?.ready.then(draw);
-    return () => {
-      live = false;
-    };
-  }, [canvas, dirtyRef]);
-
-  useFrame(() => {
-    const m = mesh.current;
-    const l = layoutRef.current;
-    if (!m || l === last.current) return;
-    last.current = l;
-    const k = THREE.MathUtils.smoothstep(l, 0.45, 1);
-    m.material.color.setScalar(1.1 * k);
-    m.visible = k > 1e-3;
-    dirtyRef.current = true;
-  });
-
-  return (
-    <mesh ref={mesh} position={[4.2, 0.35, 3.3]} visible={false} onUpdate={(self) => self.lookAt(0, 0, 0)}>
-      <planeGeometry args={[3.6, 1.8]} />
-      {/* additive: only the letters add light — the panel itself is nothing */}
-      <meshBasicMaterial map={tex} color="#000000" transparent blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} side={THREE.DoubleSide} />
-    </mesh>
   );
 }
 
@@ -1505,8 +1347,8 @@ function Earth({ layoutRef, moonDirRef, storyInRef }) {
 
 /** The beam's leading edge travels moon → crown over this slice of the
  *  reveal; landing (reach = 1) is what powers the face on. Timed to land
- *  just after the visor's edge clears the eyes. */
-const BEAM = { fadeIn: [0.2, 0.34], travel: [0.28, 0.52], peak: 0.13, rest: 0.12 };
+ *  as the hinged visor has mostly lifted clear of the face. */
+const BEAM = { fadeIn: [0.45, 0.6], travel: [0.55, 0.85], peak: 0.13, rest: 0.12 };
 const beamReach = (r) => THREE.MathUtils.smoothstep(r, BEAM.travel[0], BEAM.travel[1]);
 
 const beamVert = /* glsl */ `
@@ -1540,84 +1382,22 @@ const beamFrag = /* glsl */ `
   }
 `;
 
-/** Dust drifting through the beam: seeds for position along the shaft, angle,
- *  radius and phase. Lit only inside the beam. */
-const DUST_N = 420;
-const dustGeo = (() => {
-  const rand = rng(11);
-  const seed = new Float32Array(DUST_N * 4);
-  for (let i = 0; i < DUST_N * 4; i++) seed[i] = rand();
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(DUST_N * 3), 3));
-  g.setAttribute('seed', new THREE.BufferAttribute(seed, 4));
-  g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e4); // positions come from the shader
-  return g;
-})();
-const dustVert = /* glsl */ `
-  attribute vec4 seed;
-  uniform float uLen;
-  uniform float uTime;
-  uniform float uPx;
-  varying float vS;
-  varying float vTw;
-  varying float vEnds;
-  void main() {
-    // drift slowly down the shaft (moon → crown), with a lazy sideways sway
-    float u = fract(seed.x - uTime * 0.0045 * (0.5 + seed.w));
-    float rad = mix(0.62, 0.95, u) * sqrt(seed.z) * 0.92;
-    float ang = seed.y * 6.2832 + uTime * 0.04 * (seed.w - 0.5);
-    vec3 p = vec3(cos(ang) * rad, (u - 0.5) * uLen, sin(ang) * rad);
-    p.x += sin(uTime * 0.13 + seed.w * 6.2832) * 0.035;
-    vS = 1.0 - u;
-    vEnds = smoothstep(0.0, 0.06, u) * (1.0 - smoothstep(0.94, 1.0, u));
-    vTw = 0.55 + 0.45 * sin(uTime * 0.6 + seed.w * 40.0);
-    vec4 mv = modelViewMatrix * vec4(p, 1.0);
-    gl_PointSize = clamp((0.7 + 1.6 * fract(seed.w * 13.1)) * uPx / max(-mv.z, 0.5), 1.0, 7.0);
-    gl_Position = projectionMatrix * mv;
-  }
-`;
-const dustFrag = /* glsl */ `
-  uniform vec3 uColor;
-  uniform float uOpacity;
-  uniform float uReach;
-  varying float vS;
-  varying float vTw;
-  varying float vEnds;
-  void main() {
-    float d = length(gl_PointCoord - 0.5);
-    float disc = 1.0 - smoothstep(0.1, 0.5, d);
-    float inBeam = 1.0 - smoothstep(uReach - 0.12, uReach, vS);
-    gl_FragColor = vec4(uColor, disc * inBeam * vEnds * vTw * uOpacity);
-  }
-`;
-
 /**
  * A soft shaft of moonlight from the moon down onto the helmet's crown. It
  * fades in as the moon nears the top of its arc, its edge travels down to
  * the crown, and then it thins to a faint trace once the layout settles.
  * Updates only when something it depends on moves.
  */
-function Moonbeam({ revealRef, layoutRef, moonPosRef, apertureRef, still }) {
+function Moonbeam({ revealRef, layoutRef, moonPosRef, apertureRef }) {
   const mesh = useRef();
-  const dust = useRef();
-  const dustUniforms = useMemo(
-    () => ({ uColor: { value: new THREE.Color(MOON_LIGHT) }, uOpacity: { value: 0 }, uReach: { value: 0 }, uLen: { value: 1 }, uTime: { value: 0 }, uPx: { value: 11 } }),
-    []
-  );
   const last = useRef({ r: -1, l: -1 });
   const tmp = useMemo(() => ({ d: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0), c: new THREE.Vector3(), m: new THREE.Vector3() }), []);
   const uniforms = useMemo(() => ({ uColor: { value: new THREE.Color(MOON_LIGHT) }, uOpacity: { value: 0 }, uReach: { value: 0 } }), []);
 
-  useFrame(({ clock, viewport }) => {
+  useFrame(() => {
     const m = mesh.current;
     const crown = apertureRef.current.crown;
     if (!m) return;
-    // the dust keeps drifting (slowly) while the beam is there
-    const du = dust.current?.material.uniforms;
-    if (du) {
-      if (!still) du.uTime.value = clock.elapsedTime;
-      du.uPx.value = 11 * viewport.dpr;
-    }
     const r = revealRef.current;
     const l = layoutRef.current;
     const k = last.current;
@@ -1637,61 +1417,15 @@ function Moonbeam({ revealRef, layoutRef, moonPosRef, apertureRef, still }) {
     u.uReach.value = beamReach(r);
     u.uOpacity.value = BEAM.peak * THREE.MathUtils.smoothstep(r, BEAM.fadeIn[0], BEAM.fadeIn[1]) * THREE.MathUtils.lerp(1, BEAM.rest, l);
     m.visible = u.uOpacity.value > 1e-4;
-
-    const dp = dust.current;
-    if (dp && du) {
-      dp.position.copy(m.position);
-      dp.quaternion.copy(m.quaternion);
-      du.uLen.value = len;
-      du.uReach.value = u.uReach.value;
-      du.uOpacity.value = Math.min(0.9, u.uOpacity.value * 5.5);
-      dp.visible = m.visible;
-    }
   });
 
   return (
-    <>
-      <mesh ref={mesh} renderOrder={1} visible={false}>
+    <mesh ref={mesh} renderOrder={1} visible={false}>
         {/* open-ended: moon end (top) ~ the moon's size, crown end a little narrower */}
         <cylinderGeometry args={[0.95, 0.62, 1, 48, 1, true]} />
         <shaderMaterial uniforms={uniforms} vertexShader={beamVert} fragmentShader={beamFrag} transparent depthWrite={false} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} />
       </mesh>
-      <points ref={dust} geometry={dustGeo} renderOrder={1} visible={false} frustumCulled={false}>
-        <shaderMaterial uniforms={dustUniforms} vertexShader={dustVert} fragmentShader={dustFrag} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
-      </points>
-    </>
   );
-}
-
-/**
- * Foreground: a couple of motes of dust very close to the lens. The focus
- * blur turns them into soft discs, and the dolly carries them out through
- * the frame edge — a layer in front of the subject, for depth.
- */
-const MOTES = [
-  { p: [0.52, -0.63, 5.0], s: 0.05, o: 0.26 },
-  { p: [-0.6, -0.18, 4.85], s: 0.035, o: 0.18 },
-];
-function ForegroundMotes({ revealRef }) {
-  const refs = useRef([]);
-  const last = useRef(-1);
-  const glowTex = useGlowTexture();
-  useFrame(() => {
-    const r = revealRef.current;
-    if (r === last.current) return;
-    last.current = r;
-    const k = THREE.MathUtils.smoothstep(r, 0.0, 0.12) * (1 - THREE.MathUtils.smoothstep(r, 0.55, 0.8));
-    refs.current.forEach((sp, i) => {
-      if (!sp) return;
-      sp.material.opacity = MOTES[i].o * k;
-      sp.visible = k > 1e-3;
-    });
-  });
-  return MOTES.map((m, i) => (
-    <sprite key={i} ref={(el) => (refs.current[i] = el)} position={m.p} scale={m.s} renderOrder={3}>
-      <spriteMaterial map={glowTex} color={MOON_LIGHT} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
-    </sprite>
-  ));
 }
 
 /**
@@ -1721,56 +1455,6 @@ function Warmup({ onReady }) {
 }
 
 /* ── overlay + finish, on the same clock ──────────────────────────────── */
-
-/**
- * Leading lines: four amber hairlines from dot-grid points near the stage
- * corners toward the aperture, drawn on (stroke-dashoffset) with the reveal
- * and gone just as the visor lands. They stop at the aperture rim rather
- * than crossing the face.
- */
-function LeadingLines({ revealRef, apertureRef, frameRef, linesRef }) {
-  const last = useRef({ r: -1, x: 0, y: 0, w: 0, h: 0 });
-  useFrame(() => {
-    const lines = linesRef?.current;
-    const fr = frameRef?.current;
-    if (!lines?.group || !fr) return;
-    const r = revealRef.current;
-    const a = apertureRef.current;
-    const l = last.current;
-    if (l.r === r && Math.abs(l.x - a.x) < 0.25 && Math.abs(l.y - a.y) < 0.25 && l.w === fr.w && l.h === fr.h) return;
-    Object.assign(l, { r, x: a.x, y: a.y, w: fr.w, h: fr.h });
-
-    const draw = THREE.MathUtils.clamp(r / 0.7, 0, 1);
-    const fade = 1 - THREE.MathUtils.smoothstep(r, 0.72, 0.97);
-    lines.group.style.setProperty('opacity', String(0.22 * fade * Math.min(1, r * 12)));
-
-    // grid dots sit at 13 + 26n in root CSS px; pick the one ~2 cells in
-    // from each stage corner, in stage coordinates
-    const snap = (v, off) => Math.round((v + off - 13) / 26) * 26 + 13 - off;
-    const inset = 52;
-    const corners = [
-      [snap(inset, fr.left), snap(inset, fr.top)],
-      [snap(fr.w - inset, fr.left), snap(inset, fr.top)],
-      [snap(inset, fr.left), snap(fr.h - inset, fr.top)],
-      [snap(fr.w - inset, fr.left), snap(fr.h - inset, fr.top)],
-    ];
-    const gap = a.rad * 1.08;
-    corners.forEach(([x0, y0], i) => {
-      const el = lines.els[i];
-      if (!el) return;
-      const dx = a.x - x0;
-      const dy = a.y - y0;
-      const len = Math.hypot(dx, dy) || 1;
-      const k = Math.max(0, (len - gap) / len);
-      el.setAttribute('x1', x0.toFixed(1));
-      el.setAttribute('y1', y0.toFixed(1));
-      el.setAttribute('x2', (x0 + dx * k).toFixed(1));
-      el.setAttribute('y2', (y0 + dy * k).toFixed(1));
-      el.setAttribute('stroke-dashoffset', String(1 - draw));
-    });
-  });
-  return null;
-}
 
 /**
  * Focus rack + finishing pass. Focus moves from the shell's front to the
@@ -1807,7 +1491,7 @@ function Finish({ revealRef, layoutRef, apertureRef, frameRef }) {
     }
   });
   return (
-    <EffectComposer multisampling={4}>
+    <EffectComposer multisampling={0}>
       <DepthOfField ref={dof} focusDistance={5} focusRange={1.6} bokehScale={1.6} />
       <primitive object={film} />
     </EffectComposer>
@@ -1817,7 +1501,7 @@ function Finish({ revealRef, layoutRef, apertureRef, frameRef }) {
 // fetch the portrait as soon as this module loads (well before the room opens)
 if (typeof window !== 'undefined') useTexture.preload('/meet/allen-face.webp');
 
-export default function HelmetScene({ progress, layoutProgress, frame, lines, headline, storyIn, still = false, onReady }) {
+export default function HelmetScene({ progress, layoutProgress, frame, headline, storyIn, still = false, onReady }) {
   const lightRef = useRef(STANDBY);
   const revealRef = useRef(0);
   const layoutRef = useRef(0);
@@ -1839,21 +1523,32 @@ export default function HelmetScene({ progress, layoutProgress, frame, lines, he
       <RevealDriver progressRef={progress} layoutProgressRef={layoutProgress} revealRef={revealRef} layoutRef={layoutRef} settleRef={settleRef} />
       <Rig revealRef={revealRef} layoutRef={layoutRef} camBaseRef={camBase} still={still} headlineRef={headline} settleRef={settleRef} />
 
-      {/* reflections: the moon's disc and the broad patch of sky it lights
-          (which also keeps the shadow side from crushing to black), the
-          stars, and — once the layout resolves — the headline */}
+      {/* reflections: the warm studio the helmet was lit in — a warm sheen
+          overhead for the gold, ice panels left and right, an amber console
+          strip — plus the stars, and the moon (its disc and the sky it lights) */}
       <ReflectionRoom dirtyRef={envDirty}>
         <Stars />
-        <HeadlineReflection layoutRef={layoutRef} dirtyRef={envDirty} />
-        <Lightformer ref={moonSky} form="circle" intensity={0.45} color={MOON_LIGHT} position={[8, -1, 4]} scale={16} />
+        <Lightformer form="rect" intensity={0.7} color="#ffd9a8" position={[0, 5, 5]} scale={[16, 5, 1]} />
+        {/* directly overhead — keeps the lifted visor gold over the crown */}
+        <Lightformer form="rect" intensity={0.9} color="#ffc98a" position={[0, 6, -1]} scale={[8, 6, 1]} />
+        <Lightformer form="circle" intensity={2.2} color="#ffe2b8" position={[-3, 3, 2]} scale={2.4} />
+        <Lightformer form="rect" intensity={1.1} color="#9cc3ff" position={[4, 0.5, -1]} scale={[3, 5, 1]} />
+        <Lightformer form="rect" intensity={0.9} color="#9cc3ff" position={[-5, 0.4, 3]} scale={[1.2, 4, 1]} />
+        <Lightformer form="rect" intensity={1.6} color="#ff9a3c" position={[4.5, -1.2, 3.5]} scale={[4, 0.35, 1]} />
+        <Lightformer form="rect" intensity={0.5} color="#2a3150" position={[0, -3, 0]} rotation-x={Math.PI / 2} scale={[10, 10, 1]} />
+        <Lightformer ref={moonSky} form="circle" intensity={0.3} color={MOON_LIGHT} position={[8, -1, 4]} scale={16} />
         <Lightformer ref={moonDisc} form="circle" intensity={1} color={MOON_LIGHT} position={[8, -1, 4]} scale={1.3} />
       </ReflectionRoom>
 
-      {/* the one light — positioned by <Layout>, on the moon's bearing */}
+      {/* the warm key, up and to the left, and a little fill */}
+      <ambientLight intensity={0.14} />
+      <directionalLight position={[-3, 3.5, 4]} intensity={1.8} color="#ffe6c8" />
+      {/* the moonlight — a cool accent from the moon's bearing, and the one
+          that casts the shadow (positioned by <Layout>) */}
       <directionalLight
         ref={moonLight}
         position={[9, -1, 4]}
-        intensity={2.5}
+        intensity={1.1}
         color={MOON_LIGHT}
         castShadow
         shadow-mapSize={[2048, 2048]}
@@ -1869,19 +1564,17 @@ export default function HelmetScene({ progress, layoutProgress, frame, lines, he
       <Moon revealRef={revealRef} moonDirRef={moonDir} moonPosRef={moonPos} discRef={moonDisc} skyRef={moonSky} envDirtyRef={envDirty} />
       <Earth layoutRef={layoutRef} moonDirRef={moonDir} storyInRef={storyIn} />
 
-      <Layout layoutRef={layoutRef} moonDirRef={moonDir} lightRef={moonLight} camBaseRef={camBase} bodyRef={body} headRef={head}>
+      <Layout layoutRef={layoutRef} moonDirRef={moonDir} lightRef={moonLight} camBaseRef={camBase} bodyRef={body} headRef={head} still={still}>
         {/* aimed at the lens by <Layout>: the body half-way, the head the rest */}
         <group ref={body}>
           <Suit />
           <group ref={head}>
-            <Helmet revealRef={revealRef} lightRef={lightRef} moonDirRef={moonDir} apertureRef={aperture} still={still} />
+            <Helmet revealRef={revealRef} lightRef={lightRef} moonDirRef={moonDir} apertureRef={aperture} />
           </group>
         </group>
       </Layout>
 
-      <Moonbeam revealRef={revealRef} layoutRef={layoutRef} moonPosRef={moonPos} apertureRef={aperture} still={still} />
-      <ForegroundMotes revealRef={revealRef} />
-      <LeadingLines revealRef={revealRef} apertureRef={aperture} frameRef={frame} linesRef={lines} />
+      <Moonbeam revealRef={revealRef} layoutRef={layoutRef} moonPosRef={moonPos} apertureRef={aperture} />
       <Finish revealRef={revealRef} layoutRef={layoutRef} apertureRef={aperture} frameRef={frame} />
       <Warmup onReady={onReady} />
     </>
