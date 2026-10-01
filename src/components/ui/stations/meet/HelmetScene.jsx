@@ -1123,8 +1123,9 @@ function Moon({ revealRef, moonDirRef, moonPosRef, discRef, skyRef, envDirtyRef 
  * helmet's crown at first and behind the name once the layout resolves,
  * paired with the moon beside it: depth and a place in the world, not a
  * storyteller. Bhopal and Philadelphia are marked, and once, as the headline
- * lands, a small amber point travels the great circle between them (no
- * trail) with a soft ring at each end. Lit by the moon like everything else.
+ * glides into place, a small amber point travels the great circle between
+ * them (no trail), landing on the same beat as the settle, with a soft ring
+ * at each end. Lit by the moon like everything else.
  * It fades away as the story arrives.
  *
  * Land dots come from public/meet/earth-dots.bin (scripts/bake-earth-dots.mjs);
@@ -1135,7 +1136,12 @@ const PLACES = {
   bhopal: { lat: 23.2599, lng: 77.4126 },
   philadelphia: { lat: 39.9526, lng: -75.1652 },
 };
-const FLIGHT = { delay: 0.35, dur: 2.6 };
+/** The flight rides the glide itself: the point leaves Bhopal once the glide
+ *  is `from` of the way in and lands in Philadelphia exactly when the glide
+ *  lands — on the same beat as the helmet's and the headline's settle. It
+ *  shares the glide's ease, so it slows into Philadelphia as the helmet slows
+ *  into place. Scroll back and it flies back. Rings: `ring` seconds. */
+const FLIGHT = { from: 0.15, ring: 1.3 };
 const latLng = ({ lat, lng }) => {
   const a = THREE.MathUtils.degToRad(lat);
   const o = THREE.MathUtils.degToRad(lng);
@@ -1224,7 +1230,7 @@ function Earth({ layoutRef, moonDirRef, storyInRef }) {
   const [dotGeo, setDotGeo] = useState(null);
   const glowTex = useGlowTexture();
   const ringTex = useRingTexture();
-  const st = useRef({ key: '', played: false, t0: 0, done: false });
+  const st = useRef({ key: '', prevF: -1, departT: -1e9, landT: -1e9 });
   const tip = useMemo(() => new THREE.Vector3(), []);
   const dotUniforms = useMemo(() => ({ uColor: { value: new THREE.Color(PALETTE.ink) }, uOpacity: { value: 0 }, uMoon: { value: new THREE.Vector3(1, 0, 0) }, uPx: { value: 2 }, uIntro: { value: 0 } }), []);
   const intro = useRef({ t0: -1, k: 0 });
@@ -1265,16 +1271,19 @@ function Earth({ layoutRef, moonDirRef, storyInRef }) {
     // present from the first frame; leaves as the story comes in
     const k = dotGeo ? 1 - THREE.MathUtils.smoothstep(away, 0, 0.7) : 0;
 
-    // the flight: plays once when the layout lands, resets if it's undone
+    // the flight: its progress IS the glide's (settle overshoot clamped off)
     const now = clock.elapsedTime;
-    if (L >= 0.9 && !s.played) Object.assign(s, { played: true, t0: now, done: false });
-    if (L < 0.4 && s.played) Object.assign(s, { played: false, done: false });
-    const age = s.played ? now - s.t0 - FLIGHT.delay : -1;
-    const flying = s.played && !s.done;
-    if (s.played && age > FLIGHT.dur + 1.4) s.done = true;
+    const f = THREE.MathUtils.clamp((Math.min(L, 1) - FLIGHT.from) / (1 - FLIGHT.from), 0, 1);
+    if (s.prevF < 0) s.prevF = f; // first frame: arrive where the page is, no rings
+    if (f > 0 && s.prevF === 0) s.departT = now; // leaves Bhopal
+    if (f >= 1 && s.prevF < 1) s.landT = now; // lands in Philadelphia — the settle's beat
+    s.prevF = f;
+    const departQ = THREE.MathUtils.clamp((now - s.departT) / FLIGHT.ring, 0, 1);
+    const landQ = THREE.MathUtils.clamp((now - s.landT) / FLIGHT.ring, 0, 1);
+    const ringing = departQ < 1 || landQ < 1;
 
-    const key = `${L}|${away}|${!!dotGeo}|${size.width}|${size.height}|${camera.position.z.toFixed(3)}|${moonDirRef.current.x.toFixed(4)}|${s.played}|${s.done}`;
-    if (!flying && !introChanged && key === s.key) return; // settled: nothing moves
+    const key = `${L}|${away}|${!!dotGeo}|${size.width}|${size.height}|${camera.position.z.toFixed(3)}|${moonDirRef.current.x.toFixed(4)}`;
+    if (!ringing && !introChanged && key === s.key) return; // settled: nothing moves
     s.key = key;
 
     // place: high in the frame, sized to it; it drifts up a touch as it leaves
@@ -1294,20 +1303,19 @@ function Earth({ layoutRef, moonDirRef, storyInRef }) {
     }
     markers.current.forEach((m) => m && (m.material.opacity = 0.85 * k));
 
-    // the traveller: a small point along the great circle, no trail
-    const f = s.played ? THREE.MathUtils.clamp(age / FLIGHT.dur, 0, 1) : 0;
-    const e = f * f * (3 - 2 * f);
+    // the traveller: a small point along the great circle, no trail; once
+    // it lands it glows on Philadelphia and fades with the landing ring
     const h = head.current;
     if (h) {
-      h.visible = f > 0 && f < 1;
-      if (h.visible) h.position.copy(ROUTE.getPointAt(e, tip));
-      h.material.opacity = k * Math.sin(Math.PI * f) * 0.9;
+      const op = f < 1 ? THREE.MathUtils.smoothstep(f, 0, 0.06) : 1 - landQ;
+      h.visible = f > 0 && op > 1e-3;
+      if (h.visible) h.position.copy(ROUTE.getPointAt(f, tip));
+      h.material.opacity = k * 0.9 * op;
     }
     // one soft ring as it leaves Bhopal, one as it lands in Philadelphia
-    [age + FLIGHT.delay, age - FLIGHT.dur].forEach((t, i) => {
+    [departQ, landQ].forEach((q, i) => {
       const ring = pulses.current[i];
       if (!ring) return;
-      const q = s.played ? THREE.MathUtils.clamp(t / 1.4, 0, 1) : 0;
       ring.visible = q > 0 && q < 1;
       ring.scale.setScalar(0.04 + q * 0.26);
       ring.material.opacity = k * (1 - q) * 0.7;
