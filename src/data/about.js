@@ -14,6 +14,35 @@ export const ABOUT = {
   ],
 };
 
+/**
+ * Meet Me — the headline beside the helmet once the visor is open, and the
+ * story blocks that scroll past it on the right.
+ *
+ * PLACEHOLDER COPY — TODO(allen): `mission` and `proof` are stand-ins until
+ * the wording is final. Edit them here; nothing else needs to change.
+ */
+export const MEET = {
+  // one sentence: the "why", not the "what"
+  mission: 'I build things people actually use — from AI tools with real users to fintech systems that move real money.',
+  // quiet proof: short labels, not a résumé list
+  proof: ['Overflow', 'LearnFlowAI', 'NASA Space Apps Nominee'],
+  // The story, scrolled past on the right while the helmet stays pinned
+  // left — in order. Each chapter: a year (drives the counter), one
+  // first-person line (the story), one quiet proof line, and an optional
+  // link to a project's case study.
+  // PLACEHOLDER COPY — TODO(allen): the lines are drafts in your voice; the
+  // flight year and the Overflow dates are guesses to confirm.
+  story: [
+    { id: 'bhopal', year: 'Bhopal', line: 'It started in Bhopal.', proof: 'Bhopal, Madhya Pradesh · India' },
+    { id: 'flight', year: '2023', line: 'Then I flew 12,300 km to learn how software is really built.', proof: 'Bhopal → Philadelphia' }, // TODO(allen): the year you flew
+    { id: 'drexel', year: '2023', line: 'At Drexel I started building — Jam Duel began as a class project.', proof: 'Software Engineering · Drexel University · Class of 2027', project: 'jam-duel', linkLabel: 'Jam Duel' },
+    { id: 'learnflow', year: '2024', line: 'I co-founded LearnFlow AI and became its first engineer.', proof: 'Co-Founder & Founding Engineer · 2024 – present · pre-launch', project: 'learnflow-ai', linkLabel: 'LearnFlow AI' },
+    { id: 'nasa', year: '2025', line: 'With Team Relentless, AirCast went global.', proof: 'NASA Space Apps Global Nominee · top 1,219 of 11,500+ teams', project: 'aircast', linkLabel: 'AirCast' },
+    { id: 'iet', year: '2025', line: 'Then I built something for home.', proof: 'Software Solutions Architect · Indian Evangelical Team · Dec 2025 – Mar 2026', project: 'iet', linkLabel: 'Church Building Application System' },
+    { id: 'overflow', year: '2026', line: 'And I spent six months shipping at Overflow.', proof: 'Software Engineer Co-op · Overflow · Mar – Sep 2026' }, // TODO(allen): confirm the dates
+  ],
+};
+
 // Newest first. `dates` stays blank where it isn't on record yet.
 export const JOURNEY = [
   {

@@ -222,7 +222,7 @@ function Hero() {
           <div className="flex flex-1 items-center pt-[4vh]">
             <div className="max-w-4xl">
               <motion.p variants={fade} className="mb-6 font-mono text-micro uppercase tracking-[0.22em] text-ink-muted">
-                Software Engineer — Drexel University ’27
+                {identity.credential}
               </motion.p>
               <h1 className="font-display text-[clamp(3.25rem,8.2vw,8rem)] font-semibold leading-[0.92] tracking-[-0.045em] text-ink">
                 <Line>Allen Shaji</Line>
