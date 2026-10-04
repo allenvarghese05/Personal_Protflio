@@ -18,11 +18,11 @@ export const CASE_STUDIES = {
     media: { frame: 'private', shots: [] },
     live: null,
     problem:
-      'A multi-division church organisation in India ran church construction entirely on paper — applications, a five-level approval chain, fund releases and years of compliance reports — with no single view of where any project stood.',
+      'A multi-division church organisation in India ran church construction entirely on paper — applications, sign-offs from HQ, the President and Finance, fund releases and years of compliance reports — with no single view of where any project stood.',
     built:
-      'An internal platform that carries a church-building project from first application to three years after dedication: submission, a five-tier approval workflow, phase-by-phase construction tracking with fund disbursement, and post-construction reporting across six user roles.',
+      'An internal platform that carries a church-building project from first application to three years after dedication: submission, an approval workflow from HQ to the President to Finance, phase-by-phase construction tracking with fund disbursement, and post-construction reporting across six user roles.',
     how: [
-      'An 18-status state machine routes each application through Pastor → Division Leader → HQ → President → Finance, with a full audit trail.',
+      'A 17-status state machine routes each application from the applicant (a Pastor, or a Division Leader for their division) through HQ → President → Finance, with a full audit trail.',
       'A server-side Haversine check enforces the 8 km bylaw against every registered church on submission.',
       'Construction runs in three photo-verified phases; each approval atomically releases the next tranche of funds.',
       'Role-based access is enforced at every API route, not just in the UI — OTP login, short-lived JWTs.',

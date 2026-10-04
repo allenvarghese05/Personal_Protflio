@@ -73,13 +73,13 @@ export const chapters = [
               'No polling — status changes push live to every role tier the moment an approval moves.',
           },
         ],
-        stat: '18',
+        stat: '17',
         statLabel: 'application lifecycle statuses, designed end-to-end',
         story:
-          'Sole engineer on an enterprise platform: a 10-page dynamic application moving through a 5-tier approval chain, with GPS-based 8km bylaw enforcement (Haversine), RBAC on every route, OTP auth, and 3-phase construction tracking — system design through production.',
+          'Sole engineer on an enterprise platform: a 10-page dynamic application moving through a 5-tier approval chain, with GPS-based 8km bylaw enforcement (Haversine), RBAC on every route, OTP auth, and 3-phase construction tracking — system design through launch prep.',
         arc: 0.95,
         metrics: [
-          { label: 'Lifecycle statuses', display: '18', v: 1.0 },
+          { label: 'Lifecycle statuses', display: '17', v: 1.0 },
           { label: 'Postgres tables', display: '15+', v: 0.8 },
           { label: 'User roles', display: '6', v: 0.55 },
           { label: 'Tasks owned', display: '80+', v: 0.92 },
