@@ -21,7 +21,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
 import ArchitectureGraph from '@/components/ui/ArchitectureGraph';
-import { LAYERS, ROLES, TRACES } from '@/data/studies/iet';
 import { PALETTE as P, alpha } from '@/lib/palette';
 import { EASE_OUT } from '@/lib/motion';
 
@@ -44,6 +43,7 @@ const WHO_KEY = 'who';
 const LAYER_COLS = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5', 6: 'lg:grid-cols-6' };
 // LAYERS objects carry their own label/desc but no category — by layer
 const FALLBACK_CATEGORY = { app: 'core' };
+const NO_STEPS = [];
 
 // Category hues for this view. Amber belongs to the trace alone (the active
 // thing), so no category may use accent / accentLo here. Ice = data, so file
@@ -53,9 +53,12 @@ const FALLBACK_CATEGORY = { app: 'core' };
 const ARCH_COLOR = {
   core: P.slate,
   infrastructure: P.slate,
+  ui: P.slate,
   auth: P.jade,
   workflow: P.sand,
+  audio: P.sand,
   location: P.lilac,
+  ai: P.lilac,
   data: P.ice,
   storage: P.ice,
   realtime: P.inkMuted,
@@ -67,13 +70,15 @@ const ARCH_COLOR = {
 const CATEGORY_LABEL = {
   core: 'Core',
   infrastructure: 'Infrastructure',
+  ui: 'UI',
   auth: 'Auth · security',
   workflow: 'Workflow',
+  audio: 'Audio',
+  location: 'Location',
+  ai: 'AI · ML',
   data: 'Data',
   storage: 'Storage',
   realtime: 'Notifications',
-  location: 'Location',
-  ui: 'UI',
 };
 const KEY_ORDER = Object.keys(CATEGORY_LABEL);
 // unknown categories go to the end of the key, in order of appearance
@@ -110,7 +115,7 @@ function resolveNode(entry, layer, graphById) {
 
 /** Who-layer node id ('tier-pastor') → its ROLES entry, for tier + headcount.
  *  Undefined for people outside the approval chain (tier-admin). */
-const roleOf = (id) => ROLES.find((r) => `tier-${r.key}` === id);
+const roleOf = (id, roles = []) => roles.find((r) => `tier-${r.key}` === id);
 
 /** Layout position of `el` inside `root`, ignoring transforms (entrance
  *  animations), so the path never measures a pill mid-slide. */
@@ -265,7 +270,13 @@ function Dot({ color, dim = false }) {
 }
 
 /* ── component ────────────────────────────────────────────────────────────── */
-export default function Architecture({ project, accent = P.accent }) {
+/**
+ * `layers`: [{ key, label, nodes: [graph node id | { id, label, desc, category }] }]
+ * (the first layer keyed 'who' holds the people); `traces`: [{ id, label,
+ * steps: [node ids] }]; `roles` (optional): [{ key, num, pop }] for the people's
+ * tier + headcount. Node copy comes from project.architectureGraph by id.
+ */
+export default function Architecture({ project, layers: LAYERS = [], traces: TRACES = [], roles = [], accent = P.accent }) {
   const uid = useId();
   const reduced = useReducedMotion();
   const graph = project?.architectureGraph;
@@ -278,7 +289,7 @@ export default function Architecture({ project, accent = P.accent }) {
   // the view has been switched at least once — the layers panel fades in only
   // when it returns, not on first mount
   const [toggled, setToggled] = useState(false);
-  const [traceId, setTraceId] = useState(TRACES[0].id);
+  const [traceId, setTraceId] = useState(TRACES[0]?.id);
   const [run, setRun] = useState(0); // play count — 0 until the first trace runs
   const [step, setStep] = useState(0); // steps lit in the current run
   const [peek, setPeek] = useState(null); // hovered / focused node id
@@ -318,11 +329,12 @@ export default function Architecture({ project, accent = P.accent }) {
     });
     cats.sort((a, b) => keyRank(a) - keyRank(b));
     return { layers: built, nodeById: byId, layerIndexOf: indexOf, legend: cats };
-  }, [graph]);
+  }, [graph, LAYERS]);
 
   // category → hue (the project's own graph palette first, else the amber-free
   // ARCH_COLOR); people are ink
-  const graphColors = project?.graphColors ?? ARCH_COLOR;
+  // (ARCH_COLOR always — a project's own graph palette may use amber, which here is the trace's)
+  const graphColors = ARCH_COLOR;
   const categoryColor = useCallback((category) => graphColors[category] ?? P.slate, [graphColors]);
   const colorOf = useCallback(
     (node) => (node.layer.key === WHO_KEY ? P.ink : categoryColor(node.category)),
@@ -331,7 +343,7 @@ export default function Architecture({ project, accent = P.accent }) {
 
   /* trace state */
   const trace = TRACES.find((t) => t.id === traceId) ?? TRACES[0];
-  const steps = trace.steps;
+  const steps = trace?.steps ?? NO_STEPS;
   const started = reduced || run > 0;
   // reduced motion: the final state, instantly
   const shown = !started ? 0 : reduced ? steps.length : step;
@@ -350,9 +362,11 @@ export default function Architecture({ project, accent = P.accent }) {
   // autoplay the first trace once, when the section is first seen
   useEffect(() => {
     if (!inView || reduced || run > 0) return undefined;
-    const t = setTimeout(() => play(TRACES[0].id), AUTOPLAY_DELAY_MS);
+    const first = TRACES[0]?.id;
+    if (!first) return undefined;
+    const t = setTimeout(() => play(first), AUTOPLAY_DELAY_MS);
     return () => clearTimeout(t);
-  }, [inView, reduced, run, play]);
+  }, [inView, reduced, run, play, TRACES]);
 
   // light the steps of the current run, one every STEP_MS
   useEffect(() => {
@@ -646,6 +660,7 @@ export default function Architecture({ project, accent = P.accent }) {
               <div className="mt-6 grid gap-6 border-t border-line pt-5 lg:grid-cols-2 lg:gap-10">
                 <TraceCaption trace={trace} shown={shown} nodeById={nodeById} accent={accent} />
                 <DetailPanel
+                  roles={roles}
                   node={detail}
                   colorOf={colorOf}
                   categoryColor={categoryColor}
@@ -699,7 +714,7 @@ function TraceCaption({ trace, shown, nodeById, accent }) {
 }
 
 /* ── what the hovered / focused / pinned part does ─────────────────────────── */
-function DetailPanel({ node, colorOf, categoryColor, accent, trace, reached, legend }) {
+function DetailPanel({ node, colorOf, categoryColor, accent, trace, reached, legend, roles }) {
   if (!node) {
     // one entry per hue — categories that share a hue share an entry
     const entries = [];
@@ -731,7 +746,7 @@ function DetailPanel({ node, colorOf, categoryColor, accent, trace, reached, leg
   // people: tier + headcount when ROLES has them, else just the layer (a
   // person's graph category isn't a part's category); parts: their category
   const isWho = node.layer.key === WHO_KEY;
-  const role = isWho ? roleOf(node.id) : null;
+  const role = isWho ? roleOf(node.id, roles) : null;
   let meta = [node.layer.label, CATEGORY_LABEL[node.category] ?? node.category];
   if (isWho) meta = role ? [node.layer.label, `Tier ${role.num}`, role.pop] : [node.layer.label];
 

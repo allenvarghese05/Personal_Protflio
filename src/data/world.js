@@ -41,7 +41,7 @@ export const zones = [
   {
     id: 'engineering',
     label: 'Engineering',
-    blurb: 'Six projects · walk up to any monolith',
+    blurb: `${ENGINEERING_PROJECTS.length} projects · walk up to any monolith`,
     mesa: 'engineering',
     arrive: [0, -23.5],
     color: PALETTE.accent,
@@ -93,8 +93,10 @@ export const mesaById = (id) => MESAS.find((m) => m.id === id);
  * Order follows ENGINEERING_PROJECTS, left → right as you walk in.
  */
 const ARC_CENTER = [0, -30];
-const ARC_R = 7.4;
-const ARC_SPAN = 128; // degrees, total
+// wide enough for ten stones with room to walk between them (~3 units apart)
+// while the ends stay well inside the mesa (radius 13 around [0, -34])
+const ARC_R = 10.5;
+const ARC_SPAN = 150; // degrees, total
 
 export const MONOLITHS = ENGINEERING_PROJECTS.map((p, i, all) => {
   const t = all.length === 1 ? 0.5 : i / (all.length - 1);
