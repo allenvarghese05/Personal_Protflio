@@ -18,14 +18,14 @@ export const CASE_STUDIES = {
     media: { frame: 'private', shots: [] },
     live: null,
     problem:
-      'A multi-division church organisation in India ran church construction entirely on paper — applications, a five-level approval chain, fund releases and years of compliance reports — with no single view of where any project stood.',
+      'A national church organisation in India ran church construction on paper — applications, sign-offs from HQ, the President and Finance, three rounds of fund releases and years of reports — with no single view of where any project stood.',
     built:
-      'An internal platform that carries a church-building project from first application to three years after dedication: submission, a five-tier approval workflow, phase-by-phase construction tracking with fund disbursement, and post-construction reporting across six user roles.',
+      'A platform that carries a church-building project from first application to three years after completion: a 9-page offline-capable form, one workflow engine through HQ review, the President’s approval and three Finance-released construction phases, five-scope analytics, in-app notifications, and a Super Admin console that changes the rules without a deploy.',
     how: [
-      'An 18-status state machine routes each application through Pastor → Division Leader → HQ → President → Finance, with a full audit trail.',
-      'A server-side Haversine check enforces the 8 km bylaw against every registered church on submission.',
-      'Construction runs in three photo-verified phases; each approval atomically releases the next tranche of funds.',
-      'Role-based access is enforced at every API route, not just in the UI — OTP login, short-lived JWTs.',
+      'One workflow engine — 14 actions over a 21-value status enum — runs every application from HQ review to completion; each action is a compare-and-set inside a single transaction, with a history row and an audit row.',
+      'The President’s approved amount caps every release — race-tested so two clicks can never pay out twice.',
+      'Mission Control generates its settings screens from the zod schema; each application freezes the rules it was submitted under.',
+      'Analytics went from 31.4 s to 1.28 s on the same connection (147 s → 2.8 s on the transaction pooler) by collapsing ~100 sequential queries into one concurrent wave — with 110/110 responses unchanged.',
     ],
     next: [],
   },
