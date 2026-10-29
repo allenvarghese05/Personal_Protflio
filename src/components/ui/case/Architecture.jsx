@@ -1,19 +1,22 @@
 'use client';
 
 /**
- * Architecture — "One Next.js app, five layers — follow a request through it."
+ * Architecture — "One Next.js app, N layers — follow a request through it."
  *
- * The system as five layers, left → right (Who · app · domain · data ·
- * outside), built from LAYERS in the study data. Pick a trace and its steps
- * light in order while a path draws between them; hover, tap or tab to any
- * part to read what it does. "Explore the full graph" swaps in the existing
- * force graph for anyone who wants every edge.
+ * The system as layers, left → right (who · the app · the rules in src/lib ·
+ * data · outside), one column per entry in LAYERS from the study data. Pick a
+ * trace (TRACES) and its steps light in order while a path draws between
+ * them; the first trace autoplays once the section is in view. Hover, tap or
+ * tab to any part to read what it does. "Explore the full graph" swaps in the
+ * existing force graph (project.architectureGraph) for every node and edge.
  *
  * Node copy comes from the project's architectureGraph by id — LAYERS only
- * carries the parts that graph doesn't have. Under 1024px the layers stack as
- * rows of wrapping pills. Node centres are measured from layout offsets
- * (transform-free) and re-measured by a ResizeObserver, so the path follows
- * every reflow.
+ * carries the parts that graph doesn't have. People in the Who column read
+ * their tier and headcount from ROLES when they have an entry there (the
+ * Super Admin sits outside the approval chain and has none). Under 1024px
+ * the layers stack as rows of wrapping pills. Node centres are measured from
+ * layout offsets (transform-free) and re-measured by a ResizeObserver, so the
+ * path follows every reflow. Reduced motion: the whole trace, instantly.
  */
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
@@ -26,7 +29,7 @@ import { EASE_OUT } from '@/lib/motion';
 const STEP_MS = 380; // one step of a trace lights every STEP_MS
 const FIRST_STEP_MS = 120; // lead-in before step 1 lights
 const AUTOPLAY_DELAY_MS = 450; // after the section scrolls into view
-const COLUMNS_QUERY = '(min-width: 1024px)'; // Tailwind `lg` — five columns
+const COLUMNS_QUERY = '(min-width: 1024px)'; // Tailwind `lg` — one column per layer
 const BRACKET_GAP = 14; // px a same-column hop bulges past the pill edge
 const RETURN_BOW = 36; // px a backward hop bows away from the forward path
 const ARC_GAP = 9; // px a same-row hop (stacked layout) arcs above the pills
@@ -37,14 +40,19 @@ const SKIP_GAP = 12; // px a layer-skipping hop runs clear of the layers it skip
 const CORNER_R = 10; // px corner radius on a layer-skipping hop
 
 const WHO_KEY = 'who';
+// one grid column per layer at lg — whole literals, so Tailwind can see them
+const LAYER_COLS = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5', 6: 'lg:grid-cols-6' };
 // LAYERS objects carry their own label/desc but no category — by layer
 const FALLBACK_CATEGORY = { app: 'core' };
 
 // Category hues for this view. Amber belongs to the trace alone (the active
 // thing), so no category may use accent / accentLo here. Ice = data, so file
-// storage shares it with the database; the key merges entries that share a hue.
+// storage shares it with the database; infrastructure (the scheduler outside
+// the app) is plumbing like core, so it shares slate. The key merges entries
+// that share a hue; the Outside column says the rest by position.
 const ARCH_COLOR = {
   core: P.slate,
+  infrastructure: P.slate,
   auth: P.jade,
   workflow: P.sand,
   location: P.lilac,
@@ -53,16 +61,25 @@ const ARCH_COLOR = {
   realtime: P.inkMuted,
 };
 
+// in key order: categories that share a hue sit next to each other, so a
+// merged key entry reads "Data · Storage", not in whatever order the layers
+// happen to mention them
 const CATEGORY_LABEL = {
   core: 'Core',
+  infrastructure: 'Infrastructure',
   auth: 'Auth · security',
   workflow: 'Workflow',
-  location: 'Location',
-  realtime: 'Notifications',
-  storage: 'Storage',
   data: 'Data',
+  storage: 'Storage',
+  realtime: 'Notifications',
+  location: 'Location',
   ui: 'UI',
-  infrastructure: 'Infrastructure',
+};
+const KEY_ORDER = Object.keys(CATEGORY_LABEL);
+// unknown categories go to the end of the key, in order of appearance
+const keyRank = (category) => {
+  const i = KEY_ORDER.indexOf(category);
+  return i === -1 ? KEY_ORDER.length : i;
 };
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
@@ -91,7 +108,8 @@ function resolveNode(entry, layer, graphById) {
   };
 }
 
-/** Who-layer node id ('tier-pastor') → its ROLES entry, for tier + headcount. */
+/** Who-layer node id ('tier-pastor') → its ROLES entry, for tier + headcount.
+ *  Undefined for people outside the approval chain (tier-admin). */
 const roleOf = (id) => ROLES.find((r) => `tier-${r.key}` === id);
 
 /** Layout position of `el` inside `root`, ignoring transforms (entrance
@@ -285,7 +303,8 @@ export default function Architecture({ project, accent = P.accent }) {
         indexOf.set(n.id, i);
       }),
     );
-    // the key: People first, then each category in order of appearance
+    // the key: People first, then only the categories the parts actually use,
+    // in key order (a stable sort keeps unknown ones in order of appearance)
     const seen = new Set();
     const cats = [];
     built.forEach((layer) => {
@@ -297,6 +316,7 @@ export default function Architecture({ project, accent = P.accent }) {
         }
       });
     });
+    cats.sort((a, b) => keyRank(a) - keyRank(b));
     return { layers: built, nodeById: byId, layerIndexOf: indexOf, legend: cats };
   }, [graph]);
 
@@ -511,7 +531,10 @@ export default function Architecture({ project, accent = P.accent }) {
               className="overflow-hidden rounded-panel border border-line px-4 pb-5 pt-5 sm:px-6 sm:pt-6"
             >
               {/* ── the layers; the trace path draws underneath the pills ── */}
-              <div ref={setCanvas} className="relative grid gap-6 lg:grid-cols-5 lg:gap-x-10 xl:gap-x-12">
+              <div
+                ref={setCanvas}
+                className={`relative grid gap-6 lg:gap-x-8 xl:gap-x-12 ${LAYER_COLS[layers.length] ?? 'lg:grid-cols-5'}`}
+              >
                 <svg aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1] h-full w-full overflow-visible">
                   {hops.map((hop, i) =>
                     hop && shown > i ? (
@@ -548,7 +571,7 @@ export default function Architecture({ project, accent = P.accent }) {
                     <div key={layer.key} role="group" aria-labelledby={headId} className="min-w-0">
                       {/* above the trace (z-2, opaque) so a hop into this row
                           passes under the header instead of striking it out */}
-                      <div className="relative z-[2] mb-3 flex items-baseline justify-between gap-3 border-b border-line bg-void pb-2">
+                      <div className="relative z-[2] mb-3 flex items-baseline justify-between gap-2 border-b border-line bg-void pb-2">
                         <span
                           id={headId}
                           className="font-mono text-micro font-medium uppercase tracking-[0.18em] text-ink-muted"
@@ -705,10 +728,12 @@ function DetailPanel({ node, colorOf, categoryColor, accent, trace, reached, leg
     );
   }
 
-  const role = node.layer.key === WHO_KEY ? roleOf(node.id) : null;
-  const meta = role
-    ? [node.layer.label, `Tier ${role.num}`, role.pop]
-    : [node.layer.label, CATEGORY_LABEL[node.category] ?? node.category];
+  // people: tier + headcount when ROLES has them, else just the layer (a
+  // person's graph category isn't a part's category); parts: their category
+  const isWho = node.layer.key === WHO_KEY;
+  const role = isWho ? roleOf(node.id) : null;
+  let meta = [node.layer.label, CATEGORY_LABEL[node.category] ?? node.category];
+  if (isWho) meta = role ? [node.layer.label, `Tier ${role.num}`, role.pop] : [node.layer.label];
 
   return (
     <div className="min-w-0 lg:min-h-[10.5rem]">

@@ -10,9 +10,12 @@ import { COPY } from '@/data/studies/iet';
  *
  * The client system is private, so instead of screenshots we show three calm
  * wireframe silhouettes of it (COPY.redacted: the HQ review queue, a step of
- * the 10-page form, a phase photo review). No real text: every line of copy
- * is a bar, every surface is an ordered-dither texture — 4×4 Bayer dots at
- * three densities, all locked to one grid so overlapping shapes read cleanly.
+ * the 9-page application form, a phase photo review). The form's step and
+ * page count and the phase number are read off those captions ("step 4 of 9",
+ * "Phase 2"), so the drawings can't drift from the copy. No real text: every
+ * line of copy is a bar, every surface is an ordered-dither texture — 4×4
+ * Bayer dots at three densities, all locked to one grid so overlapping shapes
+ * read cleanly.
  *
  * Motion: on first view the tiles rise in and their dither "prints" in a few
  * hard steps. On hover the dither moves one Bayer step denser (an extra layer
@@ -192,8 +195,9 @@ function captionNumbers(key, pattern, fallback) {
   return match ? match.slice(1).map(Number) : fallback;
 }
 
-/* Application form — "step 4 of 10": a segmented rail, fields, footer. */
-const [FORM_STEP, FORM_STEPS] = captionNumbers('form', /step (\d+) of (\d+)/i, [4, 10]);
+/* Application form — "step 4 of 9": a segmented rail (one segment per page),
+   fields, footer. The fallback matches the 9-page form if the caption changes shape. */
+const [FORM_STEP, FORM_STEPS] = captionNumbers('form', /step (\d+) of (\d+)/i, [4, 9]);
 const FORM_CURRENT = FORM_STEP - 1; // zero-based
 const FORM_SEG_GAP = 4;
 const FORM_SEG_W = (RIGHT - PAD - (FORM_STEPS - 1) * FORM_SEG_GAP) / FORM_STEPS;
@@ -209,7 +213,7 @@ function formScreen() {
 
   return [
     ...appBar(-1),
-    // "step 4 of 10" over the segmented rail
+    // "step 4 of 9" over the segmented rail
     bar(PAD, 30, 46, 2),
     ...rail,
     // section title + help text

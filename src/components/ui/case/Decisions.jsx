@@ -1,35 +1,49 @@
 'use client';
 
 /**
- * Decisions — "Three decisions that keep the money and the rules honest."
+ * Decisions — the hard problems, one row each.
  *
- * One full-width row per DECISION (gps · tx · rbac), alternating sides at lg,
- * stacked below it, separated by a hairline. Each row reads the same way:
- *   text   — '01 · Location' kicker, display title, then Problem / Decision /
+ * One full-width row per DECISION (tx · snapshot · rbac), alternating sides at
+ * lg, stacked below it, separated by a hairline. Each row reads the same way:
+ *   text   — '01 · Money' kicker, display title, then Problem / Decision /
  *            Trade-off (the decision gets the accent rule and brighter ink);
- *   visual — a small interactive diagram in an .mc-panel with a readout
- *            footer, and a 'Show the code' toggle that opens a CodeBlock.
+ *   visual — a small interactive diagram in an .mc-panel with an aria-live
+ *            readout footer, and a 'Show the code' toggle that opens a CodeBlock.
  *
  * The diagrams:
- *   gps  — a dotted schematic map. Pick Site A or B: a pin drops, an 8 km ring
- *          expands, and churches inside it turn red with their distance.
- *   tx   — the four writes of a phase approval. Commit ticks them in order;
- *          a simulated failure ticks two, fails the third, then reverts all.
- *   rbac — the request path as a line of stations. A normal request lights
- *          every check; a forged one arcs around the UI guard and is stopped
- *          at the role check.
+ *   tx       — one tranche release as a transaction lane: the compare-and-set
+ *              condition, the rows it matched, then the five writes. Release
+ *              ticks them in order to COMMIT; Fail mid-way ticks up to the
+ *              failing write, crosses it out, then un-ticks every write before
+ *              it (ROLLBACK); Double-click starts two lanes together on the
+ *              same condition — one matches a row and commits, and only then
+ *              does the other resolve: 0 rows, the 409, nothing written.
+ *   snapshot — one setting on a timeline, and the applications judged by it.
+ *              Before the change the first application passes by its frozen
+ *              snapshot; after it the rule flips (3 → 5), the first one still
+ *              passes by its snapshot and only the new one is asked for more.
+ *   rbac     — the request path as a line of stations. Your own application
+ *              lights every check through to the engine; someone else's — a
+ *              forged request — arcs around the UI guard, clears the proxy, the
+ *              session and the body check, and is stopped at row access (403).
  *
- * Everything renders from DECISIONS in src/data/studies/iet.js. Map positions
- * are fixed coordinates (deterministic); the distances, verdicts and labels
- * are computed from them. Sequences start once the panel is in view (gps and
- * tx auto-run their first choice); with reduced motion nothing plays — each
- * diagram simply shows its final state.
+ * Everything renders from DECISIONS in src/data/studies/iet.js: the steps,
+ * scenarios and readouts of each decision, its path and notes; the compare-
+ * and-set values come from the lifecycle (STATUSES, AUDIT). Sequences start
+ * once a panel is a third in view — tx auto-runs its first scenario, snapshot
+ * plays the change from before to after; with reduced motion nothing plays and
+ * each diagram simply shows its final state.
+ *
+ * Layout: rows are 5fr / 6fr at ≥1024px, alternating; one column below.
+ * Inside the panels, container queries decide: the double-click's two lanes
+ * sit side by side from 544px of panel, the application cards from 480px, and
+ * the request path runs left to right from 560px (top to bottom below that).
  */
 import { Fragment, useEffect, useId, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
 import { PALETTE as P, alpha } from '@/lib/palette';
 import { EASE_OUT } from '@/lib/motion';
-import { DECISIONS } from '@/data/studies/iet';
+import { AUDIT, DECISIONS, STATUSES } from '@/data/studies/iet';
 import CodeBlock from '@/components/ui/case/CodeBlock';
 
 /* ── shared constants ──────────────────────────────────────────────────── */
@@ -44,109 +58,142 @@ function at(reduce, delay = 0, duration = 0.3) {
   return reduce ? { duration: 0 } : { delay, duration, ease: EASE_OUT };
 }
 
-/* ── gps: the schematic map ────────────────────────────────────────────── */
-const MAP = { w: 480, h: 280, step: 20, cols: 24, rows: 14 };
-const KM_PX = 9; // map scale — 1 km in viewBox units
-const BYLAW_KM = 8;
-const RING_R = BYLAW_KM * KM_PX;
-const PIN_R = 6.5;
+const range = (n, fn) => Array.from({ length: n }, (_, i) => fn(i));
 
-// Two candidate sites and nine registered churches (viewBox units). Placed so
-// Site A has exactly one church inside 8 km (5.2 km) and Site B's nearest is
-// 11.4 km — the readout below is computed from these, not typed in.
-const SITES = {
-  A: { x: 150, y: 140 },
-  B: { x: 340, y: 170 },
-};
-const CHURCHES = [
-  { x: 187.4, y: 111.9 },
-  { x: 401.6, y: 252.1 },
-  { x: 52, y: 58 },
-  { x: 64, y: 226 },
-  { x: 262, y: 48 },
-  { x: 210, y: 236 },
-  { x: 440, y: 118 },
-  { x: 372, y: 36 },
-  { x: 24, y: 150 },
-];
+/** "a", "a and b", "a, b and c". */
+function listOf(items) {
+  if (items.length < 2) return items.join('');
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
 
-// Seconds: pin drops, then the ring sweeps out, then the readout lands
-const GPS_T = { drop: 0.45, ringDelay: 0.25, ring: 1.0, sweep: 0.3, link: 0.75, reveal: 0.95 };
-
-// The faint dot grid — brighter in the middle, fading toward the edges
-const DOTS = Array.from({ length: MAP.cols * MAP.rows }, (_, k) => {
-  const x = MAP.step / 2 + (k % MAP.cols) * MAP.step;
-  const y = MAP.step / 2 + Math.floor(k / MAP.cols) * MAP.step;
-  const dx = (x - MAP.w / 2) / (MAP.w / 2);
-  const dy = (y - MAP.h / 2) / (MAP.h / 2);
-  const fade = Math.min(1, Math.hypot(dx, dy) / 1.3);
-  return { x, y, o: 0.9 - 0.6 * fade };
-});
-
-const kmBetween = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) / KM_PX;
-const fmtKm = (km) => `${km.toFixed(1)} km`;
-
-/** Site key → { site, conflicts (inside the bylaw), nearest }. */
-const CHECKS = Object.fromEntries(
-  Object.entries(SITES).map(([key, site]) => {
-    const ranked = CHURCHES.map((c, i) => ({ ...c, i, km: kmBetween(site, c) })).sort(
-      (a, b) => a.km - b.km
-    );
-    return [key, { site, conflicts: ranked.filter((c) => c.km < BYLAW_KM), nearest: ranked[0] }];
-  })
-);
-
-function verdictFor(check) {
-  const n = check.conflicts.length;
-  if (n > 0) {
-    const where = check.conflicts.map((c) => fmtKm(c.km)).join(', ');
-    return {
-      ok: false,
-      text: `Blocked — ${n} ${n === 1 ? 'church' : 'churches'} at ${where}`,
-      meta: 'status change refused',
-    };
-  }
-  return { ok: true, text: `Clear — nearest ${fmtKm(check.nearest.km)}`, meta: 'DRAFT → SUBMITTED' };
+/** Soft wrap points at camelCase seams and after underscores, so identifiers
+ *  like "ApplicationStatusHistory" or "PHASE_2_FUNDS_PENDING" wrap between
+ *  words in a narrow column instead of mid-word (and copy back whole). */
+function softBreaks(text) {
+  const parts = text.replace(/([a-z])(?=[A-Z])|(_)(?=[A-Za-z0-9])/g, '$1$2\n').split('\n');
+  if (parts.length < 2) return text;
+  return parts.map((part, i) => (
+    <Fragment key={i}>
+      {i > 0 && <wbr />}
+      {part}
+    </Fragment>
+  ));
 }
 
 /* ── tx: the transaction ───────────────────────────────────────────────── */
-// Seconds. A step ticks every `step`; on failure the revert starts `revertGap`
-// after the failing step and ripples down the rows by `stagger`.
-const TX = { lead: 0.3, step: 0.5, failAt: 2, revertGap: 0.6, stagger: 0.07, badgeGap: 0.3 };
-const TX_DIM = { reverted: 0.45, failed: 0.8 };
+// Seconds. The condition matches at `lead`; the writes tick every `step` after
+// `gap`. A rollback starts `revertGap` after the failing write and un-ticks the
+// earlier writes newest-first, `stagger` apart. In a double-click the second
+// lane's compare-and-set can only see the moved status once the first lane has
+// committed, so it resolves `lose` after that COMMIT — pending until then.
+const TX = { lead: 0.3, gap: 0.45, step: 0.5, revertGap: 0.6, stagger: 0.07, markGap: 0.3, lose: 0.2 };
+const TX_DIM = { reverted: 0.6, idle: 0.45 };
 
-/** mode → per-row cue times and when the outcome lands. */
-function txTimeline(mode, count) {
-  const tickAt = (i) => TX.lead + i * TX.step;
-  if (mode === 'commit') {
-    return {
-      rows: Array.from({ length: count }, (_, i) => ({ tick: tickAt(i) })),
-      end: tickAt(count - 1) + TX.step,
-      failIdx: null,
-    };
+// The compare-and-set a release runs, with values read from the lifecycle:
+// the status Finance releases Phase 2 from, and the amount the President
+// approved (AUDIT). A clause drops out if the data stops saying it.
+const CAS_STATUS = STATUSES.find((s) => /_FUNDS_PENDING$/.test(s.id))?.id;
+const CAS_AMOUNT = AUDIT.find((e) => e.to === 'PRESIDENT_APPROVED')?.extra?.match(/₹\s?([\d,]+)/)?.[1];
+const CAS_WHERE = [
+  CAS_STATUS && `status = ${CAS_STATUS}`,
+  CAS_AMOUNT && `approvedAmount = ${CAS_AMOUNT}`,
+].filter(Boolean);
+
+/** Outcome → the readout chip, and the mark that closes a lane. */
+const TX_RESULT = {
+  commit: { status: 'COMMIT', tone: P.jade, glyph: 'tick', mark: 'COMMIT' },
+  rollback: { status: 'ROLLBACK', tone: P.alert, glyph: 'undo', mark: 'ROLLBACK' },
+  conflict: { status: '409', tone: P.alert, glyph: 'cross', mark: '409 · changed by someone else' },
+};
+
+/** A scenario → its lanes (one; two for a double-click) — rows matched, a cue
+ *  per write, the result and when it lands — and when the whole run ends.
+ *  No scenario → one idle lane. */
+function txPlan(scenario, count) {
+  const tickAt = (i) => TX.lead + TX.gap + i * TX.step;
+  const commits = {
+    matched: 1,
+    matchAt: TX.lead,
+    rows: range(count, (i) => ({ tick: tickAt(i) })),
+    markAt: tickAt(count - 1) + TX.step,
+    result: 'commit',
+  };
+
+  switch (scenario?.outcome) {
+    case 'commit':
+      return { lanes: [{ key: 'tx', label: 'One transaction', ...commits }], end: commits.markAt };
+
+    case 'rollback': {
+      const failAt = Math.min(Math.max(scenario.failAt ?? 0, 0), count - 1);
+      const revert0 = tickAt(failAt) + TX.revertGap;
+      const rows = range(count, (i) => {
+        if (i < failAt) return { tick: tickAt(i), revert: revert0 + (failAt - 1 - i) * TX.stagger };
+        if (i === failAt) return { fail: tickAt(i) };
+        return { dim: revert0 }; // never ran
+      });
+      const markAt = revert0 + failAt * TX.stagger + TX.markGap;
+      return {
+        lanes: [{ key: 'tx', label: 'One transaction', matched: 1, matchAt: TX.lead, rows, markAt, result: 'rollback' }],
+        end: markAt,
+      };
+    }
+
+    case 'conflict': {
+      // Both begin together; Click 2 sees 0 rows once Click 1 has committed
+      const lose = commits.markAt + TX.lose;
+      const loser = {
+        matched: 0,
+        matchAt: lose,
+        rows: range(count, () => ({ dim: lose })),
+        markAt: lose + TX.markGap,
+        result: 'conflict',
+      };
+      return {
+        lanes: [
+          { key: 'click-1', label: 'Click 1', ...commits },
+          { key: 'click-2', label: 'Click 2', ...loser },
+        ],
+        end: Math.max(commits.markAt, loser.markAt),
+      };
+    }
+
+    default:
+      return {
+        lanes: [
+          { key: 'tx', label: 'One transaction', matched: null, matchAt: 0, rows: range(count, () => ({})), markAt: 0, result: null },
+        ],
+        end: 0,
+      };
   }
-  if (mode === 'fail') {
-    const failIdx = Math.min(TX.failAt, count - 1);
-    const revert0 = tickAt(failIdx) + TX.revertGap;
-    return {
-      rows: Array.from({ length: count }, (_, i) => ({
-        tick: i < failIdx ? tickAt(i) : null,
-        fail: i === failIdx ? tickAt(i) : null,
-        revert: revert0 + i * TX.stagger,
-      })),
-      end: revert0 + count * TX.stagger + TX.badgeGap,
-      failIdx,
-    };
-  }
-  return { rows: Array.from({ length: count }, () => ({})), end: 0, failIdx: null };
 }
+
+/* ── snapshot: the rule timeline ───────────────────────────────────────── */
+// Positions along the timeline (0–1) — schematic, not to scale, so the dates
+// never collide. The cursor ("now") stands just after the first application
+// before the change, and past the last event after it.
+const SNAP = {
+  pos: { before: 0.14, change: 0.6, after: 0.86 },
+  now: { before: 0.32, after: 0.95 },
+  lead: 0.35, // s before the cursor sets off
+  travel: 1.7, // s from before to after — linear, it's time passing
+  resubmit: 0.25, // s after the cursor passes the new application
+  judge: 0.6, // s after it, both applications are judged
+  settle: 0.35,
+};
+// The column the rules freeze into on submit (DECISIONS.snapshot.decision)
+const SNAPSHOT_FIELD = 'requirementsSnapshot';
+
+/** When (s) the travelling cursor reaches timeline position `p`. */
+const snapPassAt = (p) =>
+  SNAP.lead + (SNAP.travel * (p - SNAP.now.before)) / (SNAP.now.after - SNAP.now.before);
+const pct = (f) => `${(f * 100).toFixed(2)}%`;
 
 /* ── rbac: the request path ────────────────────────────────────────────── */
 // Below `wideMin` px of panel width the line runs top-to-bottom.
 // h: horizontal — `room` above the line for the bypass arc, station radius,
 //    gap to the labels. v: vertical — top inset, row height, line x.
 const PIPE = {
-  wideMin: 520,
+  wideMin: 560,
   pad: 6,
   h: { room: 46, r: 7, gap: 16 },
   v: { top: 30, row: 60, x: 48, r: 7 },
@@ -241,6 +288,9 @@ function stationFor(mode, i, plan, skipAt, blockAt) {
   return { state: 'idle', at: 0 };
 }
 
+/** A station's final state, in words — the text twin of the diagram. */
+const STATION_WORDS = { pass: 'passed', block: 'stopped here — 403', skip: 'skipped', idle: 'not reached' };
+
 /* ── hooks ─────────────────────────────────────────────────────────────── */
 
 /** The active choice for a diagram: the user's pick, else `auto` once the
@@ -316,12 +366,12 @@ function PanelFrame({ caption, controls, footer, children }) {
   );
 }
 
-/** 20px status glyphs: tick, cross, undo, idle ring. */
-function Glyph({ kind }) {
-  const tone = { tick: P.jade, cross: P.alert, undo: P.inkSubtle, idle: P.lineHi }[kind];
-  const filled = kind === 'tick' || kind === 'cross';
+/** 20px status glyphs: tick, cross, undo, flag, idle ring. */
+function Glyph({ kind, tone: toneOverride }) {
+  const tone = toneOverride ?? { tick: P.jade, cross: P.alert, undo: P.inkSubtle, flag: P.sand, idle: P.lineHi }[kind];
+  const filled = kind === 'tick' || kind === 'cross' || kind === 'flag';
   return (
-    <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" className="block">
+    <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" className="block shrink-0">
       <circle
         cx="10"
         cy="10"
@@ -340,6 +390,16 @@ function Glyph({ kind }) {
       {kind === 'undo' && (
         <path
           d="M7.4 8.2 H11.3 A2.6 2.6 0 0 1 11.3 13.4 H8.6 M9.2 6.2 L7.2 8.2 L9.2 10.2"
+          fill="none"
+          stroke={tone}
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+      {kind === 'flag' && (
+        <path
+          d="M7.6 14.2 V5.8 M7.6 6.2 H13 L11.6 8.3 L13 10.4 H7.6"
           fill="none"
           stroke={tone}
           strokeWidth="1.4"
@@ -371,35 +431,6 @@ function Readout({ runKey, delay, reduce, tone, status, children }) {
   );
 }
 
-/* ── gps visual ────────────────────────────────────────────────────────── */
-
-const LABEL_PLACE = {
-  below: `translate(-50%, ${PIN_R + 3}px)`,
-  above: 'translate(-50%, calc(-100% - 4px))',
-  right: 'translate(10px, -50%)',
-  left: 'translate(calc(-100% - 10px), -50%)',
-};
-
-/** An HTML label pinned to a map coordinate — stays 11px at any map size. */
-function MapLabel({ x, y, place, color, delay, reduce, children }) {
-  return (
-    <span
-      className="absolute"
-      style={{ left: `${(x / MAP.w) * 100}%`, top: `${(y / MAP.h) * 100}%`, transform: LABEL_PLACE[place] }}
-    >
-      <motion.span
-        className="block whitespace-nowrap rounded-sm px-1 font-mono text-micro leading-[1.5]"
-        style={{ color, background: alpha(P.void, 0.85) }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={at(reduce, delay, 0.3)}
-      >
-        {children}
-      </motion.span>
-    </span>
-  );
-}
-
 function LegendItem({ children, label }) {
   return (
     <span className="inline-flex items-center gap-1.5">
@@ -411,243 +442,53 @@ function LegendItem({ children, label }) {
   );
 }
 
-function GpsVisual({ inView, reduce, accent }) {
-  const [active, choose] = useRun(inView, reduce, 'A');
-  const key = active?.key ?? null;
-  const runKey = active ? `${active.key}-${active.run}` : 'idle';
-  const check = key ? CHECKS[key] : null;
-  const verdict = check ? verdictFor(check) : null;
-  const marked = check ? (verdict.ok ? [check.nearest] : check.conflicts) : [];
-  const site = check?.site;
-
-  const label = `Schematic map: ${CHURCHES.length} registered churches and two candidate sites.${
-    verdict ? ` Site ${key}: ${verdict.text}.` : ''
-  }`;
-
-  return (
-    <PanelFrame
-      caption="Proposed site"
-      controls={
-        <Choices
-          label="Choose a proposed site"
-          options={Object.keys(SITES).map((k) => ({ key: k, label: `Site ${k}` }))}
-          value={key}
-          onChoose={choose}
-          accent={accent}
-        />
-      }
-      footer={
-        verdict ? (
-          <Readout runKey={runKey} delay={GPS_T.reveal} reduce={reduce} tone={verdict.ok ? P.jade : P.alert}>
-            <span className="text-body font-medium" style={{ color: verdict.ok ? P.jade : P.alert }}>
-              {verdict.text}
-            </span>
-            <span className="font-mono text-micro text-ink-subtle">{verdict.meta}</span>
-          </Readout>
-        ) : (
-          <p className="text-body text-ink-subtle">Pick a site to run the check.</p>
-        )
-      }
-    >
-      <div
-        className="relative w-full overflow-hidden rounded-md border border-line bg-void"
-        style={{ aspectRatio: `${MAP.w} / ${MAP.h}` }}
-      >
-        <svg viewBox={`0 0 ${MAP.w} ${MAP.h}`} className="absolute inset-0 h-full w-full" role="img" aria-label={label}>
-          {DOTS.map((d) => (
-            <circle key={`${d.x}-${d.y}`} cx={d.x} cy={d.y} r="1.2" fill={P.inkFaint} opacity={d.o} />
-          ))}
-
-          {/* the 8 km ring */}
-          {site && (
-            <motion.circle
-              key={`ring-${runKey}`}
-              cx={site.x}
-              cy={site.y}
-              fill={alpha(accent, 0.05)}
-              stroke={accent}
-              strokeOpacity={0.85}
-              strokeWidth="1.25"
-              strokeDasharray="5 5"
-              initial={{ r: reduce ? RING_R : 0 }}
-              animate={{ r: RING_R }}
-              transition={at(reduce, GPS_T.ringDelay, GPS_T.ring)}
-            />
-          )}
-
-          {/* site → the church that decides the verdict */}
-          {site &&
-            marked.map((c) => (
-              <motion.line
-                key={`link-${c.i}-${runKey}`}
-                x1={site.x}
-                y1={site.y}
-                x2={c.x}
-                y2={c.y}
-                stroke={verdict.ok ? P.jade : P.alert}
-                strokeWidth="1"
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 0.8 }}
-                transition={at(reduce, GPS_T.link, 0.45)}
-              />
-            ))}
-
-          {/* registered churches — a soft disc and a cross */}
-          {CHURCHES.map((c, i) => {
-            const hit = check ? check.conflicts.some((k) => k.i === i) : false;
-            const delay = GPS_T.ringDelay + GPS_T.ring * GPS_T.sweep * (kmBetween(site ?? c, c) / BYLAW_KM);
-            return (
-              <motion.g
-                key={`church-${i}-${runKey}`}
-                initial={{ color: P.ice }}
-                animate={{ color: hit ? P.alert : P.ice }}
-                transition={at(reduce, delay, 0.3)}
-              >
-                <circle cx={c.x} cy={c.y} r="7.5" fill="currentColor" fillOpacity="0.12" />
-                <path
-                  d={`M${c.x} ${c.y - 5}V${c.y + 5}M${c.x - 3.5} ${c.y - 1.5}H${c.x + 3.5}`}
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-              </motion.g>
-            );
-          })}
-
-          {/* candidate sites: hollow until chosen, then an accent pin */}
-          {Object.entries(SITES).map(([k, s]) =>
-            k === key ? null : (
-              <circle
-                key={k}
-                cx={s.x}
-                cy={s.y}
-                r="5"
-                fill={P.void}
-                stroke={P.inkSubtle}
-                strokeWidth="1.25"
-                strokeDasharray="2 2"
-              />
-            )
-          )}
-          {site && (
-            <motion.g
-              key={`pin-${runKey}`}
-              initial={{ opacity: 0, y: reduce ? 0 : -14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={at(reduce, 0, GPS_T.drop)}
-            >
-              <circle cx={site.x} cy={site.y} r={PIN_R} fill={accent} stroke={P.void} strokeWidth="2" />
-              <circle cx={site.x} cy={site.y} r="2" fill={P.void} />
-            </motion.g>
-          )}
-        </svg>
-
-        {/* labels — HTML so they stay readable when the map shrinks */}
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-          {Object.entries(SITES).map(([k, s]) => (
-            <MapLabel
-              key={`site-${k}-${runKey}`}
-              x={s.x}
-              y={s.y}
-              place="below"
-              color={k === key ? accent : P.inkSubtle}
-              delay={0}
-              reduce={reduce}
-            >
-              Site {k}
-            </MapLabel>
-          ))}
-          {site && (
-            <MapLabel
-              key={`ring-label-${runKey}`}
-              x={site.x}
-              y={site.y - RING_R}
-              place="above"
-              color={accent}
-              delay={GPS_T.link}
-              reduce={reduce}
-            >
-              {BYLAW_KM} km
-            </MapLabel>
-          )}
-          {marked.map((c) => (
-            <MapLabel
-              key={`km-${c.i}-${runKey}`}
-              x={c.x}
-              y={c.y}
-              place={c.x > MAP.w * 0.6 ? 'left' : 'right'}
-              color={verdict.ok ? P.jade : P.alert}
-              delay={GPS_T.reveal}
-              reduce={reduce}
-            >
-              {fmtKm(c.km)}
-            </MapLabel>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-micro text-ink-subtle">
-        <LegendItem label="registered church">
-          <circle cx="7" cy="7" r="6" fill={P.ice} fillOpacity="0.12" />
-          <path d="M7 3V11M4.2 5.8H9.8" stroke={P.ice} strokeWidth="1.4" strokeLinecap="round" />
-        </LegendItem>
-        <LegendItem label="proposed site">
-          <circle cx="7" cy="7" r="5" fill={accent} />
-        </LegendItem>
-        <LegendItem label={`${BYLAW_KM} km bylaw radius`}>
-          <circle cx="7" cy="7" r="5.5" fill="none" stroke={accent} strokeWidth="1.2" strokeDasharray="2.4 2" />
-        </LegendItem>
-      </div>
-    </PanelFrame>
-  );
-}
-
 /* ── tx visual ─────────────────────────────────────────────────────────── */
 
-/** Soft breaks at camelCase seams, so "ApplicationStatusHistory" wraps between
- *  words in a narrow row instead of mid-identifier (and copies back whole). */
-function camelBreaks(text) {
-  const parts = text.replace(/([a-z])([A-Z])/g, '$1\n$2').split('\n');
-  if (parts.length < 2) return text;
-  return parts.map((part, i) => (
-    <Fragment key={i}>
-      {i > 0 && <wbr />}
-      {part}
-    </Fragment>
-  ));
-}
-
-function TxRow({ index, label, cue, reduce }) {
+function TxRow({ index, label, cue, reduce, compact }) {
   const reverted = cue.revert != null;
   const failed = cue.fail != null;
+  const dimmed = cue.dim != null;
+
+  let opacity = 1;
+  if (dimmed) opacity = TX_DIM.idle;
+  else if (reverted) opacity = TX_DIM.reverted;
+
+  let words = '';
+  if (failed) words = 'threw';
+  else if (reverted) words = 'rolled back';
+  else if (dimmed) words = 'not written';
+  else if (cue.tick != null) words = 'written';
+
   return (
     <motion.li
       initial={{ opacity: 1, borderColor: P.line }}
-      animate={{
-        opacity: reverted ? (failed ? TX_DIM.failed : TX_DIM.reverted) : 1,
-        borderColor: failed ? alpha(P.alert, 0.4) : P.line,
-      }}
+      animate={{ opacity, borderColor: failed ? alpha(P.alert, 0.45) : P.line }}
       transition={
         reduce
           ? { duration: 0 }
           : {
-              opacity: at(reduce, cue.revert ?? 0, 0.35),
+              opacity: at(reduce, cue.dim ?? cue.revert ?? 0, 0.35),
               borderColor: at(reduce, cue.fail ?? 0, 0.3),
             }
       }
-      className="flex items-center gap-3 rounded-md border bg-surface-2 px-3 py-2.5"
+      className={`flex items-center rounded-md border bg-surface-2 ${compact ? 'gap-2.5 px-2.5 py-2' : 'gap-3 px-3 py-2.5'}`}
     >
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-chip border border-line-hi font-mono text-micro text-ink-subtle">
+      <span
+        className={`flex shrink-0 items-center justify-center rounded-chip border border-line-hi font-mono text-micro text-ink-subtle ${
+          compact ? 'h-5 w-5' : 'h-6 w-6'
+        }`}
+      >
         {index + 1}
       </span>
       <motion.span
-        className="min-w-0 flex-1 font-mono text-label text-ink-muted [overflow-wrap:anywhere]"
+        className={`min-w-0 flex-1 font-mono text-ink-muted [overflow-wrap:anywhere] ${compact ? 'text-micro' : 'text-label'}`}
         style={{ textDecorationLine: 'line-through', textDecorationThickness: '1px' }}
         initial={{ textDecorationColor: alpha(P.inkSubtle, 0) }}
         animate={{ textDecorationColor: alpha(P.inkSubtle, reverted ? 1 : 0) }}
         transition={at(reduce, cue.revert ?? 0, 0.3)}
       >
-        {camelBreaks(label)}
+        {softBreaks(label)}
+        {words && <span className="sr-only"> — {words}</span>}
       </motion.span>
       <span aria-hidden="true" className="relative h-5 w-5 shrink-0">
         <span className="absolute inset-0">
@@ -695,24 +536,395 @@ function TxRow({ index, label, cue, reduce }) {
   );
 }
 
+/** One request's transaction: BEGIN, the WHERE it ran, the rows it matched,
+ *  the writes, and the mark it ends on. */
+function TxLane({ lane, steps, reduce, compact }) {
+  const result = lane.result ? TX_RESULT[lane.result] : null;
+  const matched = lane.matched;
+  const waits = !reduce && matched != null && lane.matchAt > TX.lead;
+  return (
+    <motion.div
+      className="min-w-0 rounded-lg border p-3 sm:p-4"
+      initial={{ borderColor: P.line }}
+      animate={{ borderColor: result ? alpha(result.tone, 0.45) : P.line }}
+      transition={at(reduce, lane.markAt, 0.4)}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-mono text-micro uppercase tracking-[0.12em] text-ink-muted">{lane.label}</span>
+        <span className="font-mono text-micro tracking-[0.12em] text-ink-subtle">BEGIN</span>
+      </div>
+
+      {CAS_WHERE.length > 0 && (
+        <p className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 rounded-md border border-line bg-void px-2.5 py-2 font-mono text-micro leading-[1.6] text-ink-muted">
+          {CAS_WHERE.map((clause, i) => (
+            <Fragment key={clause}>
+              <span className="text-right text-lilac">{i === 0 ? 'WHERE' : 'AND'}</span>
+              <span className="min-w-0 [overflow-wrap:anywhere]">{softBreaks(clause)}</span>
+            </Fragment>
+          ))}
+        </p>
+      )}
+
+      <div className="relative mt-2 min-h-5">
+        {/* a lane that has to wait for the other shows it's still running */}
+        {waits && (
+          <motion.p
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 font-mono text-micro leading-5 text-ink-subtle"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 0 }}
+            transition={at(reduce, lane.matchAt, 0.2)}
+          >
+            → …
+          </motion.p>
+        )}
+        <motion.p
+          className="font-mono text-micro leading-5"
+          style={{ color: matched === 1 ? P.jade : P.alert }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: matched == null ? 0 : 1 }}
+          transition={at(reduce, lane.matchAt, 0.3)}
+        >
+          {matched != null && (
+            <>
+              <span aria-hidden="true">→ </span>
+              {matched} {matched === 1 ? 'row' : 'rows'} matched
+            </>
+          )}
+        </motion.p>
+      </div>
+
+      <ol className="mt-2 flex flex-col gap-2">
+        {steps.map((label, i) => (
+          <TxRow key={label} index={i} label={label} cue={lane.rows[i]} reduce={reduce} compact={compact} />
+        ))}
+      </ol>
+
+      <motion.p
+        className="mt-3 flex min-h-5 items-center gap-2 font-mono text-micro font-medium tracking-[0.06em]"
+        style={result ? { color: result.tone } : undefined}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: result ? 1 : 0 }}
+        transition={at(reduce, lane.markAt, 0.3)}
+      >
+        {result && (
+          <>
+            <Glyph kind={result.glyph} tone={result.tone} />
+            <span className="min-w-0">{result.mark}</span>
+          </>
+        )}
+      </motion.p>
+    </motion.div>
+  );
+}
+
 function TxVisual({ decision, inView, reduce, accent }) {
-  const [active, choose] = useRun(inView, reduce, 'commit');
-  const mode = active?.key ?? null;
+  const scenarios = decision.scenarios ?? [];
+  const [active, choose] = useRun(inView, reduce, scenarios[0]?.key ?? null);
+  const scenario = scenarios.find((s) => s.key === active?.key) ?? null;
   const runKey = active ? `${active.key}-${active.run}` : 'idle';
   const steps = decision.steps;
-  const plan = txTimeline(mode, steps.length);
-  const committed = mode === 'commit';
-  const frameTone = mode ? alpha(committed ? P.jade : P.alert, 0.45) : P.line;
+  const plan = txPlan(scenario, steps.length);
+  const result = scenario ? TX_RESULT[scenario.outcome] : null;
+  const pair = plan.lanes.length > 1;
 
   return (
     <PanelFrame
-      caption="Phase approval"
+      caption="Release a tranche"
       controls={
         <Choices
-          label="Run the phase approval"
+          label="Run the release"
+          options={scenarios.map(({ key, label }) => ({ key, label }))}
+          value={scenario?.key ?? null}
+          onChoose={choose}
+          accent={accent}
+        />
+      }
+      footer={
+        scenario && result ? (
+          <Readout runKey={runKey} delay={plan.end} reduce={reduce} tone={result.tone} status={result.status}>
+            <span className="text-body text-ink-muted">{scenario.readout}</span>
+          </Readout>
+        ) : (
+          <p className="text-body text-ink-subtle">Run the release.</p>
+        )
+      }
+    >
+      <div className="@container">
+        <div key={runKey} className={pair ? 'grid gap-3 @min-[34rem]:grid-cols-2' : undefined}>
+          {plan.lanes.map((lane) => (
+            <TxLane key={lane.key} lane={lane} steps={steps} reduce={reduce} compact={pair} />
+          ))}
+        </div>
+      </div>
+    </PanelFrame>
+  );
+}
+
+/* ── snapshot visual ───────────────────────────────────────────────────── */
+
+/** The setting's value in force: `before`, struck and followed by `after`
+ *  once the rule changes. */
+function ValueFlip({ before, after, changed, flipAt, reduce }) {
+  return (
+    <p className="flex shrink-0 items-baseline gap-2 font-display text-[1.75rem] font-semibold leading-none tabular-nums">
+      <span className="sr-only">In force: </span>
+      <motion.span
+        style={{ textDecorationLine: 'line-through', textDecorationThickness: '2px' }}
+        initial={{ color: P.ink, textDecorationColor: alpha(P.inkSubtle, 0) }}
+        animate={{
+          color: changed ? P.inkSubtle : P.ink,
+          textDecorationColor: alpha(P.inkSubtle, changed ? 1 : 0),
+        }}
+        transition={at(reduce, flipAt, 0.3)}
+      >
+        {before}
+      </motion.span>
+      {changed && (
+        <motion.span
+          className="inline-flex items-baseline gap-2"
+          initial={{ opacity: 0, x: reduce ? 0 : -6 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={at(reduce, flipAt, 0.35)}
+        >
+          <span aria-hidden="true" className="text-base text-ink-faint">
+            →
+          </span>
+          <span className="sr-only">, changed to </span>
+          <span className="text-ink">{after}</span>
+        </motion.span>
+      )}
+    </p>
+  );
+}
+
+/** One event on the timeline: a hollow marker while it's ahead of "now",
+ *  filled once reached (square — an application; diamond — the rule change). */
+function EventMark({ event, reached, reachAt, reduce }) {
+  const shape = event.kind === 'change' ? 'rotate-45 rounded-[1px]' : 'rounded-[2px]';
+  const place = { left: pct(event.pos) };
+  return (
+    <>
+      <span
+        className={`absolute top-[22px] -ml-1 h-2 w-2 border ${shape}`}
+        style={{ ...place, background: P.void, borderColor: P.lineHi }}
+      />
+      {reached && (
+        <motion.span
+          className={`absolute top-[22px] -ml-1 h-2 w-2 border ${shape}`}
+          style={{ ...place, background: P.inkMuted, borderColor: P.inkMuted }}
+          initial={{ opacity: reachAt > 0 ? 0 : 1 }}
+          animate={{ opacity: 1 }}
+          transition={at(reduce, reachAt, 0.2)}
+        />
+      )}
+      <span
+        className="absolute top-[34px] -translate-x-1/2 whitespace-nowrap font-mono text-micro leading-[15px] text-ink-subtle"
+        style={place}
+      >
+        {event.date}
+      </span>
+    </>
+  );
+}
+
+/** The setting over time: its value above the line (old, then new from the
+ *  change), the events on it, and the amber "now" cursor. Decorative — the
+ *  visual's sr-only summary says the same. */
+function RuleTimeline({ scenario, events, changed, flipAt, nowTo, reduce, accent }) {
+  const travel =
+    reduce || !changed ? { duration: 0 } : { delay: SNAP.lead, duration: SNAP.travel, ease: 'linear' };
+  const reachedBy = (pos) => pos <= nowTo;
+  const reachAt = (pos) => (changed && pos > SNAP.now.before ? snapPassAt(pos) : 0);
+  return (
+    <div aria-hidden="true" className="relative h-[54px]">
+      {/* the value in force, either side of the change */}
+      <motion.span
+        className="absolute left-0 top-0 whitespace-nowrap font-mono text-micro leading-[15px]"
+        initial={{ color: P.inkMuted }}
+        animate={{ color: changed ? P.inkSubtle : P.inkMuted }}
+        transition={at(reduce, flipAt, 0.3)}
+      >
+        {scenario.before} required
+      </motion.span>
+      {changed && (
+        <motion.span
+          className="absolute top-0 whitespace-nowrap pl-2 font-mono text-micro leading-[15px] text-ink"
+          style={{ left: pct(SNAP.pos.change) }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={at(reduce, flipAt, 0.35)}
+        >
+          {scenario.after} required
+        </motion.span>
+      )}
+      <span className="absolute top-[2px] h-[20px] w-px bg-line" style={{ left: pct(SNAP.pos.change) }} />
+
+      {/* time: dashed ahead, solid where it has passed */}
+      <span className="absolute inset-x-0 top-[26px] border-t border-dashed border-line-hi" />
+      <motion.span
+        className="absolute left-0 top-[25px] h-[2px] rounded-full"
+        style={{ background: P.inkSubtle }}
+        initial={{ width: pct(SNAP.now.before) }}
+        animate={{ width: pct(nowTo) }}
+        transition={travel}
+      />
+
+      {events.map((e) => (
+        <EventMark key={e.key} event={e} reached={reachedBy(e.pos)} reachAt={reachAt(e.pos)} reduce={reduce} />
+      ))}
+
+      {/* now */}
+      <motion.span
+        className="absolute top-[16px] -ml-px h-[20px] w-[2px] rounded-full"
+        style={{ background: accent }}
+        initial={{ left: pct(SNAP.now.before) }}
+        animate={{ left: pct(nowTo) }}
+        transition={travel}
+      />
+    </div>
+  );
+}
+
+/** An application, judged by the rules frozen onto it at submit. */
+function AppCard({ app, snapshot, field, shown, appearAt, placeholder, resubmitAt, judgeAt, reduce }) {
+  const passes = app.photos >= snapshot;
+  const tone = passes ? P.jade : P.sand;
+  const slots = Math.max(snapshot, app.photos);
+  const resubmits = resubmitAt != null;
+  return (
+    <li className="relative min-w-0 rounded-md border border-line bg-surface-2 p-3.5">
+      <motion.div
+        aria-hidden={shown ? undefined : true}
+        initial={{ opacity: shown && appearAt === 0 ? 1 : 0 }}
+        animate={{ opacity: shown ? 1 : 0 }}
+        transition={at(reduce, appearAt, 0.35)}
+      >
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+          <span className="font-mono text-label text-ink">{app.id}</span>
+          <span className="font-mono text-micro text-ink-subtle">submitted {app.submitted}</span>
+        </div>
+
+        <p className="mt-2.5">
+          <span className="inline-block max-w-full rounded-chip border border-line bg-void px-2 py-1 font-mono text-micro leading-[1.45] text-ink-muted [overflow-wrap:anywhere]">
+            {/* nbsp: if the chip wraps, the dot stays with the column name */}
+            {SNAPSHOT_FIELD}
+            {'\u00a0· '}
+            {field}: <span className="text-ink">{snapshot}</span>
+          </span>
+        </p>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+          <span className="flex items-center gap-2.5">
+            <span aria-hidden="true" className="flex gap-1">
+              {range(slots, (i) => (
+                <span
+                  key={i}
+                  className="block h-2.5 w-2.5 rounded-[2px]"
+                  style={i < app.photos ? { background: P.inkSubtle } : { border: `1px dashed ${P.sand}` }}
+                />
+              ))}
+            </span>
+            <span className="font-mono text-micro tabular-nums text-ink-muted">
+              {app.photos} {app.photos === 1 ? 'photo' : 'photos'}
+            </span>
+          </span>
+          {resubmits && (
+            <motion.span
+              className="font-mono text-micro text-ink-muted"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={at(reduce, resubmitAt, 0.3)}
+            >
+              <span aria-hidden="true">↺ </span>resubmits
+            </motion.span>
+          )}
+        </div>
+
+        <motion.p
+          className="mt-3 flex items-start gap-2 text-label leading-5"
+          initial={{ opacity: resubmits ? 1 : 0 }}
+          animate={{ opacity: resubmits ? [1, 0.25, 1] : 1 }}
+          transition={
+            reduce
+              ? { duration: 0 }
+              : resubmits
+                ? { delay: resubmitAt, duration: judgeAt - resubmitAt + 0.3, times: [0, 0.4, 1], ease: EASE_OUT }
+                : at(reduce, judgeAt, 0.35)
+          }
+        >
+          <Glyph kind={passes ? 'tick' : 'flag'} />
+          <span className="min-w-0">
+            <span className="font-medium" style={{ color: tone }}>
+              {passes ? 'passes' : `needs ${snapshot}`}
+            </span>
+            <span className="text-ink-subtle"> · judged by its snapshot: {snapshot}</span>
+          </span>
+        </motion.p>
+      </motion.div>
+
+      {placeholder && (
+        <motion.div
+          aria-hidden={shown ? true : undefined}
+          className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md border border-dashed border-line-hi bg-surface px-3 text-center font-mono text-micro text-ink-subtle"
+          initial={{ opacity: shown && appearAt === 0 ? 0 : 1 }}
+          animate={{ opacity: shown ? 0 : 1 }}
+          transition={at(reduce, appearAt, 0.3)}
+        >
+          not submitted yet
+        </motion.div>
+      )}
+    </li>
+  );
+}
+
+function SnapshotVisual({ decision, inView, reduce, accent }) {
+  const sc = decision.scenario;
+  const [active, choose] = useRun(inView, reduce, 'after');
+  const mode = active?.key ?? null;
+  const runKey = active ? `${active.key}-${active.run}` : 'idle';
+  const changed = mode === 'after';
+
+  const field = sc.key.split('.').pop();
+  const early = sc.apps.find((a) => a.when === 'before');
+  const late = sc.apps.find((a) => a.when === 'after');
+
+  const flipAt = changed ? snapPassAt(SNAP.pos.change) : 0;
+  const laterAt = changed ? snapPassAt(SNAP.pos.after) : 0;
+  const judgeAt = changed ? laterAt + SNAP.judge : 0.25;
+  const end = judgeAt + SNAP.settle;
+  const nowTo = changed ? SNAP.now.after : SNAP.now.before;
+
+  const events = [
+    ...sc.apps
+      .filter((a) => a.when === 'before')
+      .map((a) => ({ key: a.id, kind: 'app', pos: SNAP.pos.before, date: a.submitted })),
+    { key: 'change', kind: 'change', pos: SNAP.pos.change, date: sc.changedOn },
+    ...sc.apps
+      .filter((a) => a.when === 'after')
+      .map((a) => ({ key: a.id, kind: 'app', pos: SNAP.pos.after, date: a.submitted })),
+  ];
+
+  const summary = `${sc.setting}: ${sc.before} until ${sc.changedOn}, then ${sc.after}. ${sc.apps
+    .map((a) => `${a.id} submitted ${a.submitted}`)
+    .join('; ')}.`;
+
+  let sentence = '';
+  if (changed && early && late) {
+    sentence = `From ${sc.changedOn} the rule is ${sc.after} — yet ${early.id} is still judged by its snapshot of ${sc.before}; only ${late.id} is asked for ${sc.after}.`;
+  } else if (early) {
+    sentence = `${early.id} froze the rule at ${sc.before} when it was submitted on ${early.submitted} — its ${early.photos} photos pass.`;
+  }
+
+  return (
+    <PanelFrame
+      caption="Rule change"
+      controls={
+        <Choices
+          label="Before or after the rule change"
           options={[
-            { key: 'commit', label: 'Commit' },
-            { key: 'fail', label: 'Simulate a failure' },
+            { key: 'before', label: 'Before the change' },
+            { key: 'after', label: 'After the change' },
           ]}
           value={mode}
           onChoose={choose}
@@ -723,39 +935,74 @@ function TxVisual({ decision, inView, reduce, accent }) {
         mode ? (
           <Readout
             runKey={runKey}
-            delay={plan.end}
+            delay={end}
             reduce={reduce}
-            tone={committed ? P.jade : P.alert}
-            status={committed ? 'COMMIT' : 'ROLLBACK — nothing was written'}
+            tone={changed ? P.sand : P.jade}
+            status={changed ? `Rule ${sc.before} → ${sc.after}` : `Judged by ${sc.before}`}
           >
-            <span className="text-body text-ink-muted">
-              {committed
-                ? `All ${steps.length} writes landed together.`
-                : `Step ${plan.failIdx + 1} threw, so every write before it was undone.`}
-            </span>
+            <span className="text-body text-ink-muted">{sentence}</span>
           </Readout>
         ) : (
-          <p className="text-body text-ink-subtle">Run the approval.</p>
+          <p className="text-body text-ink-subtle">Pick a moment.</p>
         )
       }
     >
-      <motion.div
-        key={runKey}
-        className="rounded-lg border p-3 sm:p-4"
-        initial={{ borderColor: P.line }}
-        animate={{ borderColor: frameTone }}
-        transition={at(reduce, plan.end, 0.4)}
-      >
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <span className="font-mono text-micro tracking-[0.12em] text-ink-subtle">BEGIN</span>
-          <span className="font-mono text-micro text-ink-subtle">one transaction</span>
+      <div key={runKey} className="@container">
+        {/* the setting */}
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+          <div className="min-w-0">
+            <p className="text-label font-medium text-ink">{sc.setting}</p>
+            <p className="mt-0.5 font-mono text-micro text-ink-subtle [overflow-wrap:anywhere]">{softBreaks(sc.key)}</p>
+          </div>
+          <ValueFlip before={sc.before} after={sc.after} changed={changed} flipAt={flipAt} reduce={reduce} />
         </div>
-        <ol className="flex flex-col gap-2">
-          {steps.map((label, i) => (
-            <TxRow key={label} index={i} label={label} cue={plan.rows[i]} reduce={reduce} />
-          ))}
-        </ol>
-      </motion.div>
+
+        {/* the setting over time */}
+        <div className="mt-5">
+          <RuleTimeline
+            scenario={sc}
+            events={events}
+            changed={changed}
+            flipAt={flipAt}
+            nowTo={nowTo}
+            reduce={reduce}
+            accent={accent}
+          />
+        </div>
+        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-micro text-ink-subtle">
+          <LegendItem label="application submitted">
+            <rect x="3" y="3" width="8" height="8" rx="1.5" fill={P.inkMuted} />
+          </LegendItem>
+          <LegendItem label="rule changed">
+            <rect x="3" y="3" width="8" height="8" rx="1" fill={P.inkMuted} transform="rotate(45 7 7)" />
+          </LegendItem>
+          <LegendItem label="now">
+            <rect x="6" y="1" width="2" height="12" rx="1" fill={accent} />
+          </LegendItem>
+        </div>
+        <p className="sr-only">{summary}</p>
+
+        {/* the applications, each judged by its own snapshot */}
+        <ul className="mt-5 grid gap-3 @min-[30rem]:grid-cols-2">
+          {sc.apps.map((app) => {
+            const isEarly = app.when === 'before';
+            return (
+              <AppCard
+                key={app.id}
+                app={app}
+                snapshot={isEarly ? sc.before : sc.after}
+                field={field}
+                shown={isEarly || changed}
+                appearAt={!isEarly && changed ? laterAt : 0}
+                placeholder={!isEarly}
+                resubmitAt={isEarly && changed ? laterAt + SNAP.resubmit : null}
+                judgeAt={judgeAt}
+                reduce={reduce}
+              />
+            );
+          })}
+        </ul>
+      </div>
     </PanelFrame>
   );
 }
@@ -780,7 +1027,7 @@ function RbacVisual({ decision, inView, reduce, accent }) {
   // Which stations the forged request skips, enters at and is stopped at
   const skipAt = Math.max(0, path.findIndex((s) => s.key === 'ui'));
   const entry = Math.max(skipAt + 1, path.findIndex((s) => s.key === 'route'));
-  const blockAt = Math.max(entry, path.findIndex((s) => s.key === 'role'));
+  const blockAt = Math.max(entry, path.findIndex((s) => s.key === 'own'));
 
   const geo = pipeGeometry(width, n, wide, entry);
   const plan = pipePlan(mode, geo, entry, blockAt);
@@ -809,6 +1056,22 @@ function RbacVisual({ decision, inView, reduce, accent }) {
   };
   const forged = mode === 'forged';
   const settled = reduce || doneRun === runKey;
+  // Once the token has arrived, anything that remounts (a resize across wideMin re-keys it) appears in its final state.
+  const play = (delay, duration) => (settled ? { duration: 0 } : at(reduce, delay, duration));
+
+  // Where it ends, and the code it ends with — beside the final station
+  const endAt = forged ? blockAt : n - 1;
+  const endCode = forged ? '403' : '200';
+  const endTone = forged ? P.alert : P.jade;
+  const endStation = geo.stations[endAt];
+
+  const lastStation = path[n - 1];
+  const passed = path.slice(entry, blockAt).map((s) => s.label);
+  const words = (i) => {
+    if (!mode) return '';
+    if (!forged && i === n - 1) return 'passed — 200';
+    return STATION_WORDS[states[i].state];
+  };
 
   return (
     <PanelFrame
@@ -817,8 +1080,8 @@ function RbacVisual({ decision, inView, reduce, accent }) {
         <Choices
           label="Send a request"
           options={[
-            { key: 'app', label: 'Through the app' },
-            { key: 'forged', label: 'Forged request' },
+            { key: 'app', label: 'Your application' },
+            { key: 'forged', label: 'Someone else’s' },
           ]}
           value={mode}
           onChoose={choose}
@@ -832,12 +1095,12 @@ function RbacVisual({ decision, inView, reduce, accent }) {
             delay={plan.end + PIPE.settle}
             reduce={reduce}
             tone={forged ? P.alert : P.jade}
-            status={forged ? '403 — role not allowed' : '200 OK'}
+            status={forged ? '403 · Access denied' : '200 OK'}
           >
             <span className="text-body text-ink-muted">
               {forged
-                ? 'Skipping the UI changes nothing — the API decides.'
-                : 'Every check ran again on the server.'}
+                ? `It skipped the ${path[skipAt].label} and cleared ${listOf(passed)} — then ${path[blockAt].label} stopped it.`
+                : `Every station passed — ${lastStation.label} last, ${lastStation.note}.`}
             </span>
           </Readout>
         ) : (
@@ -871,11 +1134,11 @@ function RbacVisual({ decision, inView, reduce, accent }) {
                   y1={points[j].y}
                   x2={b.x}
                   y2={b.y}
-                  stroke={alpha(accent, 0.75)}
+                  stroke={alpha(P.jade, 0.75)}
                   strokeWidth="2"
-                  initial={{ pathLength: reduce ? 1 : 0 }}
+                  initial={settled ? false : { pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={reduce ? { duration: 0 } : { delay: from, duration: PIPE.seg, ease: 'easeInOut' }}
+                  transition={settled ? { duration: 0 } : { delay: from, duration: PIPE.seg, ease: 'easeInOut' }}
                 />
               );
             })}
@@ -888,9 +1151,9 @@ function RbacVisual({ decision, inView, reduce, accent }) {
                 stroke={accent}
                 strokeWidth="1.5"
                 strokeDasharray="4 4"
-                initial={{ opacity: 0 }}
+                initial={settled ? false : { opacity: 0 }}
                 animate={{ opacity: 0.9 }}
-                transition={at(reduce, 0.05, 0.3)}
+                transition={play(0.05, 0.3)}
               />
             )}
             {forged && wide && (
@@ -903,14 +1166,14 @@ function RbacVisual({ decision, inView, reduce, accent }) {
                 fontSize="11"
                 letterSpacing="0.08em"
                 fill={accent}
-                initial={{ opacity: 0 }}
+                initial={settled ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={at(reduce, 0.2, 0.3)}
+                transition={play(0.2, 0.3)}
               >
                 bypass
               </motion.text>
             )}
-            {/* stations */}
+            {/* stations: dashed where skipped, a tick where passed, a cross where stopped */}
             {geo.stations.map((s, i) => {
               const look = STATION[states[i].state];
               return (
@@ -920,12 +1183,53 @@ function RbacVisual({ decision, inView, reduce, accent }) {
                   cy={s.y}
                   r={wide ? PIPE.h.r : PIPE.v.r}
                   strokeWidth="1.5"
-                  initial={{ fill: STATION.idle.fill, stroke: STATION.idle.stroke }}
+                  strokeDasharray={states[i].state === 'skip' ? '2.5 2' : undefined}
+                  initial={settled ? false : { fill: STATION.idle.fill, stroke: STATION.idle.stroke }}
                   animate={{ fill: look.fill, stroke: look.stroke }}
-                  transition={at(reduce, states[i].at, 0.25)}
+                  transition={play(states[i].at, 0.25)}
                 />
               );
             })}
+            {geo.stations.map((s, i) => {
+              const state = states[i].state;
+              if (state !== 'pass' && state !== 'block') return null;
+              const d =
+                state === 'pass'
+                  ? `M${s.x - 3} ${s.y + 0.2} L${s.x - 0.9} ${s.y + 2.4} L${s.x + 3.2} ${s.y - 2}`
+                  : `M${s.x - 2.4} ${s.y - 2.4} L${s.x + 2.4} ${s.y + 2.4} M${s.x + 2.4} ${s.y - 2.4} L${s.x - 2.4} ${s.y + 2.4}`;
+              return (
+                <motion.path
+                  key={`mark-${i}-${runKey}-${wide}`}
+                  d={d}
+                  fill="none"
+                  stroke={STATION[state].stroke}
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  initial={settled ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={play(states[i].at, 0.25)}
+                />
+              );
+            })}
+            {/* the response code, beside the station it ended at */}
+            {mode && endStation && (
+              <motion.text
+                key={`code-${runKey}-${wide}`}
+                x={wide ? endStation.x : endStation.x - 16}
+                y={wide ? endStation.y - 15 : endStation.y + 4}
+                textAnchor={wide ? 'middle' : 'end'}
+                className="font-mono"
+                fontSize="11"
+                fontWeight="500"
+                fill={endTone}
+                initial={settled ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={play(plan.end, 0.3)}
+              >
+                {endCode}
+              </motion.text>
+            )}
             {/* the client, and the request itself */}
             <circle cx={geo.origin.x} cy={geo.origin.y} r="2.5" fill={P.inkSubtle} />
             {mode && (
@@ -938,7 +1242,7 @@ function RbacVisual({ decision, inView, reduce, accent }) {
                 animate={{
                   cx: settled ? last.x : plan.frames.map((f) => f.p.x),
                   cy: settled ? last.y : plan.frames.map((f) => f.p.y),
-                  fill: forged ? P.alert : accent,
+                  fill: forged ? P.alert : P.jade,
                 }}
                 transition={
                   settled
@@ -952,7 +1256,7 @@ function RbacVisual({ decision, inView, reduce, accent }) {
         )}
 
         <ol
-          aria-label="Request path, from the client to the handler"
+          aria-label="Request path, from the client to the engine"
           className={wide ? 'relative grid' : 'relative flex flex-col'}
           style={
             wide
@@ -971,14 +1275,17 @@ function RbacVisual({ decision, inView, reduce, accent }) {
             >
               <motion.span
                 key={`${step.key}-${runKey}`}
-                className="block text-label font-medium leading-snug"
+                className="block text-label font-medium leading-snug [overflow-wrap:anywhere]"
                 initial={{ color: STATION.idle.label }}
                 animate={{ color: STATION[states[i].state].label }}
                 transition={at(reduce, states[i].at, 0.25)}
               >
-                {step.label}
+                {softBreaks(step.label)}
               </motion.span>
-              <span className="mt-1 block text-micro leading-snug text-ink-subtle">{step.note}</span>
+              <span className="mt-1 block text-micro leading-snug text-ink-subtle [overflow-wrap:anywhere]">
+                {step.note}
+              </span>
+              {words(i) && <span className="sr-only"> — {words(i)}</span>}
             </li>
           ))}
         </ol>
@@ -1047,10 +1354,10 @@ function CodeToggle({ code, reduce }) {
 
 function renderVisual(decision, props) {
   switch (decision.id) {
-    case 'gps':
-      return <GpsVisual {...props} />;
     case 'tx':
       return <TxVisual decision={decision} {...props} />;
+    case 'snapshot':
+      return <SnapshotVisual decision={decision} {...props} />;
     case 'rbac':
       return <RbacVisual decision={decision} {...props} />;
     default:
@@ -1089,7 +1396,7 @@ function DecisionRow({ decision, index, accent, reduce }) {
         </p>
         <h3
           id={titleId}
-          className="mt-4 text-balance font-display text-[1.75rem] leading-[1.15] text-ink sm:text-[2rem] lg:text-[2.25rem]"
+          className="mt-4 text-balance font-display text-2xl font-semibold leading-[1.2] tracking-[-0.015em] text-ink sm:text-[1.75rem]"
         >
           {decision.title}
         </h3>

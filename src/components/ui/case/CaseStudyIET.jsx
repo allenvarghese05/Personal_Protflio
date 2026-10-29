@@ -10,14 +10,18 @@
  * headlines alone and you have the story:
  *
  *   hero          what it is, the outcome, the numbers, who touches it
- *   redacted      why there are no screenshots
+ *   redacted      why there are no screenshots — then an index of the page
  *   01 problem    paper → platform, row by row (before → after)
- *   02 lifecycle  the status path                       <Lifecycle />
- *   03 decisions  the three hard problems               <Decisions />
- *   04 arch       five layers, real requests traced     <Architecture />
- *   05 data       the schema, by domain                 <DataModel />
- *   06 build      the weeks on a ruler, then the stack  <BuildRuler />
- *   next          launch + open ends, then the next case study
+ *   02 lifecycle  the 21 statuses, scrubbed step by step   <Lifecycle />
+ *   03 decisions  the three hard problems                  <Decisions />
+ *   04 control    The admin console ("Mission Control")    <ControlPlane />
+ *   05 perf       146.7 s → 1.28 s, and the proof          <Performance />
+ *   06 security   the layers, then the audit               <Security />
+ *   07 platform   analytics, notifications, offline, cron  <Platform />
+ *   08 arch       five layers, real requests traced        <Architecture />
+ *   09 data       the schema, by domain                    <DataModel />
+ *   10 build      the two bursts, then how it ships        <BuildRuler /> <Quality />
+ *   next          the roadmap, then the next case study
  *
  * Facts come from data/studies/iet.js, projects.js and caseStudies.js; the
  * counts inside the headlines are derived from that data, so this file only
@@ -29,7 +33,7 @@ import { useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { useStore } from '@/lib/store';
 import { ENGINEERING_PROJECTS } from '@/data/projects';
-import { ACTORS, COPY, DATA_MODEL, DECISIONS, LAYERS, STATUSES } from '@/data/studies/iet';
+import { ACTORS, BUILD, COPY, DATA_MODEL, DECISIONS, LAYERS, PERF, SECURITY, STATUSES } from '@/data/studies/iet';
 import { PALETTE as P, alpha } from '@/lib/palette';
 import { ACCENTS, DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
 import ApprovalStack from '@/components/ui/case/ApprovalStack';
@@ -39,6 +43,11 @@ import Decisions from '@/components/ui/case/Decisions';
 import Architecture from '@/components/ui/case/Architecture';
 import DataModel from '@/components/ui/case/DataModel';
 import BuildRuler from '@/components/ui/case/BuildRuler';
+import Quality from '@/components/ui/case/Quality';
+import ControlPlane from '@/components/ui/case/ControlPlane';
+import Performance from '@/components/ui/case/Performance';
+import Security from '@/components/ui/case/Security';
+import Platform from '@/components/ui/case/Platform';
 import NextProject from '@/components/ui/case/NextProject';
 
 /* ── constants ─────────────────────────────────────────────────────────── */
@@ -101,19 +110,46 @@ function focusStageHeading(scroller) {
   heading.focus({ preventScroll: true });
 }
 
+/** 146709 → '146.7 s', 1278 → '1.28 s' — three significant figures, one decimal past 100 s. */
+const seconds = (ms) => {
+  const v = ms / 1000;
+  return `${v >= 100 ? v.toFixed(1) : v.toPrecision(3)} s`;
+};
+const PR_COUNT = BUILD.totals.find((t) => /pull request/i.test(t.label))?.value;
+
 /** The section headlines — the sentences are written here, the numbers aren't. */
-function headlines(project) {
-  const weeks = project.timeline?.length || 0;
+function headlines() {
+  const layers = SECURITY.layers.length;
+  const findings = SECURITY.audit.length;
   return {
-    problem: `Every project lived on paper — an applicant, ${word(SIGNOFF_COUNT)} sign-offs, ${word(PHASE_COUNT)} phases, no single view.`,
-    lifecycle: `${STATUSES.length} statuses, one path — and every step leaves a record.`,
-    decisions: `${capWord(DECISIONS.length)} decisions that keep the money and the rules honest.`,
+    problem: `Every project lived on paper — an applicant, ${word(SIGNOFF_COUNT)} sign-offs, ${word(PHASE_COUNT)} funded phases, no single view.`,
+    lifecycle: `${STATUSES.length} statuses, one engine — and every move leaves a record.`,
+    decisions: `${capWord(DECISIONS.length)} hard problems: money that can’t be paid out twice, rule changes that can’t rewrite old applications, and data no one can reach by editing a URL.`,
+    control: 'The organisation changes its own rules — no engineer, no deploy.',
+    perf: `The heaviest report went from ${seconds(PERF.hero.before)} to ${seconds(PERF.hero.after)} — and returned the same bytes.`,
+    security: `${capWord(layers)} layers between a request and the data — then an audit: ${word(findings)} findings, ${word(findings)} fixes.`,
+    platform: 'Around the engine: analytics, notifications, an offline form and a nightly job.',
     architecture: `One Next.js app, ${word(LAYERS.length)} layers — follow a request through it.`,
-    data: `${MODEL_COUNT} models across ${word(DATA_MODEL.domains.length)} domains.`,
-    build: weeks ? `${capWord(weeks)} weeks, sole engineer, schema first.` : 'Sole engineer, schema first.',
-    next: 'Launch first — then the lifecycle’s loose ends.',
+    data: `${MODEL_COUNT} models in ${word(DATA_MODEL.domains.length)} domains — and every release of money is a row the app never edits.`,
+    build: PR_COUNT ? `A prototype in February — then ${PR_COUNT} pull requests in three weeks of October.` : 'Sole engineer, schema first.',
+    next: 'Production next — then what the roadmap deferred.',
   };
 }
+
+/** The page's sections, in order — the index and the page both read this. */
+const SECTIONS = [
+  { id: 'problem', num: '01', label: 'The problem' },
+  { id: 'lifecycle', num: '02', label: 'The lifecycle' },
+  { id: 'decisions', num: '03', label: 'Hard problems' },
+  { id: 'control', num: '04', label: 'The admin console' },
+  { id: 'perf', num: '05', label: 'Performance' },
+  { id: 'security', num: '06', label: 'Security' },
+  { id: 'platform', num: '07', label: 'Around the workflow' },
+  { id: 'architecture', num: '08', label: 'Architecture' },
+  { id: 'data', num: '09', label: 'Data model' },
+  { id: 'build', num: '10', label: 'How it was built' },
+];
+const SECTION = Object.fromEntries(SECTIONS.map((x) => [x.id, x]));
 
 /** Fade + shift in once `shown`; with reduced motion the final state, instantly. */
 const reveal = (shown, reduce, delay, from) => ({
@@ -259,7 +295,7 @@ function SectionHead({ id, num, label, title, accent }) {
       </p>
       <h2
         id={id}
-        className="font-display mt-4 max-w-[26ch] text-balance text-3xl font-semibold leading-[1.12] tracking-[-0.025em] text-ink sm:text-4xl"
+        className="font-display mt-4 max-w-[26ch] scroll-mt-16 text-balance text-3xl font-semibold leading-[1.12] tracking-[-0.025em] text-ink sm:text-4xl"
       >
         {title}
       </h2>
@@ -388,13 +424,48 @@ function NextList({ items, accent }) {
   );
 }
 
+/* ── the index ─────────────────────────────────────────────────────────── */
+
+/** A numbered index of the sections — jumps the stage to each one. */
+function SectionIndex({ accent }) {
+  const reduce = useReducedMotion();
+  const jump = (id) => {
+    const el = document.getElementById(`iet-${id}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+    el.focus({ preventScroll: true });
+  };
+  return (
+    <nav aria-label="In this case study" className="border-t border-line pt-6">
+      <p className="mc-label">In this case study</p>
+      <ol className="mt-4 grid grid-cols-1 gap-x-8 sm:grid-cols-2 lg:grid-cols-5">
+        {SECTIONS.map((x) => (
+          <li key={x.id}>
+            <button
+              type="button"
+              onClick={() => jump(x.id)}
+              className="group flex w-full items-baseline gap-3 border-b border-line py-2.5 text-left font-mono text-label text-ink-muted transition-colors hover:text-ink"
+            >
+              <span className="tabular-nums" style={{ color: accent }}>
+                {x.num}
+              </span>
+              <span>{x.label}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
 /* ── the page ──────────────────────────────────────────────────────────── */
 
 export default function CaseStudyIET({ project, study }) {
   const rootRef = useRef(null);
   const setSelected = useStore((s) => s.setSelectedProject);
   const accent = accentFor(project.kind);
-  const title = headlines(project);
+  const title = headlines();
   const next = nextAfter(project.id);
 
   const goNext = () => {
@@ -420,36 +491,58 @@ export default function CaseStudyIET({ project, study }) {
       <div className={WRAP}>
         <div className="pb-20 sm:pb-24">
           <Redacted />
+          <div className="mt-16">
+            <SectionIndex accent={accent} />
+          </div>
         </div>
 
-        <Section id="problem" num="01" label="The problem" title={title.problem} accent={accent}>
+        <Section {...SECTION.problem} title={title.problem} accent={accent}>
           <BeforeAfter before={COPY.before} after={COPY.after} accent={accent} />
-          {study?.problem && <p className="mt-10 max-w-[68ch] text-body text-ink-muted">{study.problem}</p>}
+          {study?.built && <p className="mt-10 max-w-[68ch] text-body text-ink-muted">{study.built}</p>}
         </Section>
 
-        <Section id="lifecycle" num="02" label="The lifecycle" title={title.lifecycle} accent={accent}>
+        <Section {...SECTION.lifecycle} title={title.lifecycle} accent={accent}>
           <Lifecycle accent={accent} />
         </Section>
 
-        <Section id="decisions" num="03" label="Hard problems" title={title.decisions} accent={accent}>
+        <Section {...SECTION.decisions} title={title.decisions} accent={accent}>
           <Decisions accent={accent} />
         </Section>
 
-        <Section id="architecture" num="04" label="Architecture" title={title.architecture} accent={accent}>
+        <Section {...SECTION.control} title={title.control} accent={accent}>
+          <ControlPlane accent={accent} />
+        </Section>
+
+        <Section {...SECTION.perf} title={title.perf} accent={accent}>
+          <Performance accent={accent} />
+        </Section>
+
+        <Section {...SECTION.security} title={title.security} accent={accent}>
+          <Security accent={accent} />
+        </Section>
+
+        <Section {...SECTION.platform} title={title.platform} accent={accent}>
+          <Platform accent={accent} />
+        </Section>
+
+        <Section {...SECTION.architecture} title={title.architecture} accent={accent}>
           <Architecture project={project} accent={accent} />
         </Section>
 
-        <Section id="data" num="05" label="Data model" title={title.data} accent={accent}>
+        <Section {...SECTION.data} title={title.data} accent={accent}>
           <DataModel accent={accent} />
         </Section>
 
-        <Section id="build" num="06" label="How it was built" title={title.build} accent={accent}>
+        <Section {...SECTION.build} title={title.build} accent={accent}>
           <BuildRuler
             timeline={project.timeline}
             primary={project.primaryStack}
             secondary={project.secondaryStack}
             accent={accent}
           />
+          <div className="mt-20">
+            <Quality accent={accent} />
+          </div>
         </Section>
 
         <Section id="next" label="What’s next" title={title.next} accent={accent}>
