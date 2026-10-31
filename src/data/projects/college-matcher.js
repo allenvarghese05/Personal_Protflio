@@ -1,80 +1,82 @@
 /**
  * college-matcher — the project's wall card, brief data and case-study copy.
- * Facts only from the project's own repository.
+ * Facts from the repository (allenvarghese05/college-matcher); the page's own
+ * copy lives in src/data/studies/college-matcher.js.
  */
+
 export const project = {
   id: 'college-matcher',
   kind: 'project',
   cardBadge: 'PERSONAL PROJECT',
-  badge: 'PERSONAL PROJECT',
+  badge: 'PERSONAL PROJECT · SOLO',
   label: 'College Matcher',
   subtitle:
-    'AI college & career discovery — an assessment, a real-time AI voice counselor and a multi-factor matching engine',
-  role: 'Full-stack · Personal project',
+    'Explainable college matching — a 100-point score you can read part by part, a balanced safety/target/reach list, and a GPT-4 voice counselor for careers',
+  role: 'Solo full-stack developer',
+  company: 'Personal project',
+  dateRange: 'Aug 2025',
+  location: 'React · Express · GPT-4',
   repo: 'https://github.com/allenvarghese05/college-matcher',
+  live: null,
   flowEnd: 'MATCHES',
-  description:
-    'A web platform that helps students find their ideal colleges and career paths. Students take a multi-step assessment or talk it through with an AI voice counselor — real-time speech recognition through the Web Speech API, context-aware responses, audio visualisation and pause/resume sessions. A matching engine weighs academics, interests, career goals, geography and finances to produce ranked schools with match percentages, alongside career paths with salary and growth data. Includes a filterable school browser and a consistent light/dark design system built mobile-first.',
-  tags: ['React 18', 'Node.js', 'Express', 'OpenAI', 'Web Speech API'],
+  tags: ['React', 'Express', 'GPT-4', 'Web Speech API', 'Node.js'],
   metrics: [
-    { value: '5', label: 'Matching factors weighed' },
-    { value: '2', label: 'Assessment modes · form & voice' },
+    { value: '100', label: 'Point score, split into 5 parts' },
+    { value: '3', label: 'Categories: safety, target, reach' },
+    { value: '14', label: 'API routes' },
+    { value: '21', label: 'Detailed career profiles' },
   ],
-  primaryStack: ['React 18', 'Node.js', 'Express.js', 'OpenAI API', 'Web Speech API'],
-  secondaryStack: ['React Router', 'Axios', 'MongoDB', 'Multer', 'CSS-in-JS'],
+  primaryStack: ['React 18', 'Express', 'Node.js', 'OpenAI GPT-4', 'Web Speech API'],
+  secondaryStack: ['React Router', 'Axios', 'Multer'],
   keyDecisions: [
-    {
-      title: 'A voice counselor, not just a form',
-      body: 'College choice is a conversation, so the assessment can be spoken: live transcription, context-aware follow-ups, visual audio feedback and pause/resume — with a fallback for browsers that lack the Speech API.',
-    },
-    {
-      title: 'Multi-factor matching',
-      body: 'Recommendations weigh the academic profile, interests and activities, career goals, geographic preferences and financial constraints together, and surface a match percentage instead of a flat list.',
-    },
-    {
-      title: 'One design system across every page',
-      body: 'CSS variables drive theming with automatic light/dark detection; layouts are mobile-first with Flexbox and Grid so the assessment, browser and results feel like one product.',
-    },
+    { title: 'Weights you can defend', body: 'Academic 50, financial 20, personality 15, location & size 10, activities 5 — returned as a breakdown with the top reasons.' },
+    { title: 'Realism caps', body: 'A GPA under 80% of a school’s average caps it at 30; tuition over 1.5× the budget caps it at 20.' },
+    { title: 'A list with safeties in it', body: 'Schools are labelled safety, target or reach and balanced by the student’s GPA into a top ten.' },
+  ],
+  timeline: [
+    { week: 'Aug 6', start: '2025-08-06', end: '2025-08-06', title: 'The prototype', desc: 'Matching engine, career matcher, the Alex voice counselor, the React client — one commit.', done: true },
   ],
   architectureGraph: {
     nodes: [
-      { id: 'app', label: 'College Matcher', description: 'React 18 single-page app with client-side routing.', category: 'core', importance: 'center', x: 50, y: 45 },
-      { id: 'assessment', label: 'Assessment', description: 'Multi-step form with progress tracking and a smart question flow.', category: 'ui', importance: 'primary', x: 20, y: 22 },
-      { id: 'voice', label: 'AI Voice Counselor', description: 'Web Speech API recognition + synthesis, conversation history, pause/resume.', category: 'ai', importance: 'primary', x: 78, y: 20 },
-      { id: 'matching', label: 'Matching Engine', description: 'Weighs academics, interests, career goals, geography and finances into ranked matches.', category: 'core', importance: 'primary', x: 50, y: 80 },
-      { id: 'browse', label: 'School Browser', description: 'Filterable, searchable school database with key statistics.', category: 'ui', importance: 'secondary', x: 14, y: 62 },
-      { id: 'results', label: 'Results & Careers', description: 'Match percentages, school profiles and career paths with salary and growth data.', category: 'ui', importance: 'secondary', x: 86, y: 62 },
-      { id: 'api', label: 'Express API', description: 'Node.js + Express backend serving routes and models.', category: 'infrastructure', importance: 'primary', x: 50, y: 12 },
-      { id: 'openai', label: 'OpenAI', description: 'Natural-language processing for the counselor conversation.', category: 'ai', importance: 'secondary', x: 90, y: 38 },
+      { id: 'match', label: 'Matching engine', description: 'Five weighted parts, realism caps, admission odds and a balanced top ten with reasons.', category: 'core', importance: 'center', x: 50, y: 30 },
+      { id: 'student', label: 'Student', description: 'Takes the assessment, talks to Alex, browses schools.', category: 'ui', importance: 'leaf', x: 6, y: 50 },
+      { id: 'assess-ui', label: 'Assessment', description: 'A multi-step form with progress tracking.', category: 'ui', importance: 'primary', x: 26, y: 24 },
+      { id: 'voice-ui', label: 'Voice counselor UI', description: 'Speech recognition and synthesis in the browser, with pause and resume.', category: 'ui', importance: 'primary', x: 26, y: 52 },
+      { id: 'browse', label: 'Browse schools', description: 'Search and filter the school list; school profiles and reviews.', category: 'ui', importance: 'secondary', x: 26, y: 80 },
+      { id: 'career', label: 'Career matcher', description: 'Matches assessment answers to career profiles with salaries and skill gaps.', category: 'core', importance: 'primary', x: 50, y: 62 },
+      { id: 'counselor', label: 'AI counselor (Alex)', description: 'GPT-4 sessions with phases, follow-up questions and pause/resume.', category: 'ai', importance: 'primary', x: 50, y: 88 },
+      { id: 'schools', label: 'Schools dataset', description: 'A starter set of 10 schools: tuition, acceptance rate, average GPA, programs, personality match.', category: 'data', importance: 'secondary', x: 74, y: 34 },
+      { id: 'careers', label: 'Career profiles', description: '21 detailed profiles with skills, majors, salary range and outlook.', category: 'data', importance: 'secondary', x: 74, y: 66 },
+      { id: 'openai', label: 'OpenAI', description: 'GPT-4, temperature 0.7.', category: 'ai', importance: 'leaf', x: 94, y: 80 },
+      { id: 'speech', label: 'Web Speech API', description: 'The browser’s speech recognition and synthesis.', category: 'infrastructure', importance: 'leaf', x: 94, y: 40 },
     ],
     edges: [
-      { source: 'app', target: 'assessment', label: 'hosts', direction: 'one-way' },
-      { source: 'app', target: 'voice', label: 'hosts', direction: 'one-way' },
-      { source: 'assessment', target: 'matching', label: 'answers', direction: 'one-way' },
-      { source: 'voice', target: 'matching', label: 'answers', direction: 'one-way' },
-      { source: 'matching', target: 'results', label: 'ranks', direction: 'one-way' },
-      { source: 'app', target: 'browse', label: 'hosts', direction: 'one-way' },
-      { source: 'app', target: 'api', label: 'calls', direction: 'two-way' },
-      { source: 'voice', target: 'openai', label: 'converses via', direction: 'one-way' },
+      { source: 'student', target: 'assess-ui', label: '', direction: 'two-way' },
+      { source: 'student', target: 'voice-ui', label: '', direction: 'two-way' },
+      { source: 'student', target: 'browse', label: '', direction: 'two-way' },
+      { source: 'assess-ui', target: 'match', label: 'POST /api/assessment', direction: 'two-way' },
+      { source: 'voice-ui', target: 'counselor', label: 'voice/chat', direction: 'two-way' },
+      { source: 'voice-ui', target: 'speech', label: '', direction: 'two-way' },
+      { source: 'browse', target: 'schools', label: 'GET /api/schools', direction: 'one-way' },
+      { source: 'match', target: 'schools', label: 'score each', direction: 'one-way' },
+      { source: 'counselor', target: 'openai', label: 'gpt-4', direction: 'two-way' },
+      { source: 'counselor', target: 'career', label: 'on complete', direction: 'one-way' },
+      { source: 'career', target: 'careers', label: '', direction: 'one-way' },
     ],
   },
 };
 
 export const caseStudy = {
-  media: { frame: 'browser', url: 'college-matcher', shots: [] },
+  media: { frame: 'browser', shots: [] },
   live: null,
   problem:
-    'Choosing a college is one of the biggest decisions a student makes, yet most get generic ranked lists and little one-on-one guidance — search tools filter on stats, not on who you are.',
+    'College rankings give one opaque number; students need to know why a school fits, whether they can get in and afford it, and a balanced list — not ten reaches.',
   built:
-    'A web platform that gets to know a student — through an assessment they can type or simply talk through with an AI voice counselor — and matches them to colleges and career paths with a percentage fit.',
+    'A React + Express prototype with an explainable 100-point matching engine, a safety/target/reach balance, and Alex — a GPT-4 voice career counselor in the browser.',
   how: [
-    'The voice counselor transcribes speech live with the Web Speech API and keeps the conversation contextual with OpenAI; sessions pause and resume.',
-    'A matching engine weighs five factors — academics, interests, career goals, location and finances — into ranked schools.',
-    'Results pair each school with career paths, including salary and growth data.',
-    'A filterable school browser and one light/dark design system tie it together (React 18 + Express).',
+    'Five weighted parts — academic 50, financial 20, personality 15, location & size 10, activities 5 — with a readable breakdown.',
+    'Realism caps for schools out of reach or out of budget.',
+    'A spoken counselor session with pause and resume, mapped to career profiles.',
   ],
-  next: [
-    'Accounts so students can save and revisit their matches (JWT authentication is planned).',
-    'Deployment — the frontend targets Vercel and the API targets Railway.',
-  ],
+  next: [],
 };

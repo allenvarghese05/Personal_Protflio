@@ -1,6 +1,9 @@
 'use client';
 
-/** automix-ai — placeholder page (replaced in this PR). */
-export default function Page() {
-  return null;
+/** automix-ai — the case study, rendered by the shared StudyPage from src/data/studies/automix-ai.js. */
+import StudyPage from '@/components/ui/case/StudyPage';
+import * as DATA from '@/data/studies/automix-ai';
+
+export default function Page({ project }) {
+  return <StudyPage project={project} data={DATA} />;
 }
