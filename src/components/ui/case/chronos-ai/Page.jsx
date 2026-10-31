@@ -29,7 +29,8 @@
  * This is an in-progress project, and the page says so: the status pill, the
  * scope note and section 02 all draw the line between built and planned.
  */
-import { BUILD, COPY, DATA_MODEL, DECISIONS, INGEST, LAYERS, MILESTONES, RULES, TRACES } from '@/data/studies/chronos-ai';
+import { BUILD, COPY, DATA_MODEL, DECISIONS, INGEST, LAYERS, MILESTONES, OVERVIEW, RULES, TOUR, TRACES } from '@/data/studies/chronos-ai';
+import { CodeTour, Overview } from '@/components/ui/case/story';
 import { BeforeAfter, CaseArticle, Hero, NextSection, Section, SectionIndex, WRAP, accentFor, capWord, word } from '@/components/ui/case/shell';
 import { PALETTE as P } from '@/lib/palette';
 import Architecture from '@/components/ui/case/Architecture';
@@ -75,6 +76,7 @@ function headlines(project) {
     ingest: `${capWord(INGEST.stages.length)} stages between a snapshot and its score — every refusal answers with a code, and nothing is written until the last.`,
     loop: `The server runs the morning: a silent tick every ${word(RULES.tickMin)} minutes — ${WEEKDAY_TICKS} on a weekday — until you’re up or the window closes.`,
     decisions: `${capWord(DECISIONS.length)} hard problems: a permission the user can deny, rules that will change, and the two Sundays a year the clock lies.`,
+    code: 'The engine in three excerpts — the decision, the pure scorer, and rules that never rewrite history.',
     architecture: `One FastAPI service on a MacBook, ${word(LAYERS.length)} layers — follow a snapshot through it.`,
     data: `${capWord(TABLES)} tables in ${word(DATA_MODEL.migrations)} migrations — and every score is stored with the rules that made it.`,
     build: days
@@ -93,16 +95,17 @@ const SECTIONS = [
   { id: 'ingest', num: '05', label: 'One snapshot' },
   { id: 'loop', num: '06', label: 'The morning loop' },
   { id: 'decisions', num: '07', label: 'Hard problems' },
-  { id: 'architecture', num: '08', label: 'Architecture' },
-  { id: 'data', num: '09', label: 'Data model' },
-  { id: 'build', num: '10', label: 'How it was built' },
+  { id: 'code', num: '08', label: 'Inside the code' },
+  { id: 'architecture', num: '09', label: 'Architecture' },
+  { id: 'data', num: '10', label: 'Data model' },
+  { id: 'build', num: '11', label: 'How it was built' },
 ];
 const SECTION = Object.fromEntries(SECTIONS.map((x) => [x.id, x]));
 
 /** Built / not built, in three lines, before anything else. */
 const SCOPE_NOTE = [
   { key: 'built', mark: 'filled', text: 'Built and tested: the server — scoring, rules, scheduler, ingestion API, pairing, data model, replay.' },
-  { key: 'partial', mark: 'half', text: 'Partly built: the phone — the Swift sensor module and pairing, run only in the iOS Simulator. It doesn’t send snapshots yet.' },
+  { key: 'partial', mark: 'half', text: 'Partly built: the phone — the Swift sensor module, pairing, the telemetry outbox and background wake handling, run so far only in the iOS Simulator. The locked-iPhone test still needs a physical device.' },
   { key: 'planned', mark: 'hollow', text: 'Planned: the Morning Reel — news, script, voice, captions, video, delivery. Only a Remotion cover scene exists.' },
 ];
 
@@ -141,6 +144,9 @@ export default function Page({ project, study }) {
 
       <div className={WRAP}>
         <div className="pb-20 sm:pb-24">
+          <div className="mb-16">
+            <Overview items={OVERVIEW} accent={accent} />
+          </div>
           <div className="border-t border-line pt-6">
             <p className="mc-label">What this page covers</p>
             <ul className="mt-4 flex max-w-[78ch] flex-col gap-3">
@@ -190,6 +196,10 @@ export default function Page({ project, study }) {
 
         <Section {...sec('decisions')}>
           <Decisions accent={accent} />
+        </Section>
+
+        <Section {...sec('code')}>
+          <CodeTour files={TOUR} accent={accent} />
         </Section>
 
         <Section {...sec('architecture')}>

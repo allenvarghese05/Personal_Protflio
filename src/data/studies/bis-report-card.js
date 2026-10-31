@@ -540,8 +540,8 @@ export const BUILD = {
 /* ── the page's own copy ─────────────────────────────────────────────────── */
 export const COPY = {
   outcome:
-    'A self-hosted report card system for one school in India: teachers enter marks, a review locks them, and the school prints CBSE-format cards — every format from one template engine.',
-  status: 'Built & tested · pre-pilot',
+    'A report card system that lives inside the school: one server on the school’s own network, no cloud — teachers enter marks, a review locks them, and the office prints CBSE-format cards from templates the school controls.',
+  status: 'Built · rollout with the school in talks',
   // requirement (docs/specs/00) → what was built
   before: [
     'Replace manual and Excel-based report card preparation',
@@ -559,9 +559,31 @@ export const COPY = {
   ],
   // what's next — README "Status against the phase plan" (Phases 21–27) and PR #16
   next: [
-    'Merge PR #16, the last planned change before the pilot: backing up Caddy’s certificate authority, the school’s time zone, a safer restore, fewer queries behind the review queue, and ESLint in CI.',
-    'Deploy on the school’s own server — Docker on Ubuntu, reached from home over Tailscale (Phase 21). The runbook is written; nothing is deployed yet.',
-    'A Pre-Primary pilot: one real exam cycle with real teachers, on the two templates that exist today (Phase 22).',
-    'Primary, Middle, Secondary and Senior Secondary templates, one class group at a time, from the school’s real formats (Phases 23–26). The engine already handles streams and electives; no Senior Secondary template exists yet.',
+    'Rollout with the school — the integration is being discussed with them now.',
+    'Stand the box up on the school’s own server: Docker on Ubuntu, reached from home over Tailscale. The deployment runbook is written.',
+    'A Pre-Primary pilot: one real exam cycle with real teachers, on the two templates that exist today.',
+    'Primary through Senior Secondary formats, one class group at a time, from the school’s real cards — added in the template console, not in code.',
   ],
+};
+
+/* ── the case study in one screen ─────────────────────────────────────────── */
+export const OVERVIEW = [
+  { label: 'What it is', text: 'The school’s own report card system. Subject teachers enter marks, class teachers consolidate, division heads approve and lock, and the office prints CBSE-format report cards — every card format coming from one template engine.' },
+  { label: 'Why it exists', text: 'Report cards were prepared by hand and in Excel. Student data should stay at the school, the internet there can’t be relied on, and nobody on site should have to run a cloud service — so it runs on one server inside the school, on its own network.' },
+  { label: 'What Allen built', text: 'Solo (AI-assisted): the specs, a NestJS API, a Next.js app, the template engine and the template console, PDF printing, Excel import, the locking review, device controls for shared lab computers, encrypted backups, Docker ops and CI.' },
+  { label: 'Where it stands', text: 'Built and tested — phases 1–20 are done. The rollout with the school is being discussed now: next is installing it on the school’s server and a first pilot with real teachers.' },
+];
+
+/* ── the template console — the school's control panel for card formats ─── */
+// frontend/src/components/admin/templates-admin.tsx · shared/src/template/*.ts
+export const TEMPLATE_CONSOLE = {
+  intro: 'Adding or redesigning a card format is a data change, not a code change. In the admin console the school edits a template’s definition and its print layout, checks it, and saves — and the next print uses it.',
+  definition: ['Terms', 'Subjects → components', 'Max marks or descriptive options', 'Grading bands', 'Pass mark', 'Absent policy', 'Co-scholastic areas, each with its own legend', 'Extra fields'],
+  page: ['Page size: A4 or Letter', 'Portrait or landscape', 'Margins (5–30 mm)', 'Heading and body fonts', 'Document title', 'Subtitle line'],
+  layouts: [
+    { key: 'numeric', label: 'Progress Report (marks)', blocks: ['Header', 'Student details', 'Scholastic Areas — marks table', 'Co-Scholastic Areas', 'Attendance', 'Extra fields', 'Remarks', 'Grading legend', 'Signatures'] },
+    { key: 'descriptive', label: 'Achievement Record (descriptive)', blocks: ['Header', 'Student details', 'Learning Outcomes — skills table', 'Development Areas (new page)', 'Attendance', 'Remarks', 'Signatures'] },
+  ],
+  steps: ['Start from a reference template, or paste a new one', 'Edit the definition and the print layout', 'Check it — the server validates it against the schema', 'Save — the next print uses it'],
+  guard: 'While any report card on a template is approved, changes that would re-grade it — the grading scale, pass mark, absent policy, components, subjects — are refused, naming the sections; labels and notes can still change.',
 };

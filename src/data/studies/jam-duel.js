@@ -171,3 +171,11 @@ export const DATA_MODEL = {
     ] },
   ],
 };
+
+/* ── the case study in one screen ─────────────────────────────────────────── */
+export const OVERVIEW = [
+  { label: 'What it is', text: 'Head-to-head song battles: spend ten votes a day on the matchups you care about, watch the split, and get GPT-4 recommendations built from your ten favourite songs.' },
+  { label: 'Why it exists', text: 'A class project (Drexel INFO310) about making music discovery something you take part in — a stacked vote says how much you prefer a song, which a like button can’t.' },
+  { label: 'What Allen did', text: 'In a team of three, Allen wrote the app — the full stack in the first commit, then the YouTube player and lookups, the recommendations and the published frontend; teammates added server dependencies and fixes.' },
+  { label: 'Where it stands', text: 'A finished class project. The frontend is published on GitHub Pages; the API and its Postgres database need their own server to run end to end.' },
+];

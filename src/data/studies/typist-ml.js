@@ -530,7 +530,7 @@ export const BUILD = {
 export const COPY = {
   outcome:
     'A typing coach built as a controlled experiment: do drills aimed at your weakest letter pairs beat plain practice — and does an on-device language model write them better?',
-  status: 'Research build · pilot not started',
+  status: 'Code complete · pilot next',
   beforeLabel: 'The easy way',
   afterLabel: 'Typist-ML',
   before: [
@@ -554,12 +554,179 @@ export const COPY = {
     { term: 'Density', def: 'How much of a drill is target pairs: target-pair occurrences ÷ all letter pairs in it.' },
     { term: 'Within-person', def: 'With one or two participants, each person is their own comparison: four sets of their own weak pairs, one method each.' },
   ],
-  // what's next — the design doc's schedule (section 16) and what the repo shows
+  // what's next — the design doc's schedule (section 16) and what the repo shows (main at #48)
   next: [
-    'Wire the participant screens — onboarding, the session runner and the upload buffer. Today the browser runs a typing demo with an in-memory sink, and the full loop runs only in a scripted server-side test.',
-    'Record a real language-model bake-off on the M1 Pro. The harness is built; no measured run is committed yet.',
-    'Handle the rare-pair case: on a set made only of rare pairs, the Markov chain can’t reach the density floor, so its job fails after five attempts.',
-    'The pilot: about 14 days, the builder plus at most one other person — two baseline sessions, ten practice days, two retest sessions.',
-    'Then M4: per-participant results with Jeffreys Beta intervals and posterior effect samples, a dashboard, a README with measured numbers, and a debrief that reveals which method had which set only after the retest.',
+    'Run the pilot: about 14 days, the builder first — two baseline sessions, ten practice days, two retest sessions.',
+    'Read the results with the analysis that’s already written and frozen: per-set error-rate change minus the control set’s, with Jeffreys intervals and posterior effect samples — and timing as the key secondary.',
+    'Reveal which method had which set only in the debrief, after the retest.',
+    'Record the on-device language-model bake-off on the M1 Pro — the harness is built, no measured run is committed yet.',
   ],
 };
+
+/* ── the case study in one screen ─────────────────────────────────────────── */
+export const OVERVIEW = [
+  { label: 'What it is', text: 'A typing coach built as a small controlled experiment. It finds the letter pairs you’re weakest at, practises them three different ways — plus plain practice as a control — and measures which way actually helped.' },
+  { label: 'Why it exists', text: 'Typing tutors assume targeted drills work, and new ones assume an AI writes better drills. Nobody shows it fairly. Testing it means the same exposure for every method, the same rules for what counts as a mistake, and a plan written before the results.' },
+  { label: 'What Allen built', text: 'Solo: keystroke capture in the browser, a first-attempt error rule both TypeScript and Python must pass, weak-pair ranking, four fair practice sets, three drill generators including an on-device language model, one fairness gate, a blinded daily schedule, and the analysis and dashboard.' },
+  { label: 'Where it stands', text: 'The code is complete — milestones M0 to M4 are merged, the configuration is frozen and the analysis plan is committed and dated. The pilot, with Allen as the first participant, is next; there are no results yet.' },
+];
+
+/* ── why four methods ─────────────────────────────────────────────────────── */
+// design doc §1 (the research question) and D01–D04
+export const WHY_ARMS = {
+  questions: [
+    { key: 'q1', label: 'Do targeted drills beat plain practice?', arms: ['control', 'heuristic', 'markov', 'llm'], note: 'Needs a control: a set of your weak pairs that gets no targeted drills, plus a plain-practice block of the same length every day.' },
+    { key: 'q2', label: 'Does a small on-device AI write better drills?', arms: ['heuristic', 'markov', 'llm'], note: 'Needs simpler generators to beat: a dictionary heuristic (real words) and a Markov chain (pseudo-words), against Llama 3.2 1B running on the laptop.' },
+  ],
+  roles: {
+    control: { tests: 'Practice without targeting', why: 'Separates the effect of targeting from simply typing more — and from regression to the mean, since your weakest pairs would improve a little anyway.' },
+    heuristic: { tests: 'The cheapest targeting', why: 'Real words that contain your weak pairs, picked from a 20,000-word list. If this does as well as the AI, the AI isn’t needed.' },
+    markov: { tests: 'Statistics without meaning', why: 'An order-3 character chain that writes pseudo-words, boosting your weak pairs 10×. It shows whether plausibility matters at all.' },
+    llm: { tests: 'A language model, on the laptop', why: 'Llama 3.2 1B (4-bit) via mlx-lm, prompted with your weak pairs. The newest idea — and the one most worth testing against the others.' },
+  },
+  within: [
+    'With one or two participants, one person per method would make the person and the method impossible to tell apart.',
+    'So every participant runs all four at once: their 16 weakest pairs are dealt into four equally hard sets, one per method.',
+    'A seeded shuffle — not the builder — decides which method gets which set, and the database then refuses any edit.',
+    'Each day’s four blocks follow a rotating Latin square, so no method is always first (warm-up) or last (fatigue). The screen only says “Block 1–4”.',
+  ],
+};
+
+/* ── what could be better — stated up front, in the design doc ────────────── */
+export const LIMITS = [
+  'Error rates on single letter pairs are low (often under 5%), so a set may show only ~10 errors at retest — which is why timing is the key secondary outcome and the retest guarantees at least 40 attempts per tracked pair.',
+  'Pairs share fingers and keys, so practice on one set can spill into another — that would make effects look smaller, not larger.',
+  'Markov drills use pseudo-words while the tests use real words.',
+  'The builder isn’t blind to the design — so the method-to-set mapping stays hidden until after the retest.',
+];
+
+/* ── inside the code — real excerpts, lightly trimmed ─────────────────────── */
+export const TOUR = [
+  {
+    key: 'attribution',
+    label: 'What counts as an error',
+    why: 'The whole experiment rests on one rule: a mistake on a letter pair counts only on the first attempt at the second letter, and only if the first letter was typed right first time. This loop applies it to a session’s keystrokes.',
+    code: {
+      file: 'services/api/src/typist/services/attribution.py',
+      lang: 'py',
+      body: `for j in range(1, len(target_text)):
+    if not (_is_letter(target_text[j - 1]) and _is_letter(target_text[j])):
+        continue                                   # pairs across a space don't count
+    a = first_attempt_at.get(j - 1)
+    b = first_attempt_at.get(j)
+    if a is None or b is None:
+        continue
+    if a.outcome != "correct":
+        continue                                   # first letter wrong → pair not attempted
+    if any(a.seq < seq < b.seq for seq in backspace_seqs):
+        continue                                   # a correction in between → skip
+    bigram = target_text[j - 1] + target_text[j]
+    attempts[bigram] = attempts.get(bigram, 0) + 1
+    errors.setdefault(bigram, 0)
+    samples.setdefault(bigram, [])
+    if b.outcome == "error":
+        errors[bigram] += 1
+    elif b.seq == a.seq + 1:
+        gap = b.t_down_ms - a.t_down_ms
+        paused = b.after_pause or gap > PAUSE_GAP_MS
+        if not paused:
+            samples[bigram].append(gap)            # timing only from unbroken pairs`,
+    },
+    notes: [
+      'Only letter-letter pairs inside words are tracked — “e t” across a space never counts.',
+      'If the first letter was wrong, the pair was never fairly attempted, so it’s skipped rather than counted against you.',
+      'A backspace between the two letters means the pair was interrupted — skipped too.',
+      'Timing samples come only from consecutive keystrokes with no pause over 2 s, so a phone glance doesn’t look like a slow pair.',
+      'An 89-keystroke golden session with 18 edge cases pins this — TypeScript and Python must both reproduce it exactly.',
+    ],
+  },
+  {
+    key: 'assignment',
+    label: 'Four fair sets',
+    why: 'Ranking pairs by raw error rate would put a pair with 1 error in 3 tries at the top. Each rate is shrunk toward your own average first; the top 16 are dealt in snake order so every set is equally hard; a seeded shuffle picks which method gets which set.',
+    code: {
+      file: 'services/api/src/typist/services/assignment.py',
+      lang: 'py',
+      body: `def smoothed_rate(errors, attempts, *, p0, strength):
+    # Beta posterior mean: shrinks few-observation pairs toward your own rate p0
+    return (errors + strength * p0) / (attempts + strength)
+
+def snake_deal(ranked, sets):
+    dealt = []
+    for index, item in enumerate(ranked):
+        cycle, position = divmod(index, sets)
+        set_index = position if cycle % 2 == 0 else sets - 1 - position
+        dealt.append((item, set_index))       # ranks 1,8,9,16 → set A …
+    return dealt
+
+def shuffle_arms(arms, rng):
+    shuffled = list(arms)
+    rng.shuffle(shuffled)   # rng = random.Random(f"{assignment_seed}:{participant_id}")
+    return shuffled`,
+    },
+    notes: [
+      'The prior strength is 20, so a pair needs real evidence before its own rate outweighs your average.',
+      'Snake order (A B C D D C B A …) gives every set ranks that add up to the same total — 34 each for 16 pairs.',
+      'The shuffle is seeded per participant, so it’s reproducible — and nobody, including the builder, chooses the mapping.',
+      'Once written, a SQLite trigger aborts any update to the assignment: “bigram_assignment rows are frozen”.',
+    ],
+  },
+  {
+    key: 'gate',
+    label: 'The fairness gate',
+    why: 'If one method’s drills were denser or longer, that alone could explain a win. Every drill from every method passes this one function, which measures it and collects every rule it breaks.',
+    code: {
+      file: 'services/api/src/typist/generation/validator.py',
+      lang: 'py',
+      body: `metrics = _metrics(text, spec, known_words)
+reasons = []
+if metrics.length_chars < config.min_length_chars:
+    reasons.append(RejectReason.TOO_SHORT)
+if not _charset_ok(text):
+    reasons.append(RejectReason.BAD_CHARSET)
+if spec.target_bigrams:
+    if metrics.target_density < spec.min_density:
+        reasons.append(RejectReason.DENSITY_LOW)
+    if metrics.target_density > spec.max_density:
+        reasons.append(RejectReason.DENSITY_HIGH)
+    if any(count < config.min_coverage for count in metrics.coverage.values()):
+        reasons.append(RejectReason.COVERAGE)
+if metrics.max_word_count > config.max_word_repeats:
+    reasons.append(RejectReason.WORD_REPEAT)
+if spec.arm is Arm.LLM and metrics.real_word_ratio < config.min_real_word_ratio:
+    reasons.append(RejectReason.REAL_WORD_RATIO)
+return ValidationResult(accepted=not reasons, reasons=tuple(reasons), metrics=metrics)`,
+    },
+    notes: [
+      'Generators only return text — the gate computes every metric itself, so no method can grade its own drill.',
+      'It collects every failing rule instead of stopping at the first, and each rejected attempt is logged with its reasons.',
+      'Density and coverage are skipped for the control set, which has no targets.',
+      'The real-word check applies only to the language model, the one generator that could drift into nonsense.',
+    ],
+  },
+  {
+    key: 'analysis',
+    label: 'Reading the result',
+    why: 'With so few errors per set, a single “before vs after” number would be noise. The analysis compares each set’s change to the control set’s change, drawing from the posteriors, and reports the median effect and how much of it is below zero.',
+    code: {
+      file: 'services/api/src/typist/services/analysis.py',
+      lang: 'py',
+      body: `rng = np.random.default_rng(seed)
+# Jeffreys prior Beta(0.5, 0.5) on every error rate
+p_base_s  = rng.beta(base_errors + 0.5, base_attempts - base_errors + 0.5, size=n_draws)
+p_ret_s   = rng.beta(ret_errors + 0.5, ret_attempts - ret_errors + 0.5, size=n_draws)
+p_base_c  = rng.beta(ctl_base_errors + 0.5, ctl_base_attempts - ctl_base_errors + 0.5, size=n_draws)
+p_ret_c   = rng.beta(ctl_ret_errors + 0.5, ctl_ret_attempts - ctl_ret_errors + 0.5, size=n_draws)
+
+effect = (p_ret_s - p_base_s) - (p_ret_c - p_base_c)   # difference in differences
+median = float(np.median(effect))
+share_below = float(np.mean(effect < 0.0))             # how much of it is an improvement`,
+    },
+    notes: [
+      'The targeting effect is a difference in differences: a set’s change minus the control set’s change.',
+      'Sampling from four posteriors carries the uncertainty of every count through to the effect.',
+      'It describes one or two people — it is not a significance test, and the write-up says so.',
+      'The plan behind this code was committed and dated before any practice session.',
+    ],
+  },
+];

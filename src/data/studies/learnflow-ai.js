@@ -25,14 +25,15 @@ export const COPY = {
     'Upload the syllabus → professor, office hours, a term of lecture times and the assignments Canvas didn’t list',
   ],
   built:
-    'Co-founded with Aahil Afraz. The first version (2025) was an Electron desktop study companion that Aahil led; Allen worked on the dashboard, onboarding and the desktop packaging. In Oct 2026 Allen rebuilt it around the planner — the Canvas sync pipeline, syllabus parsing and applying, assignment guides, a class assistant, and a new Vite + React web app. It has beta users and hasn’t officially launched.',
+    'Co-founded with Aahil Afraz. Version 1 (2025) was an AI study companion on the desktop that Aahil led and Allen helped ship; it went to beta testers in November 2025. After browsers started building the same help in, Allen rebuilt LearnFlow in October 2026 as a fast web app centred on the planner.',
   next: [
-    'Launch — move from beta users to an open release.',
-    'Keep the planner the centre: the earlier in-browser “explain anything on screen” features were overtaken by assistants built into the browser.',
+    'Launch — from beta users to an open release.',
+    'Keep the planner the centre: every new feature has to save a student setup time, not duplicate what the browser now does.',
     'Scanned syllabi: today a PDF needs real text; image-only PDFs are rejected with a clear message.',
   ],
   headlines: {
     problem: 'Every semester starts with an hour of typing classes and deadlines into a planner.',
+    story: 'We built every study feature we could think of — then the browser shipped the same ones. So we cut them and kept what only a planner can do.',
     how: 'From a calendar link and a PDF to a planned semester — and a re-sync that respects your edits.',
     inside: 'A sync that knows what it owns, a syllabus reader that won’t invent, and help for each assignment.',
     decisions: 'Three decisions that make importing safe to repeat.',
@@ -143,4 +144,42 @@ export const TRACES = [
   { id: 'connect', label: 'Connect Canvas', steps: ['student', 'canvas-ui', 'sync', 'canvas', 'sync', 'db'] },
   { id: 'syllabus', label: 'Apply a syllabus', steps: ['student', 'class-ui', 'syllabus', 'openai', 'syllabus', 'db'] },
   { id: 'guide', label: 'Plan an assignment', steps: ['student', 'calendar-ui', 'guide', 'openai', 'db'] },
+];
+
+/* ── the case study in one screen ─────────────────────────────────────────── */
+export const OVERVIEW = [
+  { label: 'What it is', text: 'A planner that sets itself up. Paste your Canvas calendar link and your classes and deadlines appear; upload a syllabus and the term fills in — lectures, office hours and the assignments Canvas didn’t list.' },
+  { label: 'Why it exists', text: 'Version 1 was a desktop study companion — explain the screen, take lecture notes, quiz you. Beta testers used it, then browsers built the same help in. What nobody did for you was set up the semester, so LearnFlow became that.' },
+  { label: 'What Allen did', text: 'Co-founder. Helped ship version 1 (dashboard, onboarding, the desktop builds), then rebuilt the product himself: the Canvas sync and its ownership rules, the syllabus reader, assignment guides, a class assistant and a new web app.' },
+  { label: 'Where it stands', text: 'Beta: real users, not officially launched. The rebuild is about a tenth of the old code — a web app instead of a desktop download.' },
+];
+
+/* ── the story — why the product was rebuilt ─────────────────────────────── */
+// git history (master vs v2/canvas-sync-rebuild) and learnflow-ai.app
+export const STORY = [
+  {
+    when: 'Jun – Nov 2025',
+    title: 'Version 1: every study feature at once',
+    body: 'An Electron desktop app that sat beside your work: it could read your screen and explain it, capture lecture audio for live notes, recognise speech, OCR images, and turn material into flashcards, quizzes, mock exams and smart practice — plus reminders and Canvas imports. Aahil led it; Allen worked on the dashboard, onboarding and the desktop builds.',
+    kept: [],
+    cut: [],
+  },
+  {
+    when: 'Nov 2025',
+    title: 'Beta with real students',
+    body: 'Cross-platform builds and a release workflow got version 1 into beta testers’ hands. It worked — and it showed what students actually came back for: knowing what’s due and when.',
+  },
+  {
+    when: '2025 – 2026',
+    tone: 'turn',
+    title: 'The browser caught up',
+    body: 'Google built the same kind of help straight into the browser — Gemini in Chrome can explain the page you’re on. A separate desktop app that reads your screen stopped being a reason to install anything. Setting up a semester was still nobody’s job.',
+  },
+  {
+    when: 'Oct 2026',
+    title: 'Version 2: strip it to the planner',
+    body: 'Allen rebuilt LearnFlow as a web app around one job — getting a student’s semester into a planner without typing it in. Canvas sync, syllabus reading, assignment guides and a class assistant stayed; the desktop app and the features browsers now cover went. About 64,000 lines of source became about 5,600.',
+    kept: ['Canvas calendar sync', 'Syllabus → term', 'Assignment guides', 'Class assistant'],
+    cut: ['Screen capture', 'Live audio notetaker', 'OCR', 'Flashcards & quizzes', 'Mock exams', 'SMS reminders', 'Desktop app'],
+  },
 ];

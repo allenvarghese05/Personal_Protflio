@@ -145,3 +145,11 @@ export const TRACES = [
   { id: 'voice', label: 'Talk to Alex', steps: ['student', 'voice-ui', 'speech', 'counselor', 'openai', 'career', 'careers'] },
   { id: 'browse', label: 'Browse schools', steps: ['student', 'browse', 'schools'] },
 ];
+
+/* ── the case study in one screen ─────────────────────────────────────────── */
+export const OVERVIEW = [
+  { label: 'What it is', text: 'A college matcher you can read: a 100-point score split into academics, money, personality, place and activities; a balanced list of safeties, targets and reaches; and Alex, a GPT-4 voice counselor for the career side.' },
+  { label: 'Why it exists', text: 'Rankings give one opaque number. A student needs to know why a school fits, whether they can get in and afford it — and a list that isn’t ten reaches.' },
+  { label: 'What Allen did', text: 'Solo: the matching engine and its caps, the admission odds, the safety/target/reach balance, the career matcher, the voice counselor and the React client.' },
+  { label: 'Where it stands', text: 'A working prototype in one commit, with a starter dataset — 10 schools and 21 career profiles — rather than a full college database.' },
+];

@@ -148,3 +148,11 @@ export const TRACES = [
   { id: 'safety', label: 'Safe windows by group', steps: ['user', 'map', 'api', 'openaq', 'weather', 'forecast', 'safety'] },
   { id: 'compare', label: 'Satellite vs ground', steps: ['user', 'map', 'api', 'tempo', 'blob', 'openaq', 'openaq-api'] },
 ];
+
+/* ── the case study in one screen ─────────────────────────────────────────── */
+export const OVERVIEW = [
+  { label: 'What it is', text: 'An air-quality map that answers “is it safe to go outside, and when will it be better?” — fusing NASA’s TEMPO satellite, ground sensors and the weather, with a forecast that explains itself and advice for children, seniors, athletes, adults and care facilities.' },
+  { label: 'Why it exists', text: 'Built for NASA Space Apps 2025. The data exists but lives in three places, and a single AQI number means different things to a parent, a coach and a care home.' },
+  { label: 'What Allen did', text: 'One of two on Team Relentless. Allen built the AI brief and chat, the per-group safety engine, the forecast explanations, getting the satellite data onto Azure, and the deploy; Aahil built the data readers and most of the map.' },
+  { label: 'Where it stands', text: 'A finished hackathon build — about 27 hours of commits — named a Global Nominee. It uses one pinned satellite file, and the app labels how old it is.' },
+];

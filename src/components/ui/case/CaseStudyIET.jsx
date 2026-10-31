@@ -29,7 +29,8 @@
  * section head fades up once on view, the before → after rows reveal in
  * pairs. With reduced motion everything is simply there.
  */
-import { ACTORS, BUILD, COPY, DATA_MODEL, DECISIONS, LAYERS, PERF, ROLES, SECURITY, STATUSES, TRACES } from '@/data/studies/iet';
+import { ACTORS, BUILD, COPY, DATA_MODEL, DECISIONS, LAYERS, OVERVIEW, PERF, ROLES, SECURITY, STATUSES, TRACES } from '@/data/studies/iet';
+import { Overview } from '@/components/ui/case/story';
 import { BeforeAfter, CaseArticle, Hero, NextSection, Section, SectionIndex, WRAP, accentFor, capWord, word } from '@/components/ui/case/shell';
 import ApprovalStack from '@/components/ui/case/ApprovalStack';
 import Redacted from '@/components/ui/case/Redacted';
@@ -118,6 +119,9 @@ export default function CaseStudyIET({ project, study }) {
 
       <div className={WRAP}>
         <div className="pb-20 sm:pb-24">
+          <div className="mb-16">
+            <Overview items={OVERVIEW} accent={accent} />
+          </div>
           <Redacted />
           <div className="mt-16">
             <SectionIndex scope={SCOPE} sections={SECTIONS} accent={accent} />

@@ -6,11 +6,11 @@
 export const project = {
   id: 'bis-report-card',
   kind: 'signature',
-  cardBadge: 'PRE-PILOT',
-  badge: 'SCHOOL SYSTEM · SOLE DEVELOPER',
+  cardBadge: 'BUILT · SELF-HOSTED',
+  badge: 'SCHOOL SYSTEM · SELF-HOSTED · SOLE DEVELOPER',
   label: 'BIS Report Card',
   subtitle:
-    'Self-hosted report cards for a school in India — marks entry, a locking review, CBSE-format PDFs, and every card format as data in one template engine',
+    'Report cards that run inside the school — one server on its own network, no cloud: marks entry, a locking review, CBSE-format PDFs, and card formats the school edits itself',
   role: 'Sole developer',
   company: 'Beersheba International School',
   dateRange: 'Jul – Oct 2026',
@@ -18,7 +18,7 @@ export const project = {
   repo: null, // private repository
   live: null, // runs only on the school's own network; not deployed yet
   description:
-    'A self-hosted, LAN-first report card system for Beersheba International School in Pipariya, Madhya Pradesh. Subject teachers enter marks in a keyboard-first grid, by paste or through a pre-filled Excel sheet; class teachers consolidate and submit; division heads approve and lock, or return with a note; cards print as CBSE-format PDFs from one HTML renderer. Card formats are templates stored as JSONB, so a marks-based LKG card and a descriptive Nursery record run on one engine. Sole developer — specs, NestJS API, Next.js app, ops and CI (AI-assisted). Built and tested; the on-prem deployment and a Pre-Primary pilot come next.',
+    'A self-hosted, LAN-first report card system for Beersheba International School in Pipariya, Madhya Pradesh. Subject teachers enter marks in a keyboard-first grid, by paste or through a pre-filled Excel sheet; class teachers consolidate and submit; division heads approve and lock, or return with a note; cards print as CBSE-format PDFs from one HTML renderer. Card formats are templates stored as JSONB, so a marks-based LKG card and a descriptive Nursery record run on one engine. Sole developer — specs, NestJS API, Next.js app, ops and CI (AI-assisted). Built and tested; the rollout with the school is being discussed — next is installing it on the school’s server and a Pre-Primary pilot.',
   tags: ['NestJS', 'Next.js', 'TypeScript', 'PostgreSQL + Prisma', 'Docker'],
   metrics: [
     { value: '282', label: 'Automated tests, green in CI' },

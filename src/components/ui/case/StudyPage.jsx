@@ -9,6 +9,7 @@
  *                 project's core flow as the figure (FlowFigure)
  *   index         jumps to each section
  *   01 problem    before → after, then one paragraph
+ *   story         what happened and why, when the project changed course
  *   02 how        the flow, step by step (StepThrough: pick a step or play)
  *   03 inside     what it's made of — feature cards with a stat each
  *   04 decisions  the hard problems (DecisionList), each with its steps
@@ -36,6 +37,7 @@ import Architecture from '@/components/ui/case/Architecture';
 import DataModel from '@/components/ui/case/DataModel';
 import BuildRuler from '@/components/ui/case/BuildRuler';
 import Quality from '@/components/ui/case/Quality';
+import { CodeTour, Overview, Story } from '@/components/ui/case/story';
 
 const STEP_MS = 1400; // one step per beat while playing
 const FIGURE_MS = 1600; // the hero figure's quiet walk along the flow
@@ -230,16 +232,18 @@ const renderVisual = (decision, props) => <DecisionSteps decision={decision} {..
 export default function StudyPage({ project, data }) {
   const accent = accentFor(project.kind);
   const scope = project.id;
-  const { COPY, FLOW, FEATURES, DECISIONS, LAYERS, TRACES, ROLES, DATA_MODEL, BUILD, LINKS } = data;
+  const { COPY, FLOW, FEATURES, DECISIONS, LAYERS, TRACES, ROLES, DATA_MODEL, BUILD, LINKS, OVERVIEW, STORY, TOUR } = data;
   const H = COPY.headlines;
   // a ruler needs at least two distinct dates; a one-day history gets the stack + a note
   const hasTimeline = new Set((project.timeline ?? []).map((t) => t.start).filter(Boolean)).size >= 2;
 
   const plan = [
     { id: 'problem', label: 'The problem', on: true },
+    { id: 'story', label: 'The story', on: STORY?.length > 0 },
     { id: 'how', label: 'How it works', on: FLOW?.steps?.length > 0 },
     { id: 'inside', label: 'What’s inside', on: FEATURES?.length > 0 },
     { id: 'decisions', label: 'Hard problems', on: DECISIONS?.length > 0 },
+    { id: 'code', label: 'Inside the code', on: TOUR?.length > 0 },
     { id: 'architecture', label: 'Architecture', on: LAYERS?.length > 0 && TRACES?.length > 0 },
     { id: 'data', label: 'Data model', on: Boolean(DATA_MODEL?.domains?.length) },
     { id: 'build', label: 'How it was built', on: hasTimeline || (project.primaryStack ?? []).length > 0 },
@@ -266,6 +270,11 @@ export default function StudyPage({ project, data }) {
 
       <div className={WRAP}>
         <div className="pb-20 sm:pb-24">
+          {OVERVIEW?.length > 0 && (
+            <div className="mb-16">
+              <Overview items={OVERVIEW} accent={accent} />
+            </div>
+          )}
           <SectionIndex scope={scope} sections={sections} accent={accent} />
         </div>
 
@@ -273,6 +282,12 @@ export default function StudyPage({ project, data }) {
           <BeforeAfter before={COPY.before} after={COPY.after} accent={accent} />
           {COPY.built && <p className="mt-10 max-w-[68ch] text-body text-ink-muted">{COPY.built}</p>}
         </Section>
+
+        {has('story') && (
+          <Section {...sec('story')}>
+            <Story chapters={STORY} accent={accent} />
+          </Section>
+        )}
 
         {has('how') && (
           <Section {...sec('how')}>
@@ -289,6 +304,12 @@ export default function StudyPage({ project, data }) {
         {has('decisions') && (
           <Section {...sec('decisions')}>
             <DecisionList decisions={DECISIONS} renderVisual={renderVisual} accent={accent} />
+          </Section>
+        )}
+
+        {has('code') && (
+          <Section {...sec('code')}>
+            <CodeTour files={TOUR} accent={accent} />
           </Section>
         )}
 

@@ -166,7 +166,7 @@ export const FIXTURE_TICKS = MORNINGS.reduce((n, m) => n + m.ticks.length, 0); /
 
 /* ── one snapshot, end to end — POST /v1/telemetry (api/telemetry.py, wake/service.py) ── */
 // The stages in the order the server runs them. `code`: what it answers when
-// it rejects. The phone doesn't send these yet (T2.3); the server side is
+// it rejects. The phone sends these since T2.3 (verified in the Simulator); the server side is
 // built and covered by tests/test_telemetry.py.
 export const INGEST = {
   route: 'POST /v1/telemetry',
@@ -249,9 +249,9 @@ export const MILESTONES = [
   { key: 'M2', label: 'Phone', tasks: [
     { id: 'T2.1', title: 'Swift sensor module (CoreMotion, device state)', state: 'caveat', pr: '#33', note: '40 XCTests against fake CoreMotion. In the Simulator, step queries return pedometer_unavailable — real motion data has never been read.' },
     { id: 'T2.2', title: 'Pairing screen, secure storage, API client', state: 'built', pr: '#35', note: 'Validated in the iOS Simulator: code entry, Keychain storage, revocation. QR scanning and real push registration are not verified on a device.' },
-    { id: 'T2.3', title: 'Telemetry sampler + on-phone outbox', state: 'next', note: 'The phone does not send snapshots yet — this is the next task.' },
-    { id: 'T2.4', title: 'Silent-push handling on a real iPhone', state: 'planned', note: 'Acceptance needs a physical iPhone: a server tick answered within 60 seconds while it is locked. So far everything has run in the Simulator — the phone’s port is broken.' },
-    { id: 'T2.5', title: 'Debug screen', state: 'planned' },
+    { id: 'T2.3', title: 'Telemetry sampler + on-phone outbox', state: 'built', pr: '#36', note: 'Bounded, truthful snapshots and a durable outbox bound to the paired identity, with deadline-aware sending.' },
+    { id: 'T2.4', title: 'Staged background wake handling', state: 'caveat', pr: '#37', note: 'Merged and accepted in the Simulator and in the foreground. The locked-iPhone test — a tick answered within 60 seconds — still needs a physical device; the phone’s port is broken.' },
+    { id: 'T2.5', title: 'Debug screen', state: 'next' },
     { id: 'T2.6', title: 'Settings screen', state: 'planned' },
   ] },
   { key: 'M3', label: 'Content', tasks: [
@@ -401,7 +401,7 @@ export const PIPELINE = {
     { key: 'review', agent: 'reviewer', model: 'Claude Opus 4.6', writes: 'APPROVE or CHANGES NEEDED — fixes loop back', gate: 'gate · Allen signs off' },
     { key: 'push', agent: 'pusher', model: 'Claude Haiku 4.5', writes: 'the branch and the pull request', gate: 'Allen merges — no agent may' },
   ],
-  record: 'docs/plans/ — a brief and a plan for each of the 20 merged tasks',
+  record: 'docs/plans/ — a brief and a plan for each of the 22 merged tasks',
 };
 
 /* ── architecture — node ids are project.architectureGraph ids ──────────── */
@@ -474,7 +474,7 @@ export const DATA_MODEL = {
 export const BUILD = {
   prs: { allen: 20, dependabot: 3 },
   totals: [
-    { value: '23', label: 'merged pull requests (20 by Allen, 3 Dependabot)' },
+    { value: '25', label: 'merged pull requests (22 by Allen, 3 Dependabot)' },
     { value: '34', label: 'architecture decision records' },
     { value: '9.7k', label: 'lines of API Python' },
     { value: '12.7k', label: 'lines of API tests' },
@@ -516,10 +516,115 @@ export const COPY = {
   ],
   // the honest roadmap — docs/11-implementation-plan.md, M2–M6
   next: [
-    'Finish the phone: the telemetry sampler and its on-phone outbox (T2.3), then silent-push handling proven on a physical iPhone — a tick answered within 60 seconds while it is locked (T2.4).',
+    'Finish the phone: the debug and settings screens (T2.5–T2.6), and prove the locked-phone path on a physical iPhone — a server tick answered within 60 seconds (T2.4’s last check).',
     'The content pipeline (M3): fetch and dedupe overnight AI papers and news, then write a one-minute script with a local language model, with a template fallback.',
     'The media pipeline (M4): local text-to-speech, word-timed captions and the full Remotion scenes — today only the cover scene renders.',
     'Delivery (M5): signed media links, the “reel ready” push on confirm or fallback, and the in-app player.',
     'Then tune the rules on seven real mornings (M6) — the target is a median confirm within 10 minutes of actually waking, with zero early confirms.',
   ],
 };
+
+/* ── the case study in one screen ─────────────────────────────────────────── */
+export const OVERVIEW = [
+  { label: 'What it is', text: 'A personal morning system: it works out from the phone’s own signals — steps, walking, unlocking, the charger, opening the app — the moment its one user is really up, so a one-minute morning briefing can arrive then, not at a fixed alarm time.' },
+  { label: 'Why it exists', text: 'An alarm knows the time, not whether you’re awake, and a 3 a.m. glance at the phone looks just like getting up. iOS gives apps no unlock event and no background loop, so the server has to run the morning and ask.' },
+  { label: 'What Allen built', text: 'Solo: a FastAPI service on a MacBook with an explainable, versioned scoring engine, a scheduler that wakes the phone with silent pushes, telemetry ingest, replay of past mornings under new rules — and the iPhone side, from the sensor module to a durable telemetry outbox.' },
+  { label: 'Where it stands', text: 'In progress. The wake engine is built and tested; the phone side runs in the iOS Simulator and still needs its locked-iPhone test. The Morning Reel it triggers — news, script, voice, video — is designed, not built.' },
+];
+
+/* ── inside the code — real excerpts, lightly trimmed ─────────────────────── */
+export const TOUR = [
+  {
+    key: 'decide',
+    label: 'The decision',
+    why: 'Every tick ends in one of a few decisions. The order matters: a day that’s already confirmed stays confirmed, a duplicate tick never counts, and only then do “strong” (one tick ≥ 85) and “consecutive” (two high ticks in a row) get to confirm.',
+    code: {
+      file: 'services/api/src/chronos/wake/scoring.py',
+      lang: 'py',
+      body: `score = max(0, min(100, raw_score))
+
+# consecutive high ticks — a duplicate tick never advances the streak
+if deduped:
+    consecutive_high = prev.consecutive_high if prev is not None else 0
+elif score >= rules.thresholds.confirm:
+    gap_ok = (prev is not None
+              and (signals.device_ts - prev.device_ts).total_seconds() / 60
+              <= rules.thresholds.confirm_max_gap_min)
+    consecutive_high = prev.consecutive_high + 1 if prev and prev.consecutive_high >= 1 and gap_ok else 1
+else:
+    consecutive_high = 0
+
+strong = score >= rules.thresholds.strong
+consec = consecutive_high >= 2
+if strong or consec:
+    decision = EvaluationDecision.confirm
+    confirm_reason = "both" if strong and consec else ("strong" if strong else "consecutive")
+elif score >= rules.thresholds.confirm:
+    decision = EvaluationDecision.high`,
+    },
+    notes: [
+      'The score is clamped to 0–100 after the rules and penalties add up — no rule can push it past either end.',
+      'Two high ticks only count as a streak if they’re at most 12 minutes apart (confirm_max_gap_min); a gap resets it to 1.',
+      'A deduplicated tick (under 2 minutes after the last) keeps the previous streak instead of extending it, so a burst of snapshots can’t fake a morning.',
+      'The reason is recorded — strong, consecutive or both — so every confirm can be explained later.',
+    ],
+  },
+  {
+    key: 'pure',
+    label: 'A pure scorer',
+    why: 'The scorer takes the snapshot, the rules, the time and a context — and does no I/O. That’s what lets eleven scripted “golden mornings” and property tests pin its behaviour, and what lets a past morning be replayed under new rules.',
+    code: {
+      file: 'services/api/src/chronos/wake/scoring.py',
+      lang: 'py',
+      body: `def evaluate(signals: Signals, rules: WakeRules,
+             now: datetime.datetime, ctx: EvalContext) -> Evaluation:
+    """Score telemetry signals and return a wake decision (pure — no I/O)."""
+    tz = ZoneInfo(signals.tz)
+    boundary = rules.window.to_window_config().day_boundary
+    local_date = local_date_for(signals.device_ts, tz, boundary)
+
+    prev = ctx.previous
+    if prev is not None:
+        if prev.local_date != local_date:
+            prev = None          # yesterday's tick never helps today
+        elif prev.device_ts >= signals.device_ts:
+            prev = None          # out-of-order delivery is ignored
+
+    in_window = is_in_window(signals.device_ts, ctx.window)
+    gate = EvaluationGate.open if in_window else EvaluationGate.closed`,
+    },
+    notes: [
+      'The “day” starts at 03:00 local time, not midnight, so a late night and the next morning stay separate days.',
+      'A previous tick from another day, or one that arrived out of order, is dropped with a note rather than trusted.',
+      'Outside the morning window the gate is closed and the score is 0 — the window differs on weekdays and weekends.',
+    ],
+  },
+  {
+    key: 'versions',
+    label: 'Versioned rules',
+    why: 'Tuning the rules must never rewrite history. Rules are hashed from their canonical JSON; applying the same rules is a no-op, new rules become a new version in one savepoint, and every stored score keeps the version it was scored with.',
+    code: {
+      file: 'services/api/src/chronos/wake/rules.py',
+      lang: 'py',
+      body: `def canonical_json(rules: WakeRules) -> str:
+    return json.dumps(rules.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+
+def rules_sha256(rules: WakeRules) -> str:
+    return hashlib.sha256(canonical_json(rules).encode()).hexdigest()
+
+def activate_new_version(session, rules, source, created_by):
+    sha = rules_sha256(rules)
+    with session.no_autoflush, session.begin_nested():
+        active_rv = session.exec(select(RuleVersion).where(RuleVersion.active == 1)).first()
+        if active_rv is not None and active_rv.sha256 == sha:
+            return active_rv, False          # identical rules — nothing written
+        # deactivate the current version, insert version max+1 —
+        # if the insert raises, the savepoint rolls back the deactivation too`,
+    },
+    notes: [
+      'Sorted keys and no whitespace make the hash depend on what the rules say, not how the file was formatted.',
+      'Same hash → the active row is returned and nothing is written (a 200, not a new version).',
+      'The deactivation and the insert share one savepoint: a failed insert leaves the old version active — a test forces exactly that.',
+    ],
+  },
+];

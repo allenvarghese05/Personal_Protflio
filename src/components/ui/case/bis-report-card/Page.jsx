@@ -29,7 +29,9 @@
  * owns the sentences around them. The repository is private and nothing is
  * deployed yet, so the hero has no links and a sand "pre-pilot" status.
  */
-import { BUILD, COPY, DATA_MODEL, DECISIONS, LAYERS, MARK_PATHS, OPS, REVIEW, ROLES, TEMPLATES, TRACES } from '@/data/studies/bis-report-card';
+import { BUILD, COPY, DATA_MODEL, DECISIONS, LAYERS, MARK_PATHS, OPS, OVERVIEW, REVIEW, ROLES, TEMPLATES, TRACES } from '@/data/studies/bis-report-card';
+import { Overview } from '@/components/ui/case/story';
+import TemplateConsole from './TemplateConsole';
 import { BeforeAfter, CaseArticle, Hero, NextSection, Section, SectionIndex, WRAP, accentFor, capWord, word } from '@/components/ui/case/shell';
 import Architecture from '@/components/ui/case/Architecture';
 import DataModel from '@/components/ui/case/DataModel';
@@ -56,10 +58,10 @@ function headlines() {
   return {
     problem: `Every student needs a card each exam — ${word(ROLES.length)} staff roles share the work, and the format changes from Nursery to Class 12.`,
     review: `${capWord(REVIEW.states.length)} states, ${word(REVIEW.moves.length)} moves — and a mark can change only while the card is a draft.`,
-    templates: `One engine, ${word(TEMPLATES.length)} very different cards — the format is data, not code.`,
+    templates: `One engine, ${word(TEMPLATES.length)} very different cards — and the school redesigns a format in its own console, not in code.`,
     marks: `${capWord(MARK_PATHS.length)} ways to enter a mark, and one server function that judges every one.`,
     grading: 'Absent isn’t zero, and a card never shows two different overall figures.',
-    ops: `It runs on one server at the school: ${word(DOORS)} open door, and a backup that catches up after downtime and is restored in CI.`,
+    ops: `No cloud: it runs on one server inside the school, on its own network — ${word(DOORS)} open door, and a backup that catches up after downtime and is restored in CI.`,
     decisions: `${capWord(DECISIONS.length)} hard problems: a save racing an approval, a lab PC shared by every teacher, and roll numbers that must be unique — except when they mustn’t.`,
     architecture: `A NestJS API behind one HTTPS door, in ${word(LAYERS.length)} layers — follow a request through it.`,
     data: `${MODEL_COUNT} models in ${word(DATA_MODEL.domains.length)} domains — plus two constraints Prisma can’t express, written by hand in SQL.`,
@@ -74,11 +76,11 @@ function headlines() {
 /** The page's sections, in order — the index and the page both read this. */
 const SECTIONS = [
   { id: 'problem', num: '01', label: 'The problem' },
-  { id: 'review', num: '02', label: 'The review' },
-  { id: 'templates', num: '03', label: 'Templates' },
-  { id: 'marks', num: '04', label: 'Marks entry' },
-  { id: 'grading', num: '05', label: 'Grading' },
-  { id: 'ops', num: '06', label: 'Operations' },
+  { id: 'ops', num: '02', label: 'Runs inside the school' },
+  { id: 'review', num: '03', label: 'The review' },
+  { id: 'templates', num: '04', label: 'Template control' },
+  { id: 'marks', num: '05', label: 'Marks entry' },
+  { id: 'grading', num: '06', label: 'Grading' },
   { id: 'decisions', num: '07', label: 'Hard problems' },
   { id: 'architecture', num: '08', label: 'Architecture' },
   { id: 'data', num: '09', label: 'Data model' },
@@ -108,6 +110,9 @@ export default function Page({ project, study }) {
 
       <div className={WRAP}>
         <div className="pb-20 sm:pb-24">
+          <div className="mb-12">
+            <Overview items={OVERVIEW} accent={accent} />
+          </div>
           <p className="max-w-[68ch] text-body text-ink-muted">
             The repository is private and the system isn’t deployed yet, so there are no screenshots or links here. Everything below is drawn from the
             code — and the demos run the code’s own rules.
@@ -122,12 +127,19 @@ export default function Page({ project, study }) {
           {study?.built && <p className="mt-10 max-w-[68ch] text-body text-ink-muted">{study.built}</p>}
         </Section>
 
+        <Section {...sec('ops')}>
+          <Operations accent={accent} />
+        </Section>
+
         <Section {...sec('review')}>
           <Review accent={accent} />
         </Section>
 
         <Section {...sec('templates')}>
           <Templates accent={accent} />
+          <div className="mt-20">
+            <TemplateConsole accent={accent} />
+          </div>
         </Section>
 
         <Section {...sec('marks')}>
@@ -136,10 +148,6 @@ export default function Page({ project, study }) {
 
         <Section {...sec('grading')}>
           <Grading accent={accent} />
-        </Section>
-
-        <Section {...sec('ops')}>
-          <Operations accent={accent} />
         </Section>
 
         <Section {...sec('decisions')}>

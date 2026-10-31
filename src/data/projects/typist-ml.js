@@ -7,24 +7,24 @@
 export const project = {
   id: 'typist-ml',
   kind: 'current',
-  cardBadge: 'RESEARCH',
-  badge: 'RESEARCH BUILD · SOLO',
+  cardBadge: 'CODE COMPLETE',
+  badge: 'RESEARCH BUILD · CODE COMPLETE · SOLO',
   label: 'Typist-ML',
   subtitle:
-    'A typing coach built as a controlled experiment — four drill methods, one fairness gate, a frozen design. Built through M3; the pilot hasn’t run.',
+    'A typing coach built as a controlled experiment — four drill methods, one fairness gate, a frozen design. Code complete; the pilot is next.',
   role: 'Sole researcher & engineer',
   company: 'Independent research project',
   dateRange: 'Sep 2026 – Present',
   location: 'Local-only · Apple Silicon',
   repo: 'https://github.com/allenvarghese05/typist-ml',
   description:
-    'A typing coach built as a within-person experiment. It records every keystroke, works out which letter pairs a participant is weakest at, deals the sixteen weakest into four equally hard sets, and gives each set one drill method — plain practice, a dictionary heuristic, a character-level Markov chain, or a 1B-parameter language model running on the laptop. Every drill passes one shared fairness gate. Milestones M0–M3 are merged and the analysis plan is pre-registered; the pilot has not run, so there are no results yet. Allen wrote the 42-page design doc and specified every task; the code is built through a coding-agent pipeline he designed, and he reviews and merges every pull request.',
+    'A typing coach built as a within-person experiment. It records every keystroke, works out which letter pairs a participant is weakest at, deals the sixteen weakest into four equally hard sets, and gives each set one drill method — plain practice, a dictionary heuristic, a character-level Markov chain, or a 1B-parameter language model running on the laptop. Every drill passes one shared fairness gate. Milestones M0–M4 are merged — capture, assignment, generators, the frozen config and plan, the analysis and the dashboard — so the code is complete; the pilot, with Allen as the first participant, is next, and there are no results yet. Allen wrote the 42-page design doc and specified every task; the code is built through a coding-agent pipeline he designed, and he reviews and merges every pull request.',
   tags: ['Python · FastAPI', 'React 19 · TypeScript', 'SQLite', 'mlx-lm · Llama 3.2 1B', 'Experiment design'],
   metrics: [
     { value: '4', label: 'Drill methods behind one fairness gate' },
     { value: '569', label: 'Automated tests, pytest + Vitest' },
     { value: '39', label: 'Pull requests in 37 days' },
-    { value: '0', label: 'Results yet — the pilot hasn’t run' },
+    { value: 'M0–M4', label: 'Milestones merged — the pilot is next' },
   ],
   primaryStack: ['Python 3.12', 'FastAPI', 'SQLModel + SQLite', 'React 19', 'TypeScript', 'mlx-lm'],
   secondaryStack: ['Alembic', 'Typer', 'Vite 8', 'Tailwind CSS v4', 'wordfreq', 'Llama 3.2 1B Instruct (4-bit)', 'pytest + hypothesis', 'Vitest', 'pyright', 'ruff', 'Biome', 'GitHub Actions', 'CodeQL', 'Semgrep'],
@@ -51,6 +51,7 @@ export const project = {
     { week: 'Oct 20 – 21', start: '2026-10-20', end: '2026-10-21', title: 'Attribution & stats', desc: 'Python attribution with property tests, the 20,000-word corpus and form A, session stats, the bigram matrix page.', done: true },
     { week: 'Oct 21 – 28', start: '2026-10-21', end: '2026-10-28', title: 'M2 · The loop', desc: 'Assignment, the gate, control and heuristic, the worker, the planner, form B, the admin page, a scripted end-to-end test.', done: true },
     { week: 'Oct 28 – 30', start: '2026-10-28', end: '2026-10-30', title: 'M3 · Markov, LLM, freeze', desc: 'The Markov chain, the MLX language-model generator, the bake-off harness, density calibration, the config freeze, the dated analysis plan.', done: true },
+    { week: 'Oct 30 – 31', start: '2026-10-30', end: '2026-10-31', title: 'M4 · Analysis & dashboard', desc: 'Outcomes with Jeffreys intervals and posterior effect samples, the dashboard pages, the results notebook and README figures — the code is complete.', done: true },
   ],
   architectureGraph: {
     nodes: [
@@ -119,7 +120,7 @@ export const caseStudy = {
   problem:
     'Drills aimed at your weakest letter pairs sound like they should help — but does targeted practice actually beat plain practice, and does a small language model write better drills than a dictionary or a Markov chain? Answering that honestly needs a fair test, not a feature.',
   built:
-    'A local-only typing coach built as a within-person experiment. It records every keystroke, finds each participant’s weakest letter pairs, deals the sixteen weakest into four equally hard sets and gives each set one drill method — plain practice, a dictionary heuristic, a character-level Markov chain, or Llama 3.2 1B running on the laptop. Every drill passes the same gate; the design, the config and the analysis plan are frozen before the first practice session. Milestones M0–M3 are merged. The pilot has not run, so there are no results yet.',
+    'A local-only typing coach built as a within-person experiment. It records every keystroke, finds each participant’s weakest letter pairs, deals the sixteen weakest into four equally hard sets and gives each set one drill method — plain practice, a dictionary heuristic, a character-level Markov chain, or Llama 3.2 1B running on the laptop. Every drill passes the same gate; the design, the config and the analysis plan are frozen before the first practice session. Milestones M0–M4 are merged, so the code is complete; the pilot is next, and there are no results yet.',
   how: [
     'What counts as an error is one hand-signed fixture — 89 keystrokes, 18 edge cases — that the TypeScript cursor and the Python attribution both have to pass.',
     'Weak pairs are ranked with an empirical-Bayes prior, snake-dealt into four sets that sum to the same rank, mapped to methods by a seeded shuffle, and frozen by a database trigger.',

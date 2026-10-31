@@ -14,7 +14,7 @@
  * the duplicate check with a return arrow and gets the stored score back. A
  * request nothing stops reaches the 200 at the foot.
  *
- * The phone doesn't send snapshots yet (T2.3); this is the server half,
+ * The phone sends snapshots since T2.3 (run in the Simulator); this is the server half,
  * built and tested (tests/test_telemetry.py). The order is real: the size
  * check reads raw bytes before parsing, and the clock-skew check runs before
  * any write.
@@ -204,7 +204,7 @@ export default function IngestProbe({ accent = P.ice }) {
               </motion.span>
               score, breakdown, decision, day state
             </p>
-            <p className="font-mono text-micro text-ink-subtle">server side built and tested · the phone’s sender is T2.3</p>
+            <p className="font-mono text-micro text-ink-subtle">server side built and tested · the phone sends since T2.3 (Simulator)</p>
           </div>
         </div>
       </PanelFrame>

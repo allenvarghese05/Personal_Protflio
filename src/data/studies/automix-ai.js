@@ -140,3 +140,11 @@ export const TRACES = [
   { id: 'bench', label: 'Score a change', steps: ['bench', 'sim', 'channel', 'master', 'oracle', 'bench'] },
   { id: 'record', label: 'Record a real ring', steps: ['recorder', 'audio', 'channel', 'oracle', 'logs'] },
 ];
+
+/* ── the case study in one screen ─────────────────────────────────────────── */
+export const OVERVIEW = [
+  { label: 'What it is', text: 'A real-time audio engine that mixes several live microphones and catches acoustic feedback before it howls — the software core of a box meant to replace the sound engineer at small venues.' },
+  { label: 'Why it exists', text: 'Churches, hotels and offices run events without an AV technician, and feedback builds in seconds. Every open mic also adds gain to the loop, so more mics means more risk.' },
+  { label: 'What Allen did', text: 'Solo. A classical ring detector, notch filters that deepen only when needed, a gain guard, gain-sharing automix — and a simulated room with an independent judge to score every change. He also retired an ML detector that turned out to have learned a bug.' },
+  { label: 'Where it stands', text: 'In progress: the code for this phase is merged and tested in simulation. Recording real rings in real rooms is the next gate; the hardware box is later.' },
+];
