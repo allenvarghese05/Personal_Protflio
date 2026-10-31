@@ -4,7 +4,7 @@
  * DataModel — "N models across M domains." The Prisma schema as a calm grid:
  * one card per domain, one row per model (name + what it holds), then a small
  * step chart of how the schema grew, then the enums as a chip row with their
- * value counts. Everything renders from DATA_MODEL in src/data/studies/iet.js
+ * value counts. Everything renders from the `model` prop (e.g. DATA_MODEL in src/data/studies/iet.js)
  * — the summary line (model count, enum count, engine) and every count are
  * derived, never typed in. A model flagged `deprecated` (in the schema,
  * nothing uses it yet) is dimmed and tagged "unused" with the same dashed tag
@@ -23,12 +23,8 @@ import { Fragment, useId, useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { PALETTE as P, alpha } from '@/lib/palette';
 import { EASE_OUT } from '@/lib/motion';
-import { DATA_MODEL } from '@/data/studies/iet';
 
 /* ── constants ─────────────────────────────────────────────────────────── */
-// What the schema runs on, split at its own " · " so the summary line sets
-// each part with the same separators as the counts
-const ENGINE = DATA_MODEL.engine.split(/\s*·\s*/).filter(Boolean);
 
 const RULE_ALPHA = 0.6; // top rule — present, not loud
 const RULE_PX = 2;
@@ -45,28 +41,34 @@ const FIELD_LIST = /\(([a-z][A-Za-z0-9]*(?:,\s*[a-z][A-Za-z0-9]*)*)\)/;
 // PascalCase words: "OTPCode" → OTP · Code, "BiAnnualActivityReport" → Bi · Annual …
 const CAMEL_PART = /[A-Z]+(?![a-z])|[A-Z]?[a-z0-9]+/g;
 
-const MODEL_COUNT = DATA_MODEL.domains.reduce((n, d) => n + d.models.length, 0);
-const ENUM_COUNT = DATA_MODEL.enums.length;
 
 // Shared label column for the rows under the cards, so their content lines up
 const ROW_LABEL = 'mc-label shrink-0 md:w-32';
 
-/* ── how the schema grew — fixed geometry from DATA_MODEL.growth ──────────── */
-const GROWTH = DATA_MODEL.growth ?? [];
+/* ── how the schema grew — geometry from model.growth ──────────────────── */
 const GROWTH_LABEL = 'Schema growth';
 const GROWTH_STEP_S = 0.08; // the steps fade in left → right, after the row
 const GROWTH_LEAD_S = 0.2;
-const GROWTH_MAX = Math.max(...GROWTH.map((g) => g.models));
-// the floor sits one model under the first count, so the first step is off the
-// floor and each added model is the same rise; every step carries its number
-const GROWTH_FLOOR = Math.min(...GROWTH.map((g) => g.models)) - 1;
-const levelOf = (n) => ((n - GROWTH_FLOOR) / (GROWTH_MAX - GROWTH_FLOOR)) * 100; // % of plot height
-const GROWTH_STEPS = GROWTH.map((g, i) => ({
-  ...g,
-  level: levelOf(g.models),
-  prev: i > 0 ? levelOf(GROWTH[i - 1].models) : null,
-  last: i === GROWTH.length - 1,
-}));
+
+/** model.growth ([{ when, models }]) → evenly spaced steps with plot levels. */
+function growthSteps(growth = []) {
+  if (growth.length < 2) return [];
+  const max = Math.max(...growth.map((g) => g.models));
+  // the floor sits one model under the lowest count, so the first step is off
+  // the floor and each added model is the same rise; every step carries its number
+  const floor = Math.min(...growth.map((g) => g.models)) - 1;
+  const levelOf = (n) => ((n - floor) / (max - floor)) * 100; // % of plot height
+  return growth.map((g, i) => ({
+    ...g,
+    level: levelOf(g.models),
+    prev: i > 0 ? levelOf(growth[i - 1].models) : null,
+    last: i === growth.length - 1,
+  }));
+}
+
+// full literal class names (Tailwind can't see interpolated ones): one column per domain at xl
+const XL_COLS = { 1: 'xl:grid-cols-1', 2: 'xl:grid-cols-2', 3: 'xl:grid-cols-3', 4: 'xl:grid-cols-4', 5: 'xl:grid-cols-5', 6: 'xl:grid-cols-3' };
+const LG_COLS = { 1: 'lg:grid-cols-1', 2: 'lg:grid-cols-2', 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-2', 5: 'lg:grid-cols-3', 6: 'lg:grid-cols-3' };
 
 /** Domain key → the tone of its top rule. Data domains stay ice. */
 function toneFor(key, accent) {
@@ -128,11 +130,14 @@ function makeRise(reduced) {
 
 /* ── pieces ────────────────────────────────────────────────────────────── */
 
-function Summary({ variants }) {
+function Summary({ model, variants }) {
+  const count = model.domains.reduce((n, d) => n + d.models.length, 0);
+  // what the schema runs on, split at its own " · " so it sets with the same separators
+  const engine = (model.engine ?? '').split(/\s*·\s*/).filter(Boolean);
   const parts = [
-    { key: 'models', n: MODEL_COUNT, text: 'models' },
-    { key: 'enums', n: ENUM_COUNT, text: 'enums' },
-    ...ENGINE.map((text) => ({ key: text, text })),
+    { key: 'models', n: count, text: model.noun ?? 'models' },
+    ...(model.enums?.length ? [{ key: 'enums', n: model.enums.length, text: 'enums' }] : []),
+    ...engine.map((text) => ({ key: text, text })),
   ];
   return (
     <motion.p
@@ -240,7 +245,7 @@ function makeStep(reduced, base) {
  * a dot marks the date, the number sits above. Hairlines in ink; the current
  * count, and the step that reached it, in the accent.
  */
-function Growth({ variants, order, accent, reduced }) {
+function Growth({ steps: GROWTH_STEPS, label = GROWTH_LABEL, noun = 'models', variants, order, accent, reduced }) {
   const headId = useId();
   const step = makeStep(reduced, order * STEP_S);
   return (
@@ -250,7 +255,7 @@ function Growth({ variants, order, accent, reduced }) {
       className="mt-8 flex flex-col gap-3 border-t border-line pt-6 md:flex-row md:items-start md:gap-6"
     >
       <h3 id={headId} className={ROW_LABEL}>
-        {GROWTH_LABEL}
+        {label}
       </h3>
       <ol aria-labelledby={headId} className="flex w-full min-w-0 max-w-[30rem]">
         {GROWTH_STEPS.map((g, i) => {
@@ -258,7 +263,7 @@ function Growth({ variants, order, accent, reduced }) {
           return (
             <motion.li key={`${g.when}-${i}`} variants={step} custom={i} className="min-w-0 flex-1">
               <span className="sr-only">
-                {g.when}: {g.models} models
+                {g.when}: {g.models} {noun}
               </span>
               <div aria-hidden="true" className="pt-5">
                 <div className="relative h-10 border-b border-line">
@@ -305,7 +310,7 @@ function Growth({ variants, order, accent, reduced }) {
   );
 }
 
-function Enums({ variants, order }) {
+function Enums({ enums, variants, order }) {
   return (
     <motion.div
       variants={variants}
@@ -314,7 +319,7 @@ function Enums({ variants, order }) {
     >
       <h3 className={ROW_LABEL}>Enums</h3>
       <ul className="flex flex-wrap gap-2">
-        {DATA_MODEL.enums.map((e) => (
+        {enums.map((e) => (
           <li key={e.name} className="mc-chip">
             <span className="text-ink-muted">{e.name}</span>
             {e.count != null && (
@@ -335,12 +340,22 @@ function Enums({ variants, order }) {
 
 /* ── the block ─────────────────────────────────────────────────────────── */
 
-export default function DataModel({ accent = P.accent, className = '' }) {
+/**
+ * `model`: { engine: 'Prisma 6 · PostgreSQL', noun?: 'models' | 'tables' | …,
+ * domains: [{ key, label, models: [{ name, note, deprecated? }] }],
+ * enums?: [{ name, count? }], growth?: [{ when, models }], growthLabel? }.
+ * Domain key 'application' gets the accent rule, 'security' jade, the rest ice.
+ */
+export default function DataModel({ model, accent = P.accent, className = '' }) {
   const ref = useRef(null);
   const inView = useInView(ref, IN_VIEW);
   const reduced = useReducedMotion();
   const rise = makeRise(reduced);
-  const { domains } = DATA_MODEL;
+  const { domains } = model;
+  const noun = model.noun ?? 'models';
+  const count = domains.reduce((n, d) => n + d.models.length, 0);
+  const steps = growthSteps(model.growth);
+  const cols = `${LG_COLS[domains.length] ?? 'lg:grid-cols-3'} ${XL_COLS[domains.length] ?? 'xl:grid-cols-3'}`;
 
   return (
     <motion.div
@@ -349,11 +364,11 @@ export default function DataModel({ accent = P.accent, className = '' }) {
       animate={reduced || inView ? 'show' : 'hidden'}
       className={`min-w-0 ${className}`}
     >
-      <Summary variants={rise} />
+      <Summary model={model} variants={rise} />
 
       <ul
-        aria-label={`${MODEL_COUNT} Prisma models in ${domains.length} domains`}
-        className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+        aria-label={`${count} ${noun} in ${domains.length} domains`}
+        className={`mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 ${cols}`}
       >
         {domains.map((domain, i) => (
           <DomainCard
@@ -366,11 +381,19 @@ export default function DataModel({ accent = P.accent, className = '' }) {
         ))}
       </ul>
 
-      {GROWTH_STEPS.length > 1 ? (
-        <Growth variants={rise} order={domains.length + 1} accent={accent} reduced={reduced} />
+      {steps.length > 1 ? (
+        <Growth
+          steps={steps}
+          label={model.growthLabel}
+          noun={noun}
+          variants={rise}
+          order={domains.length + 1}
+          accent={accent}
+          reduced={reduced}
+        />
       ) : null}
 
-      <Enums variants={rise} order={domains.length + 2} />
+      {model.enums?.length > 0 && <Enums enums={model.enums} variants={rise} order={domains.length + 2} />}
     </motion.div>
   );
 }

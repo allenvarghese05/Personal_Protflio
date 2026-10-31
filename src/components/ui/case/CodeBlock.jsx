@@ -21,7 +21,7 @@ const COPIED_MS = 1600; // how long "Copied" shows before reverting
 // One pass, leftmost match wins — so a "//" inside a string stays a string.
 // Groups: 1 comment · 2 string · 3 keyword · 4 number
 const TOKEN_RE =
-  /(\/\/.*$)|('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`)|\b(const|export|async|function|await|return|let)\b|\b(\d+(?:\.\d+)?)\b/g;
+  /(\/\/.*$|#(?![0-9a-fA-F]{3,8}\b).*$)|('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`)|\b(const|export|async|function|await|return|let|def|class|if|for|in|from|import|with|async|raise|elif|else)\b|\b(\d+(?:\.\d+)?)\b/g;
 
 // Token kind → text colour. Comments use ink-subtle, not ink-faint: they
 // carry meaning here ("any throw → every write above rolls back").

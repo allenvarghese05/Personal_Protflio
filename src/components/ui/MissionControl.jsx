@@ -15,7 +15,7 @@ import DeploymentStatusStrip from './DeploymentStatusStrip';
 import ObservatoryPanel from './stations/ObservatoryPanel';
 import StudioPanel from './stations/StudioPanel';
 import CommsPanel from './stations/CommsPanel';
-import CaseStudyIET from './case/CaseStudyIET';
+import { CASE_PAGES } from './case/pages';
 
 // Station rooms share the Mission Control shell (nav, backdrop, motion).
 const STATION_ROOMS = { observatory: ObservatoryPanel, studio: StudioPanel, comms: CommsPanel };
@@ -306,8 +306,9 @@ function Decisions({ items, accent }) {
 function Brief({ project }) {
   const accent = accentFor(project.kind);
   const study = caseStudyFor(project.id);
-  // the redesigned case-study layout — the Church Building system first
-  if (project.id === 'iet') return <CaseStudyIET project={project} study={study} />;
+  // every project with a case-study page renders it (see case/pages.js)
+  const Page = CASE_PAGES[project.id];
+  if (Page) return <Page project={project} study={study} />;
   const meta = [project.role, project.company, project.dateRange, project.location].filter(Boolean);
   return (
     <motion.article

@@ -616,3 +616,11 @@ export const COPY = {
     'PDF export beside Excel, and the Prisma 7 upgrade.',
   ],
 };
+
+/* ── the case study in one screen ─────────────────────────────────────────── */
+export const OVERVIEW = [
+  { label: 'What it is', text: 'The grant system for building churches across India: a pastor applies, HQ reviews, the President approves an amount, Finance releases it in three construction phases, and the finished church reports for three years.' },
+  { label: 'Why it exists', text: 'It all ran on paper — applications carried by hand, fund releases and site photos in separate ledgers, and no single view of where any project stood.' },
+  { label: 'What Allen did', text: 'Sole engineer: the workflow engine, race-safe money movement, a Super Admin console that changes the rules without a deploy, the analytics rewrite (146.7 s → 1.28 s), the security audit, and CI.' },
+  { label: 'Where it stands', text: 'Production-ready — the security and performance phases are done and CI checks every change. Deployment to production is the next phase.' },
+];

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Quality — how it's tested and shipped, rendered from BUILD in
+ * Quality — how it's tested and shipped, rendered from the `build` prop ({ totals, ci, suites }) — e.g. BUILD in
  * src/data/studies/iet.js. Three blocks, top to bottom:
  *
  *   totals   the history in numbers (pull requests, commits, lines, client
@@ -37,7 +37,6 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { PALETTE as P, alpha } from '@/lib/palette';
 import { EASE_OUT } from '@/lib/motion';
-import { BUILD } from '@/data/studies/iet';
 
 /* ── constants ─────────────────────────────────────────────────────────── */
 const BLOCK_VIEW = { once: true, amount: 0.2 };
@@ -50,13 +49,15 @@ const BEAT_MS = 320; // one step is the current step for one beat
 const LANE_LAG = 1; // beats between one lane starting and the next
 const CHECK_S = 0.35;
 
-const TOTALS = BUILD.totals ?? [];
-const SUITES = BUILD.suites ?? [];
-
-// each lane's first beat, and the beat at which every lane is through
-const LANES = (BUILD.ci ?? []).map((lane, i) => ({ ...lane, from: i * LANE_LAG }));
-const END_BEAT = Math.max(0, ...LANES.map((l) => l.from + l.steps.length));
-const STEP_COUNT = LANES.reduce((sum, l) => sum + l.steps.length, 0);
+/** Each lane's first beat, the beat at which every lane is through, and the step count. */
+function lanesOf(ci = []) {
+  const lanes = ci.map((lane, i) => ({ ...lane, from: i * LANE_LAG }));
+  return {
+    lanes,
+    endBeat: Math.max(0, ...lanes.map((l) => l.from + l.steps.length)),
+    stepCount: lanes.reduce((sum, l) => sum + l.steps.length, 0),
+  };
+}
 
 /** A step's state at a beat: before its turn, its turn, or passed. */
 function stepState(beat, lane, j) {
@@ -246,7 +247,8 @@ function Lane({ lane, beat, accent, reduce }) {
   );
 }
 
-function Lanes({ accent, reduce }) {
+function Lanes({ ci, accent, reduce }) {
+  const { lanes: LANES, endBeat: END_BEAT, stepCount: STEP_COUNT } = lanesOf(ci);
   const ref = useRef(null);
   const inView = useInView(ref, PANEL_VIEW);
   const [beat, setBeat] = useState(0);
@@ -263,7 +265,7 @@ function Lanes({ accent, reduce }) {
       if (n >= END_BEAT) clearInterval(id);
     }, BEAT_MS);
     return () => clearInterval(id);
-  }, [reduce, inView, run]);
+  }, [reduce, inView, run, END_BEAT]);
 
   // before it's in view nothing has run; reduced motion is the end state
   let at = -1;
@@ -320,8 +322,11 @@ function Lanes({ accent, reduce }) {
 
 /* ── the block ─────────────────────────────────────────────────────────── */
 
-export default function Quality({ accent = P.accent }) {
+export default function Quality({ build = {}, accent = P.accent }) {
   const reduce = useReducedMotion();
+  const TOTALS = build.totals ?? [];
+  const SUITES = build.suites ?? [];
+  const LANES = build.ci ?? [];
 
   return (
     <div className="@container min-w-0">
@@ -338,7 +343,7 @@ export default function Quality({ accent = P.accent }) {
         <Rise reduce={reduce} className="mt-14">
           <h3 className={DISPLAY_H3}>How it’s tested and shipped</h3>
           <div className="mt-6">
-            <Lanes accent={accent} reduce={reduce} />
+            <Lanes ci={LANES} accent={accent} reduce={reduce} />
           </div>
         </Rise>
       )}
