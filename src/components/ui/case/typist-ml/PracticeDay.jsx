@@ -2,20 +2,20 @@
 
 /**
  * PracticeDay — "Ten practice days, four blocks each, the order rotating
- * daily — and the session API only ever says Block 1 to Block 4."
+ * daily, and the session API only ever says Block 1 to Block 4."
  *
  * services/session_planner.py as a calendar. The left of the panel is the
  * whole practice schedule: a row per day, a column per block, each cell the
- * method's initial — a cyclic Latin square (day n shifts the method order
+ * method's initial, a cyclic Latin square (day n shifts the method order
  * left by n − 1, so every method takes every position). The picked day's
  * row is in the accent; days before it are done (jade rule). The right is
- * that day's session two ways — toggle between them:
+ * that day's session two ways, toggle between them:
  *
  *   stored   what the database keeps: the block order string (e.g. "HMLC"),
  *            and for each block its method and its two 300-character drills
  *            (600 characters a block).
  *   sent     what the planner returns to the browser: "Block 1"…"Block 4" and
- *            the text. No method, no block order — the participant types
+ *            the text. No method, no block order, the participant types
  *            blind to which block is which.
  * Under it, the drill pool for the day: six ready drills per method (three
  * days' worth); the day uses two of each, and completing the session tops
@@ -108,7 +108,7 @@ function Blocks({ day, view, reduce }) {
             sessions.block_order = <span className="text-ink">&quot;{order.map((a) => a.initial).join('')}&quot;</span>
           </>
         ) : (
-          <>no method, no block order — labels and text only</>
+          <>no method, no block order, labels and text only</>
         )}
       </p>
       <ol className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
@@ -178,7 +178,7 @@ export default function PracticeDay({ accent }) {
 
   const text =
     view === 'stored'
-      ? `Day ${day}: ${order.map((a) => a.label).join(' → ')}. Stored as “${order.map((a) => a.initial).join('')}” — never sent to the browser.`
+      ? `Day ${day}: ${order.map((a) => a.label).join(' → ')}. Stored as “${order.map((a) => a.initial).join('')}”, never sent to the browser.`
       : `Day ${day}: the browser gets Block 1 to Block ${N} and their text. Which method wrote which block stays in the database (the builder, also a participant, is never blinded).`;
 
   return (

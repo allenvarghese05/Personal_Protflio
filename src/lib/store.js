@@ -54,7 +54,7 @@ export const useStore = create((set) => ({
   // The intro → landing → explore arc:
   //   'intro'   — galaxy hero + the two dives (ends in the Big Bang)
   //   'landing' — world visible, astronaut dropping in (control locked)
-  //   'world'   — full player control
+  //   'world'  , full player control
   journeyPhase: 'world',
   setJourneyPhase: (journeyPhase) => set({ journeyPhase }),
 }));

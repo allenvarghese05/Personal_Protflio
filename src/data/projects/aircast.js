@@ -11,7 +11,7 @@ export const project = {
   badge: 'NASA SPACE APPS 2025 · GLOBAL NOMINEE',
   label: 'AirCast',
   subtitle:
-    'Air quality from space to street — NASA TEMPO satellite data, ground stations and weather on one map, with an explainable forecast and safety advice per group',
+    'Air quality from space to street, NASA TEMPO satellite data, ground stations and weather on one map, with an explainable forecast and safety advice per group',
   role: 'Full-stack · Backend · Cloud (2-person team)',
   company: 'Team Relentless, with Aahil Afraz',
   dateRange: 'Oct 2025 · NASA Space Apps',
@@ -28,7 +28,7 @@ export const project = {
   primaryStack: ['Python 3.11', 'Flask 3', 'netCDF4 + NumPy', 'Vanilla JS', 'Google Maps'],
   secondaryStack: ['OpenAI gpt-4o-mini', 'OpenAQ v3', 'OpenWeather', 'Chart.js', 'Azure App Service', 'Azure Blob', 'GitHub Actions', 'Gunicorn'],
   keyDecisions: [
-    { title: 'A satellite file that only worked on one laptop', body: 'Moved the TEMPO granule to Azure Blob and opened it from memory with netCDF4, so the deployed app could read it — at the cost of a download per request.' },
+    { title: 'A satellite file that only worked on one laptop', body: 'Moved the TEMPO granule to Azure Blob and opened it from memory with netCDF4, so the deployed app could read it, at the cost of a download per request.' },
     { title: 'An AI that only speaks from live readings', body: 'Every brief and chat call is grounded in a structured context from all sources, and every AI route degrades to a fallback with HTTP 200 instead of crashing.' },
     { title: 'One number, five answers', body: 'A per-group safety engine judges each forecast step for children, seniors, athletes, adults and care facilities, and finds each group’s best window.' },
   ],

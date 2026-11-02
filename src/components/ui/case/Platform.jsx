@@ -60,7 +60,7 @@ const RISE_PX = 14;
 const FADE_S = 0.6;
 const PAIR_S = 0.07; // the right-hand card trails the left by one beat
 const RULE_PX = 2;
-const RULE_ALPHA = 0.6; // top rule — present, not loud
+const RULE_ALPHA = 0.6; // top rule, present, not loud
 const INSET = 'inset 0 1px 0 rgba(255, 255, 255, 0.04)';
 const H3 = 'font-display text-[1.375rem] font-semibold leading-tight tracking-[-0.01em] text-ink';
 
@@ -125,7 +125,7 @@ function QueryBundle({ count, run }) {
         {count} queries <Sep glyph="·" /> one Promise.all
       </p>
       <svg aria-hidden="true" className="mt-1.5 block w-full overflow-visible" height={QUERY.h}>
-        {/* the bundle's head — one Promise.all holding them together */}
+        {/* the bundle's head, one Promise.all holding them together */}
         <line
           x1={`${xs[0]}%`}
           x2={`${xs[xs.length - 1]}%`}
@@ -137,7 +137,7 @@ function QueryBundle({ count, run }) {
         {xs.map((x) => (
           <line key={x} x1={`${x}%`} x2={`${x}%`} y1="0" y2={QUERY.h} stroke={alpha(P.ice, 0.45)} strokeWidth="1.25" />
         ))}
-        {/* all of them at once — that is the point */}
+        {/* all of them at once, that is the point */}
         {run &&
           xs.map((x) => (
             <motion.circle
@@ -225,7 +225,7 @@ function ScopeChain({ scopes, active, accent }) {
 function AnalyticsVisual({ entry, accent, reduce, live }) {
   const [hover, setHover] = useState(null); // pointer
   const [focused, setFocused] = useState(null); // keyboard
-  const [picked, setPicked] = useState(null); // tapped / clicked — stays lit
+  const [picked, setPicked] = useState(null); // tapped / clicked, stays lit
   const scopes = entry.scopes ?? [];
   if (scopes.length !== SCOPE_COUNT) return null; // the ladder is drawn for these five
 
@@ -383,7 +383,7 @@ function MatrixRow({ event, index, on, pinned, accent, tabbable, shown, reduce, 
 function NotifyVisual({ accent, reduce, live }) {
   const [hover, setHover] = useState(null); // pointer
   const [focused, setFocused] = useState(null); // keyboard
-  const [picked, setPicked] = useState(null); // tapped / clicked — stays lit
+  const [picked, setPicked] = useState(null); // tapped / clicked, stays lit
   const [rover, setRover] = useState(0); // the one row in the tab order
   const active = hover ?? focused ?? picked;
   const event = active != null ? EVENTS[active] : null;
@@ -479,7 +479,7 @@ function NotifyVisual({ accent, reduce, live }) {
         {/* tall enough for the longest event, so nothing below it jumps */}
         <div className="relative min-h-[9rem]">
           {!event && <p className="text-label text-ink-subtle">Hover, tap or focus a row to read its event.</p>}
-          {/* the visual readout only — each row describes itself on focus */}
+          {/* the visual readout only, each row describes itself on focus */}
           <div>
             {event && (
               <>
@@ -649,7 +649,7 @@ function OfflineVisual({ entry, accent, reduce, live }) {
               </span>
               <span className="order-2 min-w-0 flex-1 text-label leading-snug text-ink-muted @min-[30rem]:order-3 @min-[30rem]:flex-none">
                 <StepLabel text={step} />
-                <span className="sr-only">{offline ? ' — no signal' : ' — signal'}</span>
+                <span className="sr-only">{offline ? ', no signal' : ', signal'}</span>
               </span>
               <span className="order-3 flex h-3 shrink-0 items-center @min-[30rem]:order-1">
                 <SignalGlyph on={!offline} />

@@ -1066,8 +1066,12 @@ html[data-work-theme="light"] .work-root ::selection {
   }
 }
 .work-marquee {
+  width: max-content;
   animation: work-marquee 24s linear infinite;
   animation-play-state: paused;
+}
+.work-marquee > span {
+  flex-shrink: 0;
 }
 .work-band__inner[data-running="true"] .work-marquee {
   animation-play-state: running;
@@ -1077,11 +1081,7 @@ html[data-work-theme="light"] .work-root ::selection {
     animation: none;
   }
 }
-@media (hover: none) {
-  .work-band {
-    display: none;
-  }
-}
+/* touch rows open their band when scrolled to the middle of the screen (see FlowIndex) */
 
 /* /projects on paper: recruiters print. Light ink on white, no chrome. */
 @media print {

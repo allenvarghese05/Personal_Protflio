@@ -10,7 +10,7 @@
  * tab to any part to read what it does. "Explore the full graph" swaps in the
  * existing force graph (project.architectureGraph) for every node and edge.
  *
- * Node copy comes from the project's architectureGraph by id — LAYERS only
+ * Node copy comes from the project's architectureGraph by id, LAYERS only
  * carries the parts that graph doesn't have. People in the Who column read
  * their tier and headcount from ROLES when they have an entry there (the
  * Super Admin sits outside the approval chain and has none). Under 1024px
@@ -28,13 +28,13 @@ import { EASE_OUT } from '@/lib/motion';
 const STEP_MS = 380; // one step of a trace lights every STEP_MS
 const FIRST_STEP_MS = 120; // lead-in before step 1 lights
 const AUTOPLAY_DELAY_MS = 450; // after the section scrolls into view
-const COLUMNS_QUERY = '(min-width: 1024px)'; // Tailwind `lg` — one column per layer
+const COLUMNS_QUERY = '(min-width: 1024px)'; // Tailwind `lg`, one column per layer
 const BRACKET_GAP = 14; // px a same-column hop bulges past the pill edge
 const RETURN_BOW = 36; // px a backward hop bows away from the forward path
 const ARC_GAP = 9; // px a same-row hop (stacked layout) arcs above the pills
 const DIM_DOT = 0.4; // dot opacity for parts outside the active trace
 const DRAW_S = (STEP_MS * 0.9) / 1000; // a hop finishes drawing as its node lights
-const PORT_R = 2.5; // px — the dot where a hop meets a pill edge
+const PORT_R = 2.5; // px, the dot where a hop meets a pill edge
 const SKIP_GAP = 12; // px a layer-skipping hop runs clear of the layers it skips
 const CORNER_R = 10; // px corner radius on a layer-skipping hop
 
@@ -290,7 +290,7 @@ export default function Architecture({ project, layers: LAYERS = [], traces: TRA
   // when it returns, not on first mount
   const [toggled, setToggled] = useState(false);
   const [traceId, setTraceId] = useState(TRACES[0]?.id);
-  const [run, setRun] = useState(0); // play count — 0 until the first trace runs
+  const [run, setRun] = useState(0); // play count, 0 until the first trace runs
   const [step, setStep] = useState(0); // steps lit in the current run
   const [peek, setPeek] = useState(null); // hovered / focused node id
   const [pinned, setPinned] = useState(null); // clicked / tapped node id

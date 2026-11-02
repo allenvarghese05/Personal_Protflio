@@ -69,20 +69,20 @@ function daysSpanned(timeline) {
 function headlines(project) {
   const days = project.timeline?.length ? daysSpanned(project.timeline) : null;
   return {
-    problem: `An alarm knows the time, not whether you’re up — so Chronos adds up ${word(SIGNALS)} signals from the phone instead.`,
+    problem: `An alarm knows the time, not whether you’re up, so Chronos adds up ${word(SIGNALS)} signals from the phone instead.`,
     status: `${MERGED} of ${TASKS.length} planned tasks are merged: the wake engine is built, the phone is partly built, and the Morning Reel is still a plan.`,
-    score: `${capWord(SIGNALS)} signals, one score out of 100 — two ticks at ${CONFIRM}, or one at ${STRONG}, and you’re up.`,
+    score: `${capWord(SIGNALS)} signals, one score out of 100, two ticks at ${CONFIRM}, or one at ${STRONG}, and you’re up.`,
     gap: `Two highs only count if they’re really in a row: under ${word(DEDUPE)} minutes apart is a duplicate, over ${MAX_GAP} is a fresh start.`,
-    ingest: `${capWord(INGEST.stages.length)} stages between a snapshot and its score — every refusal answers with a code, and nothing is written until the last.`,
-    loop: `The server runs the morning: a silent tick every ${word(RULES.tickMin)} minutes — ${WEEKDAY_TICKS} on a weekday — until you’re up or the window closes.`,
+    ingest: `${capWord(INGEST.stages.length)} stages between a snapshot and its score, every refusal answers with a code, and nothing is written until the last.`,
+    loop: `The server runs the morning: a silent tick every ${word(RULES.tickMin)} minutes, ${WEEKDAY_TICKS} on a weekday, until you’re up or the window closes.`,
     decisions: `${capWord(DECISIONS.length)} hard problems: a permission the user can deny, rules that will change, and the two Sundays a year the clock lies.`,
-    code: 'The engine in three excerpts — the decision, the pure scorer, and rules that never rewrite history.',
-    architecture: `One FastAPI service on a MacBook, ${word(LAYERS.length)} layers — follow a snapshot through it.`,
-    data: `${capWord(TABLES)} tables in ${word(DATA_MODEL.migrations)} migrations — and every score is stored with the rules that made it.`,
+    code: 'The engine in three excerpts, the decision, the pure scorer, and rules that never rewrite history.',
+    architecture: `One FastAPI service on a MacBook, ${word(LAYERS.length)} layers, follow a snapshot through it.`,
+    data: `${capWord(TABLES)} tables in ${word(DATA_MODEL.migrations)} migrations, and every score is stored with the rules that made it.`,
     build: days
-      ? `${BUILD.prs.allen} pull requests in ${days} days — written by an AI-agent pipeline, gated and merged by its one owner.`
+      ? `${BUILD.prs.allen} pull requests in ${days} days, written by an AI-agent pipeline, gated and merged by its one owner.`
       : 'Written by an AI-agent pipeline, gated and merged by its one owner.',
-    next: 'The phone next — then the reel the engine was built to trigger.',
+    next: 'The phone next, then the reel the engine was built to trigger.',
   };
 }
 
@@ -104,9 +104,9 @@ const SECTION = Object.fromEntries(SECTIONS.map((x) => [x.id, x]));
 
 /** Built / not built, in three lines, before anything else. */
 const SCOPE_NOTE = [
-  { key: 'built', mark: 'filled', text: 'Built and tested: the server — scoring, rules, scheduler, ingestion API, pairing, data model, replay.' },
-  { key: 'partial', mark: 'half', text: 'Partly built: the phone — the Swift sensor module, pairing, the telemetry outbox and background wake handling, run so far only in the iOS Simulator. The locked-iPhone test still needs a physical device.' },
-  { key: 'planned', mark: 'hollow', text: 'Planned: the Morning Reel — news, script, voice, captions, video, delivery. Only a Remotion cover scene exists.' },
+  { key: 'built', mark: 'filled', text: 'Built and tested: the server, scoring, rules, scheduler, ingestion API, pairing, data model, replay.' },
+  { key: 'partial', mark: 'half', text: 'Partly built: the phone, the Swift sensor module, pairing, the telemetry outbox and background wake handling, run so far only in the iOS Simulator. The locked-iPhone test still needs a physical device.' },
+  { key: 'planned', mark: 'hollow', text: 'Planned: the Morning Reel, news, script, voice, captions, video, delivery. Only a Remotion cover scene exists.' },
 ];
 
 /** Filled jade = built, half = partly built, hollow = planned (the shape says it). */
@@ -177,7 +177,7 @@ export default function Page({ project, study }) {
 
         <Section {...sec('score')}>
           <p className="mb-8 max-w-[68ch] text-body text-ink-muted">
-            iOS gives an app no unlock event and no way to run continuously in the background. So during a morning window the server sends a silent push every five minutes; the phone answers with a snapshot of its recent history — steps, walking, whether it is unlocked, whether it is charging — and the server adds up points. Not machine learning: a weighted checklist anyone can read, stored with every score so it can be audited and tuned.
+            iOS gives an app no unlock event and no way to run continuously in the background. So during a morning window the server sends a silent push every five minutes; the phone answers with a snapshot of its recent history, steps, walking, whether it is unlocked, whether it is charging, and the server adds up points. Not machine learning: a weighted checklist anyone can read, stored with every score so it can be audited and tuned.
           </p>
           <WakeScore accent={accent} />
         </Section>

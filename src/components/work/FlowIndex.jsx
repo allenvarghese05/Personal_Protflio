@@ -5,23 +5,30 @@
  * site's own tokens with no extra dependency:
  *
  *   hover a row  a band in the project's own colour slides in from the edge
- *                the pointer came through, and a marquee of its picture and
- *                its key facts runs across it; it leaves through the edge the
+ *                the pointer came through, and a marquee of its name and its
+ *                key facts runs across it; it leaves through the edge the
  *                pointer leaves by
+ *   scroll       on touch screens (no hover) the band opens for whichever
+ *                row is in the middle of the screen, so scrolling the list
+ *                reads every project's tagline in turn
  *   click        smooth-scrolls to the project
  *
- * Touch screens (no hover) and keyboard focus get the plain row; reduced
- * motion keeps the band but stills the marquee. The band is driven through
- * refs, not state, so hovering never re-renders the list.
+ * No pictures in the band: the list is the brief, the section it jumps to
+ * has the details, the case study the depth. Keyboard focus gets the plain
+ * row; reduced motion keeps the band but stills the marquee. The band is
+ * driven through refs, not state, so hovering never re-renders the list.
  */
-import { useRef } from 'react';
-import Image from 'next/image';
+import { useEffect, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { projectById } from '@/data/projects';
 import { ALL_IDS, SHOWCASE } from '@/data/showcase';
 
 const EASE = 'cubic-bezier(0.2, 0.9, 0.2, 1)';
 const MS = 520;
+
+/** Touch rows register here so the list can open the band of the row nearest the screen's centre. */
+const TOUCH_ROWS = new Map();
+const isTouch = () => window.matchMedia('(hover: none)').matches || navigator.maxTouchPoints > 0;
 
 /** Which edge (top / bottom) the pointer is nearer to. */
 const edgeOf = (e, el) => {
@@ -38,13 +45,7 @@ function BandContent({ show, label }) {
           <span className={i === 0 ? 'font-display text-[clamp(1.6rem,3.6vw,3rem)] font-semibold tracking-[-0.035em]' : 'text-lg sm:text-xl'}>
             {text}
           </span>
-          {show.thumb ? (
-            <span className="relative h-[52%] min-h-9 w-24 shrink-0 overflow-hidden rounded-full ring-1 ring-white/20 sm:w-32">
-              <Image src={show.thumb} alt="" fill sizes="128px" className="object-cover" />
-            </span>
-          ) : (
-            <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-white/60" />
-          )}
+          <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-white/60" />
         </span>
       ))}
     </>
@@ -87,6 +88,24 @@ function Row({ id, index, onJump }) {
     move(null, edgeOf(e, rowRef.current), true);
   };
 
+  // no hover on touch: the list (below) opens the band of the row nearest the
+  // screen's centre, so scrolling reads every tagline in turn
+  useEffect(() => {
+    if (!isTouch()) return;
+    let on = false;
+    TOUCH_ROWS.set(id, {
+      el: rowRef.current,
+      set(next) {
+        if (on === next) return;
+        on = next;
+        if (next) move('bottom', null, true);
+        else move(null, 'bottom', true);
+      },
+    });
+    return () => TOUCH_ROWS.delete(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   return (
     <motion.li
       initial={reduce ? false : { opacity: 0, y: 24 }}
@@ -102,7 +121,7 @@ function Row({ id, index, onJump }) {
         onPointerLeave={onLeave}
         className="group/row relative flex min-h-[72px] items-center justify-between gap-4 overflow-hidden py-4 outline-none sm:min-h-[96px]"
       >
-        <span className="font-display text-[clamp(1.6rem,3.6vw,3rem)] font-semibold leading-none tracking-[-0.035em] text-ink transition-colors duration-200 group-focus-visible/row:text-accent">
+        <span className="min-w-0 font-display text-[clamp(1.6rem,3.6vw,3rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-ink transition-colors duration-200 group-focus-visible/row:text-accent">
           {project.label === 'Church Building Application System' ? 'Church Building System' : project.label}
         </span>
         <span className="flex shrink-0 items-center gap-3 text-sm text-ink-subtle sm:gap-6">
@@ -120,7 +139,12 @@ function Row({ id, index, onJump }) {
           className="work-band pointer-events-none absolute inset-0 overflow-hidden"
           style={{ background: show.ground, transform: 'translateY(101%)' }}
         >
-          <span ref={innerRef} data-running="false" className="work-band__inner flex h-full items-center text-white" style={{ transform: 'translateY(-101%)' }}>
+          <span
+            ref={innerRef}
+            data-running="false"
+            className="work-band__inner flex h-full items-center text-white"
+            style={{ transform: 'translateY(-101%)', maskImage: 'linear-gradient(to right, transparent, black 12%, black 88%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 12%, black 88%, transparent)' }}
+          >
             <span className="work-marquee flex h-full items-center">
               <span className="flex h-full items-center">
                 <BandContent show={show} label={project.label} />
@@ -137,6 +161,34 @@ function Row({ id, index, onJump }) {
 }
 
 export default function FlowIndex({ onJump }) {
+  // on touch, light up whichever row sits nearest the middle of the screen
+  useEffect(() => {
+    if (!isTouch()) return;
+    let raf = 0;
+    const tick = () => {
+      raf = 0;
+      const mid = window.innerHeight / 2;
+      let best = null;
+      let bestDist = Infinity;
+      TOUCH_ROWS.forEach((row, id) => {
+        if (!row.el) return;
+        const r = row.el.getBoundingClientRect();
+        const d = Math.abs(r.top + r.height / 2 - mid);
+        if (d < bestDist) { bestDist = d; best = id; }
+      });
+      TOUCH_ROWS.forEach((row, id) => row.set(id === best));
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(tick); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    tick();
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
   return (
     <nav aria-label="All projects">
       <ol>

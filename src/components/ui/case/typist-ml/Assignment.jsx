@@ -2,7 +2,7 @@
 
 /**
  * Assignment — "Rank the weakest pairs with a prior, deal the top sixteen into
- * four equal sets, shuffle which method gets which — then the database
+ * four equal sets, shuffle which method gets which, then the database
  * refuses edits."
  *
  * services/assignment.py, one stage at a time. Four toggles, one panel:
@@ -102,7 +102,7 @@ function Shrink({ reduce }) {
       ))}
       <p className="text-label text-ink-muted">
         Only pairs with at least {ASSIGN.minObservations} attempts across the two baseline sessions are candidates (the design said{' '}
-        {ASSIGN.designMinObservations}; decision D28 lowered it so enough pairs qualify). Ties break on how slow the pair is, then alphabetically — no
+        {ASSIGN.designMinObservations}; decision D28 lowered it so enough pairs qualify). Ties break on how slow the pair is, then alphabetically, no
         randomness in the ranking.
       </p>
     </div>
@@ -228,8 +228,8 @@ function Freeze({ tried, onTry, reduce }) {
         )}
       </div>
       <p className="mt-4 text-label text-ink-muted">
-        Every row is inserted once, with its freeze time, in one transaction. Since T3.5 the experiment’s {ASSIGN.configKeys} config keys — density
-        window, model, sampler settings, practice days — are frozen the same way: an UPDATE or DELETE aborts.
+        Every row is inserted once, with its freeze time, in one transaction. Since T3.5 the experiment’s {ASSIGN.configKeys} config keys, density
+        window, model, sampler settings, practice days, are frozen the same way: an UPDATE or DELETE aborts.
       </p>
     </div>
   );
@@ -255,13 +255,13 @@ export default function Assignment({ accent }) {
     readout = {
       tone: P.jade,
       status: 'ranked',
-      text: `${sparse.label} reads as ${pct(sparse.raw, 0)}. Shrunk toward a ${pct(sparse.p0, 0)} average with strength ${ASSIGN.strength}, it is ${pct(sparse.smooth)} — three tries can’t put a pair at the top.`,
+      text: `${sparse.label} reads as ${pct(sparse.raw, 0)}. Shrunk toward a ${pct(sparse.p0, 0)} average with strength ${ASSIGN.strength}, it is ${pct(sparse.smooth)}, three tries can’t put a pair at the top.`,
     };
   } else if (stage === 'deal') {
     readout = {
       tone: sums.length === 1 ? P.jade : P.sand,
       status: sums.length === 1 ? `Σ ${sums[0]} each` : 'uneven',
-      text: `${COLUMNS.map((c) => `${c.label} gets ${c.tiles.map((t) => t.rank).join(', ')}`).join('; ')} — every set is equally hard.`,
+      text: `${COLUMNS.map((c) => `${c.label} gets ${c.tiles.map((t) => t.rank).join(', ')}`).join('; ')}, every set is equally hard.`,
     };
   } else if (stage === 'shuffle') {
     readout = {

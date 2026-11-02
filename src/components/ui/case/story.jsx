@@ -33,7 +33,7 @@ const rise = (reduce, shown, i = 0) => ({
 
 /* ── Overview ──────────────────────────────────────────────────────────── */
 
-export function Overview({ items, accent, note = 'Everything below goes deeper — pick a section from the index, or scroll.' }) {
+export function Overview({ items, accent, note = 'Everything below goes deeper, pick a section from the index, or scroll.' }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const inView = useInView(ref, { once: true, amount: 0.2 });
@@ -52,7 +52,7 @@ export function Overview({ items, accent, note = 'Everything below goes deeper �
             <p className="font-mono text-micro font-medium uppercase tracking-[0.18em] text-ink-subtle">
               <span style={{ color: accent }}>{String(i + 1).padStart(2, '0')}</span>
               <span aria-hidden className="text-ink-faint">
-                {' — '}
+                {', '}
               </span>
               {it.label}
             </p>

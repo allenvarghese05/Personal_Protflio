@@ -156,7 +156,7 @@ function OverallPanel({ accent }) {
           <Readout runKey={runKey} reduce={reduce} tone={before ? P.sand : P.jade} status={before ? `${GRAND}% ≠ ${MEAN}%` : `${GRAND}% = ${GRAND}%`}>
             <span className="text-body text-ink-muted">
               {before
-                ? 'Two overall figures on one card — the mean ignores that the subjects are out of different maxima.'
+                ? 'Two overall figures on one card, the mean ignores that the subjects are out of different maxima.'
                 : 'One shared helper for the standing and the renderer: the card can’t disagree with itself.'}
             </span>
           </Readout>
@@ -240,7 +240,7 @@ function BandsPanel({ accent }) {
                 ? `Below every band, so it falls into the lowest (${LOWEST.grade}) rather than getting no grade at all.`
                 : probe.v === probe.rounded
                   ? `Already whole: ${probe.grade}.`
-                  : `Rounded half-up to ${probe.rounded} before the lookup — ${probe.grade}.`}
+                  : `Rounded half-up to ${probe.rounded} before the lookup, ${probe.grade}.`}
             </span>
           </Readout>
         }

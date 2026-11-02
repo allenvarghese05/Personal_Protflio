@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Security — "Seven layers between a request and the data — then an audit:
+ * Security — "Seven layers between a request and the data, then an audit:
  * seven findings, seven fixes."
  *
  * Five blocks, top to bottom:
@@ -168,7 +168,7 @@ const PROBE_BY_KEY = Object.fromEntries(PROBES.map((p) => [p.key, p]));
 const PROBE_OPTIONS = PROBES.map((p) => ({ key: p.key, label: p.label }));
 
 /** The answer a result opens with: '403 · “…”' → '403', '401, the same…' →
- *  '401', 'Refused — no JPEG…' → 'Refused'. */
+ *  '401', 'Refused, no JPEG…' → 'Refused'. */
 const headOf = (result) => String(result ?? '').split(/\s+[·—]\s+|,\s/)[0].trim();
 const isCode = (s) => /^\d{3}$/.test(s);
 const PASS_HEAD = headOf(PROBES.find((p) => p.at == null)?.result);
@@ -330,7 +330,7 @@ function LayerRow({ layer, index, plan, runKey, reduce, accent }) {
                   {plan.tag}
                 </motion.span>
               )}
-              {plan && <span className="sr-only"> — {SR_STATE[state]}</span>}
+              {plan && <span className="sr-only">, {SR_STATE[state]}</span>}
             </p>
             <p className="font-mono text-micro text-ink-subtle [overflow-wrap:anywhere]">{layer.where}</p>
           </div>
@@ -460,7 +460,7 @@ function RequestStack({ accent }) {
               </span>
               <p className="min-w-0 flex-1 py-2 pl-3 leading-6">
                 <span className={`${LABEL} mr-3 text-ink-subtle`}>Request</span>
-                <span className="font-mono text-label text-ink">{probe ? probe.label : '—'}</span>
+                <span className="font-mono text-label text-ink">{probe ? probe.label : ', '}</span>
               </p>
             </div>
 
@@ -490,7 +490,7 @@ function RequestStack({ accent }) {
                   >
                     {PASS_CODE}
                   </motion.span>
-                  {plan && <span className="sr-only"> — {passed ? 'reached' : 'not reached'}</span>}
+                  {plan && <span className="sr-only">, {passed ? 'reached' : 'not reached'}</span>}
                 </p>
               </RowBody>
             </div>

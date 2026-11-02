@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Lifecycle — "21 statuses, one engine — and every move leaves a record."
+ * Lifecycle — "21 statuses, one engine, and every move leaves a record."
  *
  * The ApplicationStatus enum as one long metro line: the main statuses are
  * stops on a 1px rail with each stage's heading set inline between them; the
@@ -78,7 +78,7 @@ const HOLLOW_GROW = 2; // a never-written stop's dashed ring runs a touch larger
 const DASHES = 12; // dashes + gaps around that ring
 const BRANCH_CX = 28.5;
 const MAIN_PL = 28; // label inset, main stops
-const BRANCH_PL = 42; // label inset, branch stops — indented beside their stop
+const BRANCH_PL = 42; // label inset, branch stops, indented beside their stop
 const ELBOW_RISE = 13; // the elbow leaves the rail this far above the dot
 const PULSE_SCALE = 2.8;
 
@@ -402,7 +402,7 @@ function StopRow({ row, ctx }) {
         </span>
       </button>
 
-      {/* under lg the detail card is out of sight above — a picked stop opens its note here
+      {/* under lg the detail card is out of sight above, a picked stop opens its note here
           (spoken by the live region, so hidden from assistive tech) */}
       {s.id === pickedId && (
         <p aria-hidden className="pb-3 pr-2 text-label text-ink-muted lg:hidden" style={{ paddingLeft: inset }}>
@@ -521,7 +521,7 @@ function MapLegend({ accent }) {
           <>
             <span className="sr-only">; </span>
             <span aria-hidden className="text-ink-faint">
-              {' — '}
+              {', '}
             </span>
             <span className="whitespace-nowrap">
               <Ring
@@ -611,7 +611,7 @@ function Scrubber({ step, isPlaying, invite, showHint, accent, onScrub, onPlay, 
       <div className="mt-2 flex items-center gap-3">
         <ControlButton icon={play.icon} label={play.label} onClick={play.onClick} />
         <div className="relative h-9 min-w-0 flex-1">
-          {/* the real control — invisible, on top; everything after it is drawn */}
+          {/* the real control, invisible, on top; everything after it is drawn */}
           <input
             type="range"
             min={0}
@@ -673,7 +673,7 @@ function Scrubber({ step, isPlaying, invite, showHint, accent, onScrub, onPlay, 
         </div>
       </div>
 
-      {/* the row keeps its height once the hint goes — Reset holds it */}
+      {/* the row keeps its height once the hint goes, Reset holds it */}
       <div className="mt-2.5 flex items-center justify-between gap-4">
         <p id={hintId} className="min-w-0 text-label text-ink-subtle">
           {hint}
@@ -709,7 +709,7 @@ function DetailBody({ status, entry, accent }) {
 
   const i = MAIN_INDEX[status.id];
   const second = status.main
-    ? { label: 'Next status', value: MAIN[i + 1]?.label ?? 'None — end of the line' }
+    ? { label: 'Next status', value: MAIN[i + 1]?.label ?? 'None, end of the line' }
     : {
         label: 'Branches off',
         value: labelOf(status.from),
@@ -803,7 +803,7 @@ function AuditLog({ step, accent, reduce }) {
     <>
       <span className="sr-only">none</span>
       <span aria-hidden className="text-ink-faint">
-        —
+       ,
       </span>
     </>
   );
@@ -883,7 +883,7 @@ function AuditLog({ step, accent, reduce }) {
         </div>
       </div>
       <figcaption className="mt-2.5 text-label text-ink-subtle">
-        Illustrative entries — the real log is the {HISTORY_TABLE} table, plus an AuditLog row per action.
+        Illustrative entries, the real log is the {HISTORY_TABLE} table, plus an AuditLog row per action.
       </figcaption>
     </figure>
   );
@@ -970,7 +970,7 @@ export default function Lifecycle({ accent = P.accent }) {
   return (
     <div className="mc-root min-w-0">
       <div className="grid gap-y-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-x-12 xl:gap-x-16">
-        {/* the controls and the reading — first in the reading order, right column at lg */}
+        {/* the controls and the reading, first in the reading order, right column at lg */}
         <div
           ref={columnRef}
           className="flex min-w-0 flex-col gap-8 lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:gap-4 lg:self-start"
@@ -993,7 +993,7 @@ export default function Lifecycle({ accent = P.accent }) {
             </div>
           </div>
 
-          {/* who acts next — above the panel at lg. Widths keep its labels at 11px or
+          {/* who acts next, above the panel at lg. Widths keep its labels at 11px or
               more: the column layout from 312px, the split layout from ~490px. */}
           <figure className="hidden sm:block lg:order-first">
             <ApprovalStack active={tiers} className="lg:max-w-[320px] xl:max-w-[500px]" />

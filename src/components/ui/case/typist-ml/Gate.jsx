@@ -1,24 +1,24 @@
 'use client';
 
 /**
- * Gate — "Every drill, from every method, passes the same eight checks — the
+ * Gate — "Every drill, from every method, passes the same eight checks, the
  * generator never grades itself."
  *
  * generation/validator.py on real drills. Pick a drill — control, the
  * heuristic and the Markov chain on the corpus's four most common pairs, and
- * the Markov chain on four rare ones — and the panel measures it the way the
+ * the Markov chain on four rare ones, and the panel measures it the way the
  * gate does:
  *
  *   text      the 300-character drill, every occurrence of a target pair
  *             underlined (shape, not colour). Density counts pairs inside
- *             words only — a pair across a space is never a pair.
+ *             words only, a pair across a space is never a pair.
  *   density   target-pair occurrences ÷ all letter pairs, on a 0–0.45 rule
  *             with the window shaded and the first floor (0.15) as a dashed
  *             tick: a filled jade dot inside, a hollow alert ring outside.
  *   coverage  each target pair's count against the minimum of 3.
  *   checks    the eight rules in the order the code checks them: tick (jade)
  *             passed, cross (alert) failed, dashed ring when the rule doesn't
- *             apply — density and coverage skip control (no targets), and the
+ *             apply, density and coverage skip control (no targets), and the
  *             real-word ratio gates the LLM only.
  * Readout: accepted or rejected, and why, in a sentence.
  *
@@ -130,7 +130,7 @@ function Checks({ sample }) {
             <Glyph kind={glyph} />
             <span className={`min-w-0 flex-1 text-label ${v.state === 'fail' ? 'text-ink' : 'text-ink-muted'}`}>
               {rule.label}
-              <span className="sr-only"> — {v.state === 'skip' ? `not applied (${v.why})` : v.state === 'pass' ? 'passed' : 'failed'}</span>
+              <span className="sr-only">, {v.state === 'skip' ? `not applied (${v.why})` : v.state === 'pass' ? 'passed' : 'failed'}</span>
             </span>
             {v.state === 'skip' && <span className="shrink-0 font-mono text-micro text-ink-subtle">{v.why}</span>}
           </li>
@@ -154,9 +154,9 @@ export default function Gate({ accent }) {
 
   let text;
   if (!passed) {
-    text = `Rejected — ${sample.reasons.map((r) => REASON_WORDS[r]).join(', and ')}. The worker logs the attempt and tries a new seed, up to ${GATE.maxAttempts} times.`;
+    text = `Rejected, ${sample.reasons.map((r) => REASON_WORDS[r]).join(', and ')}. The worker logs the attempt and tries a new seed, up to ${GATE.maxAttempts} times.`;
   } else if (!targeted) {
-    text = `Passes all ${applied.length} checks that apply. Control has no target pairs, so density and coverage don’t apply — it is the plain-practice baseline.`;
+    text = `Passes all ${applied.length} checks that apply. Control has no target pairs, so density and coverage don’t apply, it is the plain-practice baseline.`;
   } else {
     const near = sample.density - w.min < 0.03 ? `, just above the ${w.min.toFixed(2)} floor` : '';
     text = `Passes all ${applied.length} checks that apply to ${armLabel(sample.arm)}: density ${fixed(sample.density)}${near}, every pair at least ${MIN_COVERAGE} times.`;
@@ -192,12 +192,12 @@ export default function Gate({ accent }) {
             <div className="min-w-0">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="mc-label">Target density</span>
-                <span className="font-mono text-label tabular-nums text-ink">{targeted ? fixed(sample.density) : '—'}</span>
+                <span className="font-mono text-label tabular-nums text-ink">{targeted ? fixed(sample.density) : ', '}</span>
               </div>
               {targeted ? (
                 <Meter value={sample.density} min={w.min} max={w.max} ghost={w.firstMin} ghostLabel={`was ${w.firstMin.toFixed(2)}`} />
               ) : (
-                <p className="mt-3 text-label text-ink-subtle">No targets — not measured.</p>
+                <p className="mt-3 text-label text-ink-subtle">No targets, not measured.</p>
               )}
               {targeted && (
                 <>

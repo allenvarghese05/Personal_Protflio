@@ -11,7 +11,7 @@ export const project = {
   badge: 'BETA · CO-FOUNDED',
   label: 'LearnFlow AI',
   subtitle:
-    'A student planner that builds itself — paste a Canvas calendar link and your classes and deadlines appear; upload a syllabus and the semester fills in',
+    'A student planner that builds itself, paste a Canvas calendar link and your classes and deadlines appear; upload a syllabus and the semester fills in',
   role: 'Co-founder · rebuilt the planner',
   company: 'LearnFlow, with Aahil Afraz',
   dateRange: 'Jun 2025 – Present',
@@ -33,9 +33,9 @@ export const project = {
     { title: 'A syllabus reader that says null instead of guessing', body: 'GPT-4o in JSON mode at temperature 0.1 with a never-invent rule, a not-a-syllabus check and a review screen.' },
   ],
   timeline: [
-    { week: 'Jun – Aug 2025', start: '2025-06-05', end: '2025-08-01', title: 'Version 1', desc: 'The first version — an AI study companion — led by Aahil.', done: true },
+    { week: 'Jun – Aug 2025', start: '2025-06-05', end: '2025-08-01', title: 'Version 1', desc: 'The first version, an AI study companion, led by Aahil.', done: true },
     { week: 'Oct – Nov 2025', start: '2025-10-01', end: '2025-11-17', title: 'Toward release', desc: 'Dashboard and onboarding work (Allen), cross-platform builds and release workflow (Aahil, Allen).', done: true },
-    { week: 'Oct 7, 2026', start: '2026-10-07', end: '2026-10-07', title: 'v2 — the planner', desc: 'Allen: the Canvas sync pipeline, syllabus parse and apply, assignment guides, the class assistant and a new Vite + React web app.', done: true },
+    { week: 'Oct 7, 2026', start: '2026-10-07', end: '2026-10-07', title: 'v2, the planner', desc: 'Allen: the Canvas sync pipeline, syllabus parse and apply, assignment guides, the class assistant and a new Vite + React web app.', done: true },
   ],
   architectureGraph: {
     nodes: [

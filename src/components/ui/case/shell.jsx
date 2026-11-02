@@ -70,7 +70,7 @@ function nextAfter(id) {
 }
 
 /**
- * Move focus to the first heading in Mission Control's stage — the next brief's
+ * Move focus to the first heading in Mission Control's stage, the next brief's
  * title. Going to the next project unmounts this page and the focused button
  * with it; without this, focus drops to <body>, outside the modal dialog.
  */
@@ -99,7 +99,7 @@ const heroItem = {
 
 /* ── the page wrapper ──────────────────────────────────────────────────── */
 
-/** The page's outer frame — mirrors the generic brief's motion.article. */
+/** The page's outer frame, mirrors the generic brief's motion.article. */
 export function CaseArticle({ children }) {
   return (
     <motion.article
@@ -263,7 +263,7 @@ export function SectionHead({ id, num, label, title, accent }) {
           <>
             <span style={{ color: accent }}>{num}</span>
             <span aria-hidden className="text-ink-faint">
-              {' — '}
+              {', '}
             </span>
           </>
         )}

@@ -80,7 +80,7 @@ function DeploymentPanel({ deployment }) {
    TODO: Replace with real screenshots.
    Place images in /public/screenshots/learnflow/
    learnflow-01.jpg, learnflow-02.jpg, learnflow-03.jpg
-   Recommended: 1200x800px — the main transcript UI, the AI tutor panel,
+   Recommended: 1200x800px, the main transcript UI, the AI tutor panel,
    and the context assembly dashboard. */
 const SCANLINES =
   'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px)';

@@ -88,7 +88,7 @@ export default function TemplateConsole({ accent = P.accent }) {
                 ))}
               </ol>
             </div>
-            <p className="mt-3 text-center font-mono text-micro text-ink-subtle">a block list, not pixel positions — prints the same on screen and in Chromium</p>
+            <p className="mt-3 text-center font-mono text-micro text-ink-subtle">a block list, not pixel positions, prints the same on screen and in Chromium</p>
           </div>
           <div className="flex min-w-0 flex-col gap-6">
             <List title="What a template defines" items={C.definition} />

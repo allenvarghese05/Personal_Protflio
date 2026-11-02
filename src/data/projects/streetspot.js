@@ -11,7 +11,7 @@ export const project = {
   badge: 'MOBILE PROTOTYPE · SOLO',
   label: 'StreetSpot',
   subtitle:
-    'A crowdsourced street-parking prototype — report an open spot, see available spots within 1 km on a map, claim one, and earn points for detailed reports',
+    'A crowdsourced street-parking prototype, report an open spot, see available spots within 1 km on a map, claim one, and earn points for detailed reports',
   role: 'Solo developer',
   company: 'Personal project',
   dateRange: 'Jul 2025',
@@ -28,7 +28,7 @@ export const project = {
   primaryStack: ['React Native 0.79', 'Expo SDK 53', 'React 19', 'react-native-maps', 'Socket.IO 4.8'],
   secondaryStack: ['Express 5', 'Firebase Auth', 'AsyncStorage', 'React Navigation 7', 'React Native Paper', 'expo-location'],
   keyDecisions: [
-    { title: 'Reporting shouldn’t fail without a server', body: 'When the socket isn’t connected a report is kept locally and cached in AsyncStorage — usable offline, though not synced later.' },
+    { title: 'Reporting shouldn’t fail without a server', body: 'When the socket isn’t connected a report is kept locally and cached in AsyncStorage, usable offline, though not synced later.' },
     { title: 'One spot list across every phone', body: 'The server broadcasts each change and every phone upserts by id; the acknowledgement round-trip is an open integration bug.' },
     { title: 'Reward detail', body: 'A base 10 points plus bonuses for metered spots, restrictions and notes, shown before submitting, with levels every 100 points.' },
   ],
@@ -46,7 +46,7 @@ export const project = {
       { id: 'auth', label: 'Auth context', description: 'Firebase email auth plus a profile with points and level in AsyncStorage.', category: 'auth', importance: 'primary', x: 50, y: 80 },
       { id: 'storage', label: 'AsyncStorage', description: 'The user profile and spots reported while offline, on the phone.', category: 'storage', importance: 'secondary', x: 72, y: 74 },
       { id: 'server', label: 'Socket.IO server', description: 'Express 5 + Socket.IO dev server: report, claim and remove events, spots in memory (MongoDB planned).', category: 'realtime', importance: 'primary', x: 72, y: 30 },
-      { id: 'firebase', label: 'Firebase Auth', description: 'Email/password sign-in — configured with placeholder keys in the repo.', category: 'auth', importance: 'leaf', x: 94, y: 70 },
+      { id: 'firebase', label: 'Firebase Auth', description: 'Email/password sign-in, configured with placeholder keys in the repo.', category: 'auth', importance: 'leaf', x: 94, y: 70 },
       { id: 'maps', label: 'Google Maps', description: 'Map tiles through react-native-maps.', category: 'location', importance: 'leaf', x: 94, y: 28 },
     ],
     edges: [
@@ -72,7 +72,7 @@ export const caseStudy = {
   problem:
     'In dense cities like Philadelphia drivers circle blocks looking for parking, while the driver leaving a spot is the one person who knows it’s free.',
   built:
-    'A React Native + Expo prototype: report a spot, see available spots within 1 km on a map, claim one, earn points — with a small Socket.IO dev server sharing spots between phones.',
+    'A React Native + Expo prototype: report a spot, see available spots within 1 km on a map, claim one, earn points, with a small Socket.IO dev server sharing spots between phones.',
   how: [
     'Reports go to the server over Socket.IO and are broadcast to every phone, or are kept on the phone when there’s no connection.',
     'Nearby means within 1,000 m by Haversine distance.',

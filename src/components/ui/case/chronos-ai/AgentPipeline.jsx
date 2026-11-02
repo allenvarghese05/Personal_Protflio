@@ -5,7 +5,7 @@
  *
  * Chronos is a solo project, but Allen didn't type most of its code: every
  * task ran through a four-stage AI coding-agent pipeline he designed
- * (AGENTS.md, .pi/agents/*.md) — an understander writes the brief and asks
+ * (AGENTS.md, .pi/agents/*.md), an understander writes the brief and asks
  * questions, an implementer plans and writes the code and tests, a reviewer
  * returns APPROVE or CHANGES NEEDED, a pusher opens the pull request. The
  * rules say every stage stops at a gate for the owner, and agents never
@@ -71,7 +71,7 @@ export default function AgentPipeline() {
         ))}
       </ol>
       <p className="mt-4 border-t border-line pt-4 text-body text-ink-muted">
-        The record is in the repo: {PIPELINE.record}. Allen’s part is the product plan, the decision records, every answer, every approval and every merge — so on this page, “built” means built by that pipeline under his direction, not typed by hand.
+        The record is in the repo: {PIPELINE.record}. Allen’s part is the product plan, the decision records, every answer, every approval and every merge, so on this page, “built” means built by that pipeline under his direction, not typed by hand.
       </p>
     </div>
   );

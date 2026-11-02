@@ -106,7 +106,7 @@ function SubjectRow({ subject, filled, reduce }) {
         />
       </span>
       <span className="text-right font-mono text-micro tabular-nums text-ink-muted">
-        {filled ? `${subject.score} / ${subject.max}` : `— / ${subject.max}`}
+        {filled ? `${subject.score} / ${subject.max}` : `, / ${subject.max}`}
       </span>
     </li>
   );
@@ -151,7 +151,7 @@ function Sheet({ step, reduce, className = '' }) {
               {classFilled ? g : '·'}
             </motion.span>
           ))}
-          <span className="ml-auto font-mono text-micro text-ink-subtle">{classFilled ? `attendance ${CARD_SAMPLE.attendance}` : 'attendance —'}</span>
+          <span className="ml-auto font-mono text-micro text-ink-subtle">{classFilled ? `attendance ${CARD_SAMPLE.attendance}` : 'attendance,'}</span>
         </div>
         <div aria-hidden="true" className="mt-2.5 flex flex-col gap-1.5">
           {[0.92, 0.64].map((w) => (
@@ -225,8 +225,8 @@ export default function CardFigure({ accent = P.accent }) {
     <div ref={ref} className="@container w-full min-w-0">
       <p className="sr-only">
         A report card passes through four hands: subject teachers enter marks, the class teacher adds co-scholastic
-        grades, attendance and a remark and submits it, the division head approves and locks it — removing the DRAFT
-        watermark — and the section is printed, one card per student.
+        grades, attendance and a remark and submits it, the division head approves and locks it, removing the DRAFT
+        watermark, and the section is printed, one card per student.
       </p>
       <div aria-hidden="true" className="grid grid-cols-1 items-center gap-6 @[30rem]:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] @[30rem]:gap-7">
         <div className="order-2 min-w-0 @[30rem]:order-1">

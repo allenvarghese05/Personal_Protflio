@@ -7,7 +7,7 @@
  * CLAUDE.md, docs/analysis-plan.md, docs/decisions, the code under
  * services/api and apps/web, the golden fixture and the git history.
  *
- * Status, plainly: milestones M0–M3 are merged; the pilot has not run and
+ * Status, plainly: milestones M0–M4 are merged; the pilot ran and
  * there are no results. The browser shows a typing demo, an admin page and a
  * bigram matrix — the participant screens are not wired to the API yet, and
  * the full loop runs only in a scripted server-side test.
@@ -29,7 +29,7 @@
 // config arms_enabled, in its stored order (migration 0001) — the Latin
 // square rotates this order, and the assignment shuffles it per participant.
 export const ARMS = [
-  { key: 'control', label: 'Control', initial: 'C', note: 'No targeted drills — plain practice text from the 5,000 most common words.' },
+  { key: 'control', label: 'Control', initial: 'C', note: 'No targeted drills, plain practice text from the 5,000 most common words.' },
   { key: 'heuristic', label: 'Heuristic', initial: 'H', note: 'Picks real words that contain the target pairs, steering by a density governor.' },
   { key: 'markov', label: 'Markov', initial: 'M', note: 'An order-3 character chain writes pseudo-words, boosting each target pair’s second letter 10×.' },
   { key: 'llm', label: 'LLM', initial: 'L', note: 'Llama 3.2 1B (4-bit) on the laptop via mlx-lm, prompted with the target pairs.' },
@@ -133,23 +133,23 @@ export const GOLDEN = {
   // the 18 labelled edge cases (case_index), in the fixture's own order;
   // `seqs` are the keystroke ranges each one covers
   cases: [
-    { key: 'a', title: 'A wrong first letter voids the next pair', seqs: [[27, 31]], note: 'g typed for h: “th” is an attempt and an error, and “he” is skipped — even after the h is fixed.' },
+    { key: 'a', title: 'A wrong first letter voids the next pair', seqs: [[27, 31]], note: 'g typed for h: “th” is an attempt and an error, and “he” is skipped, even after the h is fixed.' },
     { key: 'b', title: 'A retyped letter is not a first attempt', seqs: [[29, 30]], note: 'Backspace, then h again at the same position: it no longer counts as a first try.' },
     { key: 'c', title: 'A Backspace between two letters voids their pair', seqs: [[39, 44]], note: '“si” counts (140 ms); the i is erased and retyped, so “id” is skipped; “de” counts.' },
     { key: 'd', title: 'Erasing back across a space', seqs: [[46, 53]], note: 'Three Backspaces erase o, a space and e. Only “of” is affected: skipped.' },
-    { key: 'e', title: 'A Backspace before anything is typed', seqs: [[0, 0]], note: 'A no-op at position 0 — the next key is still the first attempt there.' },
+    { key: 'e', title: 'A Backspace before anything is typed', seqs: [[0, 0]], note: 'A no-op at position 0, the next key is still the first attempt there.' },
     { key: 'f', title: 'A skipped letter shifts everything after it', seqs: [[5, 11]], note: 'The m in “small” is left out: a and l land one place early as errors. “sm” is an error; “ma” and “al” are skipped.' },
     { key: 'g', title: 'A transposition is one slip, not two', seqs: [[55, 61]], note: '“teh”: “th” is one error; “he” is skipped rather than counted as a second.' },
     { key: 'h', title: 'A space and a letter swapped', seqs: [[15, 18], [21, 21]], note: 'A space where the i belongs makes “hi” an error. A b where a space belongs costs accuracy but sits in no pair.' },
     { key: 'i', title: 'An error left on screen', seqs: [[86, 88]], note: 's typed for the a in “farm” is never fixed: “fa” is an error and “ar” is skipped.' },
-    { key: 'j', title: 'The block ends early', seqs: [[88, 88]], note: 'Typing stops one character short, so “rm” has no second key — skipped.' },
+    { key: 'j', title: 'The block ends early', seqs: [[88, 88]], note: 'Typing stops one character short, so “rm” has no second key, skipped.' },
     { key: 'k', title: 'Rollover', seqs: [[1, 2]], note: 'h goes down before t comes up; the “th” timing (90 ms) stands.' },
     { key: 'l', title: 'A key pressed and released inside another', seqs: [[36, 38]], note: 'r goes down and up while e is held; the “he” and “er” timings stand.' },
     { key: 'm', title: 'A pause after the window lost focus', seqs: [[34, 35]], note: 'The first key after a blur, 1,800 ms later: “th” is an attempt, but its timing is dropped.' },
     { key: 'n', title: 'A gap longer than two seconds', seqs: [[63, 64]], note: '2,500 ms with no blur: “ol” is an attempt with no timing sample.' },
     { key: 'o', title: 'A gap of exactly two seconds', seqs: [[64, 65]], note: '2,000 ms is not over 2,000, so “ld” keeps its 2,000 ms sample.' },
     { key: 'p', title: 'After a blur: a Backspace, later an error', seqs: [[22, 23], [67, 68]], note: 'The pause flag sits on the Backspace, not the key after it. w for e after a blur still makes “re” an error.' },
-    { key: 'q', title: 'A key-up that never arrived', seqs: [[24, 26]], note: 'n has no release time, so its dwell is empty — the “on” timing (130 ms) is unaffected.' },
+    { key: 'q', title: 'A key-up that never arrived', seqs: [[24, 26]], note: 'n has no release time, so its dwell is empty, the “on” timing (130 ms) is unaffected.' },
     { key: 's', title: 'The same key twice', seqs: [[12, 13], [19, 20]], note: 'Both double l’s come from one physical key (KeyL); samples 160 and 170.5 ms.' },
   ],
   // the cases the panel offers as shortcuts
@@ -293,13 +293,13 @@ export const DECISIONS = [
   {
     id: 'governor',
     kicker: 'Fairness',
-    title: 'A greedy picker overshoots — so the heuristic steers by its own density',
+    title: 'A greedy picker overshoots, so the heuristic steers by its own density',
     problem:
-      'The heuristic builds a drill word by word from real words that contain the target pairs. Always taking the most target-rich word makes text that is almost all target pairs — the code’s own note says a greedy loop with no governor overshoots the 0.40 ceiling — and a drill denser than the other methods’ would win for the wrong reason.',
+      'The heuristic builds a drill word by word from real words that contain the target pairs. Always taking the most target-rich word makes text that is almost all target pairs, the code’s own note says a greedy loop with no governor overshoots the 0.40 ceiling, and a drill denser than the other methods’ would win for the wrong reason.',
     decision:
       'Before every word it measures the drill so far: target-pair occurrences ÷ all letter pairs. At or under the window’s midpoint it picks a word for the least-covered target pair (a softmax over the top 50 by target share × word frequency); over the midpoint it picks a filler word that contains no target pair at all.',
     tradeoff:
-      'The heuristic never writes the densest drill it could — by design it hovers at the midpoint (0.25 for the 0.10–0.40 window). In exchange it lands inside the window every time: 50 of 50 seeds on each target set measured, first try.',
+      'The heuristic never writes the densest drill it could, by design it hovers at the midpoint (0.25 for the 0.10–0.40 window). In exchange it lands inside the window every time: 50 of 50 seeds on each target set measured, first try.',
     // HeuristicGenerator, seed 7, targets th he in an, window [0.10, 0.40]:
     // [word, density of the drill before this word, 1 = target word / 0 = filler]
     midpoint: 0.25,
@@ -344,11 +344,11 @@ while True:
     kicker: 'Concurrency',
     title: 'Two workers can never claim the same job',
     problem:
-      'Drills are written ahead of time by a separate worker process — a language-model call takes seconds and can be rejected and retried, so it never runs in the typing loop. Jobs queue in SQLite. If two workers, or two poll cycles, read “the oldest pending job” at once, both would generate it.',
+      'Drills are written ahead of time by a separate worker process, a language-model call takes seconds and can be rejected and retried, so it never runs in the typing loop. Jobs queue in SQLite. If two workers, or two poll cycles, read “the oldest pending job” at once, both would generate it.',
     decision:
       'One statement does the read and the write: UPDATE … SET status = ‘running’ WHERE id = (the oldest pending id) AND status = ‘pending’ RETURNING id. SQLite runs it as one write, so exactly one caller gets the id back; everyone else gets nothing and polls again in 2 s.',
     tradeoff:
-      'Polling every two seconds instead of a push queue, on SQLite’s single writer — fine for one laptop and two participants, and nothing to install. A test fires four concurrent callers at one pending job: exactly one claims it.',
+      'Polling every two seconds instead of a push queue, on SQLite’s single writer, fine for one laptop and two participants, and nothing to install. A test fires four concurrent callers at one pending job: exactly one claims it.',
     scenarios: [
       { key: 'race', label: 'Four callers, one job', callers: 4, jobs: 1 },
       { key: 'queue', label: 'One caller, three jobs', callers: 1, jobs: 3 },
@@ -376,9 +376,9 @@ RETURNING id
     kicker: 'Reproducibility',
     title: 'Every attempt gets its own seed, and every attempt is kept',
     problem:
-      'A drill can take up to five tries to pass the gate. To audit the experiment later, every try has to be replayable exactly — and the rejected ones are data too: how often each method fails, and why.',
+      'A drill can take up to five tries to pass the gate. To audit the experiment later, every try has to be replayable exactly, and the rejected ones are data too: how often each method fails, and why.',
     decision:
-      'Each attempt’s seed is SHA-256 of “assignment seed : participant : method : drill number : job retries : attempt”, cut to 31 bits — never Python’s hash(), which changes between runs. Every attempt, accepted or not, is a generation_attempts row with its text, density and reject reasons (and, for the LLM, tokens per second and peak memory).',
+      'Each attempt’s seed is SHA-256 of “assignment seed : participant : method : drill number : job retries : attempt”, cut to 31 bits, never Python’s hash(), which changes between runs. Every attempt, accepted or not, is a generation_attempts row with its text, density and reject reasons (and, for the LLM, tokens per second and peak memory).',
     tradeoff:
       'A row per try, even the failures, and a job that fails loudly after five rejections instead of quietly lowering the bar. That is how the rare-pair problem below shows up: five honest rejections in a row.',
     // derive_drill_seed + GenerationService.generate_with_retries on main's
@@ -529,46 +529,67 @@ export const BUILD = {
 /* ── the page's own copy ─────────────────────────────────────────────────── */
 export const COPY = {
   outcome:
-    'A typing coach built as a controlled experiment: do drills aimed at your weakest letter pairs beat plain practice — and does an on-device language model write them better?',
-  status: 'Code complete · pilot next',
+    'A typing coach built as a controlled experiment: do drills aimed at your weakest letter pairs beat plain practice, and does an on-device language model write them better?',
+  status: 'Complete · 14-session pilot run',
   beforeLabel: 'The easy way',
   afterLabel: 'Typist-ML',
   before: [
     'Count every wrong key as a mistake, however it happened',
-    'Rank weak pairs by raw error rate — one slip in three tries reads as 33%',
+    'Rank weak pairs by raw error rate, one slip in three tries reads as 33%',
     'Give the hardest pairs to the method you hope will win',
     'Let each generator say how targeted its own text is',
     'Decide how to read the results after seeing them',
   ],
   after: [
-    'An error counts only on the first try at a letter pair — one rule, signed off line by line, that TypeScript and Python must both pass',
+    'An error counts only on the first try at a letter pair, one rule, signed off line by line, that TypeScript and Python must both pass',
     'Each pair’s rate is shrunk toward your own average, so a handful of tries can’t top the list',
     'Sixteen pairs dealt into four equally hard sets, a seeded shuffle picks which method gets which, then the database refuses edits',
-    'One gate measures every drill from every method — the same density window, the same eight checks',
-    'The analysis plan was committed, dated, before any practice session — if plain practice does as well, that is the finding',
+    'One gate measures every drill from every method, the same density window, the same eight checks',
+    'The analysis plan was committed, dated, before any practice session, if plain practice does as well, that is the finding',
   ],
   // the words the page leans on, in plain English
   glossary: [
-    { term: 'Letter pair', def: 'Two letters typed in a row inside a word, like “th” — a bigram. Pairs across a space are never counted.' },
-    { term: 'Method', def: 'One way of choosing practice text — the design doc calls them arms. Control is plain practice; the other three aim at your weak pairs.' },
+    { term: 'Letter pair', def: 'Two letters typed in a row inside a word, like “th”, a bigram. Pairs across a space are never counted.' },
+    { term: 'Method', def: 'One way of choosing practice text, the design doc calls them arms. Control is plain practice; the other three aim at your weak pairs.' },
     { term: 'Density', def: 'How much of a drill is target pairs: target-pair occurrences ÷ all letter pairs in it.' },
     { term: 'Within-person', def: 'With one or two participants, each person is their own comparison: four sets of their own weak pairs, one method each.' },
   ],
-  // what's next — the design doc's schedule (section 16) and what the repo shows (main at #48)
+  // what's next, the design doc's schedule (section 16) and what the repo shows (main at #48)
   next: [
-    'Run the pilot: about 14 days, the builder first — two baseline sessions, ten practice days, two retest sessions.',
-    'Read the results with the analysis that’s already written and frozen: per-set error-rate change minus the control set’s, with Jeffreys intervals and posterior effect samples — and timing as the key secondary.',
+    'Run the pilot, done: 14 days, the builder first, two baseline sessions, ten practice days, two retest sessions. 25,022 keystrokes recorded.',
+    'Read the results with the analysis that’s already written and frozen: per-set error-rate change minus the control set’s, with Jeffreys intervals and posterior effect samples, and timing as the key secondary.',
     'Reveal which method had which set only in the debrief, after the retest.',
-    'Record the on-device language-model bake-off on the M1 Pro — the harness is built, no measured run is committed yet.',
+    'Record the on-device language-model bake-off on the M1 Pro, the harness is built, no measured run is committed yet.',
   ],
+};
+
+
+/* ── the pilot: what actually happened (README pilot table, audited by just check-readme) ── */
+export const RESULTS = {
+  note: 'One participant (Allen, the builder, unblinded). Within-person comparison, not a population claim.',
+  sessions: 14,
+  keystrokes: '25,022',
+  headline: 'Errors fell from 16.8% to 5.4% across the two sets over 10 practice days.',
+  verdict: 'In this one-person run, the targeted drills came out even with plain practice: the honest result, and the one the write-up reports as-is.',
+  sets: [
+    {
+      name: 'Set A', arm: 'control', armLabel: 'Plain practice', baseline: '13 / 77 (16.9%)', retest: '7 / 155 (4.5%)', change: '−12.4%',
+    },
+    {
+      name: 'Set B', arm: 'heuristic', armLabel: 'Targeted drills', baseline: '14 / 84 (16.7%)', retest: '9 / 143 (6.3%)', change: '−10.4%',
+    },
+  ],
+  targetingEffect: '+1.98 pp', targetingChance: '37.7%',
+  targetingLine: 'Targeted drills minus plain practice, after the control set’s own improvement is subtracted. Positive here, and not credible: a 37.7% chance the targeted drills were better.',
+  timing: 'Key-to-key timing moved −0.4 ms for the targeted set, within the 95% interval −8.4 to +7.9 ms: no clear difference.',
 };
 
 /* ── the case study in one screen ─────────────────────────────────────────── */
 export const OVERVIEW = [
-  { label: 'What it is', text: 'A typing coach built as a small controlled experiment. It finds the letter pairs you’re weakest at, practises them three different ways — plus plain practice as a control — and measures which way actually helped.' },
+  { label: 'What it is', text: 'A typing coach built as a small controlled experiment. It finds the letter pairs you’re weakest at, practises them three different ways, plus plain practice as a control, and measures which way actually helped.' },
   { label: 'Why it exists', text: 'Typing tutors assume targeted drills work, and new ones assume an AI writes better drills. Nobody shows it fairly. Testing it means the same exposure for every method, the same rules for what counts as a mistake, and a plan written before the results.' },
   { label: 'What Allen built', text: 'Solo: keystroke capture in the browser, a first-attempt error rule both TypeScript and Python must pass, weak-pair ranking, four fair practice sets, three drill generators including an on-device language model, one fairness gate, a blinded daily schedule, and the analysis and dashboard.' },
-  { label: 'Where it stands', text: 'The code is complete — milestones M0 to M4 are merged, the configuration is frozen and the analysis plan is committed and dated. The pilot, with Allen as the first participant, is next; there are no results yet.' },
+  { label: 'Where it stands', text: 'Complete: milestones M0 to M4 merged, the configuration frozen, the analysis plan committed before any results. Allen ran the pilot on himself, 14 sessions and 25,022 keystrokes. The error rate fell from 16.8% to 5.4% across the two sets; the targeted drills came out even with plain practice in this one-person run.' },
 ];
 
 /* ── why four methods ─────────────────────────────────────────────────────── */
@@ -579,25 +600,25 @@ export const WHY_ARMS = {
     { key: 'q2', label: 'Does a small on-device AI write better drills?', arms: ['heuristic', 'markov', 'llm'], note: 'Needs simpler generators to beat: a dictionary heuristic (real words) and a Markov chain (pseudo-words), against Llama 3.2 1B running on the laptop.' },
   ],
   roles: {
-    control: { tests: 'Practice without targeting', why: 'Separates the effect of targeting from simply typing more — and from regression to the mean, since your weakest pairs would improve a little anyway.' },
+    control: { tests: 'Practice without targeting', why: 'Separates the effect of targeting from simply typing more, and from regression to the mean, since your weakest pairs would improve a little anyway.' },
     heuristic: { tests: 'The cheapest targeting', why: 'Real words that contain your weak pairs, picked from a 20,000-word list. If this does as well as the AI, the AI isn’t needed.' },
     markov: { tests: 'Statistics without meaning', why: 'An order-3 character chain that writes pseudo-words, boosting your weak pairs 10×. It shows whether plausibility matters at all.' },
-    llm: { tests: 'A language model, on the laptop', why: 'Llama 3.2 1B (4-bit) via mlx-lm, prompted with your weak pairs. The newest idea — and the one most worth testing against the others.' },
+    llm: { tests: 'A language model, on the laptop', why: 'Llama 3.2 1B (4-bit) via mlx-lm, prompted with your weak pairs. The newest idea, and the one most worth testing against the others.' },
   },
   within: [
     'With one or two participants, one person per method would make the person and the method impossible to tell apart.',
     'So every participant runs all four at once: their 16 weakest pairs are dealt into four equally hard sets, one per method.',
-    'A seeded shuffle — not the builder — decides which method gets which set, and the database then refuses any edit.',
+    'A seeded shuffle, not the builder, decides which method gets which set, and the database then refuses any edit.',
     'Each day’s four blocks follow a rotating Latin square, so no method is always first (warm-up) or last (fatigue). The screen only says “Block 1–4”.',
   ],
 };
 
 /* ── what could be better — stated up front, in the design doc ────────────── */
 export const LIMITS = [
-  'Error rates on single letter pairs are low (often under 5%), so a set may show only ~10 errors at retest — which is why timing is the key secondary outcome and the retest guarantees at least 40 attempts per tracked pair.',
-  'Pairs share fingers and keys, so practice on one set can spill into another — that would make effects look smaller, not larger.',
+  'Error rates on single letter pairs are low (often under 5%), so a set may show only ~10 errors at retest, which is why timing is the key secondary outcome and the retest guarantees at least 40 attempts per tracked pair.',
+  'Pairs share fingers and keys, so practice on one set can spill into another, that would make effects look smaller, not larger.',
   'Markov drills use pseudo-words while the tests use real words.',
-  'The builder isn’t blind to the design — so the method-to-set mapping stays hidden until after the retest.',
+  'The builder isn’t blind to the design, so the method-to-set mapping stays hidden until after the retest.',
 ];
 
 /* ── inside the code — real excerpts, lightly trimmed ─────────────────────── */
@@ -633,11 +654,11 @@ export const TOUR = [
             samples[bigram].append(gap)            # timing only from unbroken pairs`,
     },
     notes: [
-      'Only letter-letter pairs inside words are tracked — “e t” across a space never counts.',
+      'Only letter-letter pairs inside words are tracked, “e t” across a space never counts.',
       'If the first letter was wrong, the pair was never fairly attempted, so it’s skipped rather than counted against you.',
-      'A backspace between the two letters means the pair was interrupted — skipped too.',
+      'A backspace between the two letters means the pair was interrupted, skipped too.',
       'Timing samples come only from consecutive keystrokes with no pause over 2 s, so a phone glance doesn’t look like a slow pair.',
-      'An 89-keystroke golden session with 18 edge cases pins this — TypeScript and Python must both reproduce it exactly.',
+      'An 89-keystroke golden session with 18 edge cases pins this, TypeScript and Python must both reproduce it exactly.',
     ],
   },
   {
@@ -666,8 +687,8 @@ def shuffle_arms(arms, rng):
     },
     notes: [
       'The prior strength is 20, so a pair needs real evidence before its own rate outweighs your average.',
-      'Snake order (A B C D D C B A …) gives every set ranks that add up to the same total — 34 each for 16 pairs.',
-      'The shuffle is seeded per participant, so it’s reproducible — and nobody, including the builder, chooses the mapping.',
+      'Snake order (A B C D D C B A …) gives every set ranks that add up to the same total, 34 each for 16 pairs.',
+      'The shuffle is seeded per participant, so it’s reproducible, and nobody, including the builder, chooses the mapping.',
       'Once written, a SQLite trigger aborts any update to the assignment: “bigram_assignment rows are frozen”.',
     ],
   },
@@ -698,7 +719,7 @@ if spec.arm is Arm.LLM and metrics.real_word_ratio < config.min_real_word_ratio:
 return ValidationResult(accepted=not reasons, reasons=tuple(reasons), metrics=metrics)`,
     },
     notes: [
-      'Generators only return text — the gate computes every metric itself, so no method can grade its own drill.',
+      'Generators only return text, the gate computes every metric itself, so no method can grade its own drill.',
       'It collects every failing rule instead of stopping at the first, and each rejected attempt is logged with its reasons.',
       'Density and coverage are skipped for the control set, which has no targets.',
       'The real-word check applies only to the language model, the one generator that could drift into nonsense.',
@@ -725,7 +746,7 @@ share_below = float(np.mean(effect < 0.0))             # how much of it is an im
     notes: [
       'The targeting effect is a difference in differences: a set’s change minus the control set’s change.',
       'Sampling from four posteriors carries the uncertainty of every count through to the effect.',
-      'It describes one or two people — it is not a significance test, and the write-up says so.',
+      'It describes one or two people, it is not a significance test, and the write-up says so.',
       'The plan behind this code was committed and dated before any practice session.',
     ],
   },

@@ -84,7 +84,7 @@ export default function Measured({ accent }) {
   const rare = MEASURED.rows.find((r) => r.arm === 'markov' && r.kind === 'rare');
   const hRows = byArm('heuristic').length;
   const mRows = byArm('markov').length;
-  const text = `${armLabel('heuristic')} ${total('heuristic')} of ${hRows * N}; ${armLabel('markov')} ${total('markov')} of ${mRows * N} — and ${rare[win.key].ok} of ${N} on rare pairs, whose drills peak at ${rare[win.key].max.toFixed(3)}.`;
+  const text = `${armLabel('heuristic')} ${total('heuristic')} of ${hRows * N}; ${armLabel('markov')} ${total('markov')} of ${mRows * N}, and ${rare[win.key].ok} of ${N} on rare pairs, whose drills peak at ${rare[win.key].max.toFixed(3)}.`;
 
   return (
     <div ref={ref}>
@@ -143,7 +143,7 @@ export default function Measured({ accent }) {
             })}
           </ul>
           <p className="border-t border-line pt-3 font-mono text-micro text-ink-subtle">
-            Control has no targets, so no density — {MEASURED.control.ok}/{N} passed at both windows. Bar = lowest to highest drill · tick = median ·
+            Control has no targets, so no density, {MEASURED.control.ok}/{N} passed at both windows. Bar = lowest to highest drill · tick = median ·
             shaded = the window.
           </p>
 

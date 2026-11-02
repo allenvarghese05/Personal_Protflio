@@ -19,7 +19,6 @@
  *                'phone'     an iPhone screenshot in a phone frame
  *                'spectrum'  AutoMix has no screen: a ring caught and notched
  *              Source photos are in src/pictures; the crops live in public/work.
- *   thumb      a small image for the index band and marks (optional)
  *   steps      "How it works": the project's own flow, one sentence a step,
  *              from its case study. `planned` marks a step that isn't built.
  */
@@ -38,8 +37,8 @@ export const PROFILE = {
 
 /** Three tiers, three compositions. Order = the index's order. */
 export const LAYOUT = {
-  featured: ['iet', 'aircast', 'bis-report-card', 'learnflow-ai'],
-  progress: ['chronos-ai', 'typist-ml', 'automix-ai'],
+  featured: ['iet', 'aircast', 'bis-report-card', 'learnflow-ai', 'typist-ml'],
+  progress: ['chronos-ai', 'automix-ai'],
   earlier: ['jam-duel', 'college-matcher', 'streetspot'],
 };
 export const ALL_IDS = [...LAYOUT.featured, ...LAYOUT.progress, ...LAYOUT.earlier];
@@ -75,7 +74,6 @@ export const SHOWCASE = {
       width: 1250,
       height: 781,
     },
-    thumb: '/work/iet-applications.webp',
     stats: [
       { value: '1.28 s', label: 'all-time analytics, down from 146.7 s' },
       { value: '21', label: 'workflow statuses in one engine' },
@@ -109,7 +107,6 @@ export const SHOWCASE = {
       src: '/work/aircast-nominee.webp',
       alt: 'NASA Space Apps Challenge 2025 Global Nominee badge',
     },
-    thumb: '/work/aircast-nominee.webp',
     stats: [
       { value: '1,219', label: 'teams named Global Nominees, of 11,500+' },
       { value: '3', label: 'data sources fused: satellite, ground, weather' },
@@ -144,7 +141,6 @@ export const SHOWCASE = {
       width: 1368,
       height: 797,
     },
-    thumb: '/work/bis-crest.webp',
     stats: [
       { value: '282', label: 'automated tests, green in CI' },
       { value: '31', label: 'Prisma models, 15 migrations' },
@@ -179,7 +175,6 @@ export const SHOWCASE = {
       height: 750,
       caption: 'learnflow-ai.app',
     },
-    thumb: '/work/learnflow-site.webp',
     stats: [
       { value: '150+', label: 'beta testers' },
       { value: '5,573', label: 'lines in the rebuild, from 64,066 in v1' },
@@ -211,7 +206,6 @@ export const SHOWCASE = {
       src: '/work/chronos-settings.webp',
       alt: 'Chronos on iPhone: the wake windows and the confirm and strong score thresholds',
     },
-    thumb: '/work/chronos-settings.webp',
     stats: [
       { value: '636', label: 'API tests passing' },
       { value: '11', label: 'golden test mornings' },
@@ -232,22 +226,22 @@ export const SHOWCASE = {
     mark: 'T',
     ground: '#1b222e',
     year: '2026',
-    status: 'Code complete',
+    status: 'Complete',
     context: 'Sole researcher and engineer · Sep 2026 to now',
-    highlight: { text: 'Code complete · pilot next', tone: 'progress' },
+    highlight: { text: 'Complete · 14-session pilot run', tone: 'built' },
     pitch: 'A typing coach built as a controlled experiment: four drill methods, one fairness gate, a frozen design.',
-    band: ['A controlled experiment', '569 automated tests', 'Four drill methods'],
+    band: ['A controlled experiment', 'Errors fell 16.8% to 5.4%', '25,022 keystrokes'],
     cover: {
       type: 'shot',
       src: '/work/typist-session.webp',
-      alt: 'Typist-ML Session Studio: all 14 sessions recorded, from baseline through blinded practice to retest',
-      width: 1120,
-      height: 700,
+      alt: 'The Typist-ML typing surface mid-warm-up: the passage dimming ahead of the caret, errors held until corrected',
+      width: 2720,
+      height: 1280,
     },
-    thumb: '/work/typist-session.webp',
     stats: [
-      { value: '569', label: 'automated tests, pytest and Vitest' },
-      { value: '39', label: 'pull requests in 37 days' },
+      { value: '652', label: 'automated tests, pytest and Vitest' },
+      { value: '25,022', label: 'keystrokes in the pilot' },
+      { value: '16.8→5.4%', label: 'error rate across the two sets' },
     ],
     steps: [
       { label: 'Capture', text: 'Every keystroke is recorded with its timing.' },

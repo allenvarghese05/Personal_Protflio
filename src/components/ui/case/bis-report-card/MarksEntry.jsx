@@ -58,7 +58,7 @@ function judge(max, request) {
 const TYPED = PATH.type.rows.map((r) => {
   const col = COL[r.col];
   const request = textToMarkRequest(r.input);
-  if (request.error) return { ...r, col, ok: false, where: 'browser', says: `${request.error} — never sent` };
+  if (request.error) return { ...r, col, ok: false, where: 'browser', says: `${request.error}, never sent` };
   return { ...r, col, ...judge(col.max, request) };
 });
 
@@ -201,11 +201,11 @@ function PasteCell({ cell, existing }) {
       <span
         className="flex h-9 items-center justify-between gap-1 rounded-chip border border-dotted px-2 font-mono text-label text-ink-muted"
         style={{ borderColor: P.inkSubtle }}
-        title="gap in the paste — kept"
+        title="gap in the paste, kept"
       >
         {existing ?? '·'}
         <span className="font-mono text-micro text-ink-subtle">kept</span>
-        <span className="sr-only"> — a gap in the paste, the existing mark is kept</span>
+        <span className="sr-only">, a gap in the paste, the existing mark is kept</span>
       </span>
     );
   }
@@ -219,7 +219,7 @@ function PasteCell({ cell, existing }) {
       <span aria-hidden="true" className="text-micro">
         {cell.ok ? '✓' : '✕'}
       </span>
-      <span className="sr-only">{cell.ok ? ' — applied' : ` — refused: ${cell.says}`}</span>
+      <span className="sr-only">{cell.ok ? ', applied' : `, refused: ${cell.says}`}</span>
     </span>
   );
 }
@@ -347,9 +347,9 @@ export default function MarksEntry({ accent = P.accent }) {
   if (key === 'type') {
     const saved = TYPED.filter((r) => r.ok).length;
     const browser = TYPED.filter((r) => r.where === 'browser').length;
-    readout = `${saved} saved, ${TYPED.length - saved} refused — ${browser} in the browser, never sent, the rest by the server’s validator.`;
+    readout = `${saved} saved, ${TYPED.length - saved} refused, ${browser} in the browser, never sent, the rest by the server’s validator.`;
   } else if (key === 'paste') {
-    readout = `“${PASTE.toast}” — the grid’s own message. The gap left roll 4’s mark alone.`;
+    readout = `“${PASTE.toast}”, the grid’s own message. The gap left roll 4’s mark alone.`;
   } else {
     readout = `${UPLOAD.applied} applied, ${UPLOAD.rejected} refused, each with its row and reason. Nothing is guessed from a roll number.`;
   }

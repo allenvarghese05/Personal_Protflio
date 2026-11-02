@@ -12,7 +12,7 @@
  * liquid shape, and the pill's own rounded clip does the carving.
  *
  * The animation writes SVG attributes straight to the DOM from one rAF loop
- * that sleeps whenever the blob has settled — no React state per frame.
+ * that sleeps whenever the blob has settled, no React state per frame.
  * Keyboard focus brings the blob in at the centre. Reduced motion: no blob,
  * just a colour swap to amber on hover / focus.
  *

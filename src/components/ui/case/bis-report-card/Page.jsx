@@ -56,20 +56,20 @@ const TESTS = BUILD.suites.find((t) => /in all/i.test(t.label))?.value;
 /** The section headlines — the sentences are written here, the numbers aren't. */
 function headlines() {
   return {
-    problem: `Every student needs a card each exam — ${word(ROLES.length)} staff roles share the work, and the format changes from Nursery to Class 12.`,
-    review: `${capWord(REVIEW.states.length)} states, ${word(REVIEW.moves.length)} moves — and a mark can change only while the card is a draft.`,
-    templates: `One engine, ${word(TEMPLATES.length)} very different cards — and the school redesigns a format in its own console, not in code.`,
+    problem: `Every student needs a card each exam, ${word(ROLES.length)} staff roles share the work, and the format changes from Nursery to Class 12.`,
+    review: `${capWord(REVIEW.states.length)} states, ${word(REVIEW.moves.length)} moves, and a mark can change only while the card is a draft.`,
+    templates: `One engine, ${word(TEMPLATES.length)} very different cards, and the school redesigns a format in its own console, not in code.`,
     marks: `${capWord(MARK_PATHS.length)} ways to enter a mark, and one server function that judges every one.`,
     grading: 'Absent isn’t zero, and a card never shows two different overall figures.',
-    ops: `No cloud: it runs on one server inside the school, on its own network — ${word(DOORS)} open door, and a backup that catches up after downtime and is restored in CI.`,
-    decisions: `${capWord(DECISIONS.length)} hard problems: a save racing an approval, a lab PC shared by every teacher, and roll numbers that must be unique — except when they mustn’t.`,
-    architecture: `A NestJS API behind one HTTPS door, in ${word(LAYERS.length)} layers — follow a request through it.`,
-    data: `${MODEL_COUNT} models in ${word(DATA_MODEL.domains.length)} domains — plus two constraints Prisma can’t express, written by hand in SQL.`,
+    ops: `No cloud: it runs on one server inside the school, on its own network, ${word(DOORS)} open door, and a backup that catches up after downtime and is restored in CI.`,
+    decisions: `${capWord(DECISIONS.length)} hard problems: a save racing an approval, a lab PC shared by every teacher, and roll numbers that must be unique, except when they mustn’t.`,
+    architecture: `A NestJS API behind one HTTPS door, in ${word(LAYERS.length)} layers, follow a request through it.`,
+    data: `${MODEL_COUNT} models in ${word(DATA_MODEL.domains.length)} domains, plus two constraints Prisma can’t express, written by hand in SQL.`,
     build:
       MERGED && TESTS
-        ? `A spec in July; then, in October, the system and ${MERGED} merged pull requests — ${TESTS} tests green in CI.`
+        ? `A spec in July; then, in October, the system and ${MERGED} merged pull requests, ${TESTS} tests green in CI.`
         : 'Sole developer, spec first.',
-    next: 'The pilot is next — on the school’s own server, starting with the two Pre-Primary cards.',
+    next: 'The pilot is next, on the school’s own server, starting with the two Pre-Primary cards.',
   };
 }
 
@@ -105,7 +105,7 @@ export default function Page({ project, study }) {
         status={COPY.status}
         links={links}
         figure={<CardFigure accent={accent} />}
-        caption="One card, four hands — the watermark lifts only on approval"
+        caption="One card, four hands, the watermark lifts only on approval"
       />
 
       <div className={WRAP}>
@@ -115,7 +115,7 @@ export default function Page({ project, study }) {
           </div>
           <p className="max-w-[68ch] text-body text-ink-muted">
             The repository is private and the system isn’t deployed yet, so there are no screenshots or links here. Everything below is drawn from the
-            code — and the demos run the code’s own rules.
+            code, and the demos run the code’s own rules.
           </p>
           <div className="mt-12">
             <SectionIndex scope={SCOPE} sections={SECTIONS} accent={accent} />

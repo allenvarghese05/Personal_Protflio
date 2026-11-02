@@ -29,7 +29,7 @@ export const project = {
   primaryStack: ['React 18', 'TypeScript', 'Express', 'PostgreSQL', 'Tailwind CSS'],
   secondaryStack: ['OpenAI GPT-4', 'Spotify Web API', 'YouTube Data API', 'JWT + bcrypt', 'helmet', 'express-rate-limit', 'GitHub Pages'],
   keyDecisions: [
-    { title: 'A vote is three writes — so it’s one transaction', body: 'The vote, the battle tally and the user’s budget are written between BEGIN and COMMIT, with a UNIQUE constraint as the last guard against double votes.' },
+    { title: 'A vote is three writes, so it’s one transaction', body: 'The vote, the battle tally and the user’s budget are written between BEGIN and COMMIT, with a UNIQUE constraint as the last guard against double votes.' },
     { title: 'Scarcity makes a vote mean something', body: 'Ten votes a day, spent 1–10 at a time, reset on the first login of a new day.' },
     { title: 'A model that answers in a renderable shape', body: 'GPT-4 is asked for JSON only: four named categories of three songs, each with a reason.' },
   ],

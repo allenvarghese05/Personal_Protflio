@@ -20,7 +20,7 @@
  *   className extra classes on the wrapper (width 100%, capped at 560px).
  *
  * Two fitted layouts, picked by a container query so text never drops under
- * 11px: 'split' (labels alternate left / right — the signature look) from a
+ * 11px: 'split' (labels alternate left / right, the signature look) from a
  * 440px-wide container up, and 'column' (stack left, labels in one column on
  * the right) below that. Geometry is fitted, not hand-placed: each label's
  * width is estimated from ROLES, the slabs take whatever room the labels
@@ -35,11 +35,11 @@ import { EASE_OUT } from '@/lib/motion';
 import { ACTORS, ROLES } from '@/data/studies/iet';
 
 /* ── geometry (viewBox units) ──────────────────────────────────────────── */
-const VR = 0.32; // iso vertical:horizontal ratio — flat, so slabs read as platforms
+const VR = 0.32; // iso vertical:horizontal ratio, flat, so slabs read as platforms
 const DEPTH = 12; // slab thickness
 const STEP_W = 15; // each tier's half-width is this much narrower than the one below
 const MAX_BASE_W = 130; // cap on the bottom slab's half-width
-const MIN_BASE_W = 60; // floor — below this the viewBox grows instead
+const MIN_BASE_W = 60; // floor, below this the viewBox grows instead
 const MIN_TOP_W = 26; // the apex slab never shrinks past this
 const LEADER = 16; // slab corner → label text (split); stack → label column (column)
 const PAD_X = 4;
@@ -269,7 +269,7 @@ const roleLine = (r) => `${r.num} ${r.role}, ${r.verb} (${r.pop})`;
 // the applicant level is one step, not a hand-off: either role applies
 const ENTRY_TEXT = ROLES.slice(0, ENTRY_TOP + 1).map(roleLine).join(', or ');
 const UP_TEXT = ROLES.slice(ENTRY_TOP + 1).map(roleLine).join('; ');
-const CHAIN_TEXT = `Approval chain, bottom to top. An application comes from the bottom level — ${ENTRY_TEXT} — and goes straight up: ${UP_TEXT}. Funds are released at the top.`;
+const CHAIN_TEXT = `Approval chain, bottom to top. An application comes from the bottom level, ${ENTRY_TEXT}, and goes straight up: ${UP_TEXT}. Funds are released at the top.`;
 
 function describe(lit) {
   const on = ROLES.filter((_, i) => lit.has(i)).map((r) => r.role);
@@ -291,7 +291,7 @@ function Slab({ tier, lit, pulse }) {
         fill={alpha(P.accent, 0.07)}
         style={{ opacity: lit ? 1 : 0, transition: TRANSITION }}
       />
-      {/* soft halo under the front edge — a lit slab only, very quiet */}
+      {/* soft halo under the front edge, a lit slab only, very quiet */}
       <path
         d={tier.edge}
         fill="none"
@@ -463,7 +463,7 @@ function Entry({ layout }) {
         stroke={alpha(P.accent, 0.6)}
         strokeWidth="1"
       />
-      {/* tracking adds trailing space after the last glyph — nudge to re-centre */}
+      {/* tracking adds trailing space after the last glyph, nudge to re-centre */}
       <Tag x={r2(CX + (T.tag * TAG_TRACK_EM) / 2)} y={r2(pillY + PILL_H / 2 + 4.4)} anchor="middle" fill={P.accent}>
         {PILL_TEXT}
       </Tag>
@@ -524,7 +524,7 @@ function StackSvg({ layout, lit, climbing }) {
     >
       <motion.g {...enter(0, {})}>
         <Entry layout={layout} />
-        {/* the way out — top slab up to the tick */}
+        {/* the way out, top slab up to the tick */}
         <line
           x1={layout.CX}
           y1={layout.outY}
