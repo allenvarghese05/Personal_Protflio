@@ -34,7 +34,7 @@ export default function Pipeline({ accent }) {
       <h3 className="font-display text-[1.375rem] font-semibold leading-tight tracking-[-0.01em] text-ink">How every task was built</h3>
       <p className="mt-3 max-w-[68ch] text-body text-ink-muted">
         Allen wrote the design doc and owns every decision; each task then goes through coding agents he set up, with fixed roles and models. The code is
-        agent-written to his specs — he reviews and merges every pull request.
+        agent-written to his specs, he reviews and merges every pull request.
       </p>
       <ol className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {BUILD.pipeline.map((p, i) => {

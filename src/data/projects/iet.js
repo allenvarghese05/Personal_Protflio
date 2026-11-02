@@ -5,16 +5,16 @@
 export const project = {
   id: 'iet',
   kind: 'signature',
-  badge: 'CLIENT SYSTEM · SOLE ENGINEER',
+  badge: 'IN PRODUCTION · CLIENT SYSTEM · SOLE ENGINEER',
   label: 'Church Building Application System',
   subtitle:
-    'Grant workflow for church construction across India — 21 statuses in one engine, race-safe phased funding, and a Super Admin console that changes the rules without a deploy',
+    'Grant workflow for church construction across India, in production since October 2026: 21 statuses in one engine, race-safe phased funding, and a Super Admin console that changes the rules without a deploy',
   role: 'Software Solutions Architect',
   company: 'Indian Evangelical Team',
   dateRange: 'Jan 2026 – Present',
   location: 'Remote, India',
   description:
-    'Digitalised the end-to-end lifecycle of church construction for a national evangelical organisation in India, replacing a paper process. Sole engineer across every layer — schema, workflow engine, API, offline-capable forms, analytics, notifications, security and CI. One engine moves each application through 21 statuses from submission to HQ review, the President’s approval and three Finance-released construction phases, then three years of reporting; a Super Admin console changes the rules without a deploy, and every change is frozen per application.',
+    'Digitalised the end-to-end lifecycle of church construction for a national evangelical organisation in India, replacing a paper process. Sole engineer across every layer, schema, workflow engine, API, offline-capable forms, analytics, notifications, security and CI. One engine moves each application through 21 statuses from submission to HQ review, the President’s approval and three Finance-released construction phases, then three years of reporting; a Super Admin console changes the rules without a deploy, and every change is frozen per application.',
   tags: ['Next.js 16', 'React 19', 'TypeScript', 'Prisma + PostgreSQL', 'Supabase'],
   metrics: [
     { value: '21', label: 'Workflow statuses, one engine' },
@@ -26,7 +26,7 @@ export const project = {
   secondaryStack: ['Zod 4', 'Tailwind CSS v4', 'jose (JWT)', 'Recharts', 'ExcelJS', 'Service Worker + IndexedDB', 'Supabase Storage', 'GitHub Actions', 'Semgrep', 'Biome'],
   keyDecisions: [
     {
-      title: 'Money moves in one transaction — or not at all',
+      title: 'Money moves in one transaction, or not at all',
       body: 'Every workflow action is one Prisma transaction around a compare-and-set on the status and the approved amount: zero rows matched means someone got there first (409, nothing written); one row means the status, the fund release, the history row and the audit row commit together. Race-tested: released never exceeds approved.',
     },
     {
@@ -35,45 +35,46 @@ export const project = {
     },
     {
       title: 'Permissions live at the API, not the UI',
-      body: 'Every protected route reads the session, validates the body with zod, then checks row-level access — own application, led division, file owner — before the engine re-checks role and status. The UI is a convenience, never the boundary.',
+      body: 'Every protected route reads the session, validates the body with zod, then checks row-level access, own application, led division, file owner, before the engine re-checks role and status. The UI is a convenience, never the boundary.',
     },
   ],
   // the git history, chapter by chapter (start / end are the commit dates)
   timeline: [
-    { week: 'Jan 29 – Feb 14', start: '2026-01-29', end: '2026-02-14', title: 'The prototype', desc: '13-model schema, the 9-page form, the approval flow, phase tracking and reports — 17 commits.', done: true },
+    { week: 'Jan 29 – Feb 14', start: '2026-01-29', end: '2026-02-14', title: 'The prototype', desc: '13-model schema, the 9-page form, the approval flow, phase tracking and reports, 17 commits.', done: true },
     { week: 'Oct 3', start: '2026-10-03', end: '2026-10-03', title: 'The restart', desc: '56 TypeScript errors fixed, two security holes closed, and the heaviest report rewritten: 147 s → 2.8 s on the same connection.', done: true },
     { week: 'Oct 5', start: '2026-10-05', end: '2026-10-05', title: 'The engine', desc: 'In nine batches: the workflow engine, Finance releases, the daily job, the offline form.', done: true },
     { week: 'Oct 6 – 7', start: '2026-10-06', end: '2026-10-07', title: 'Money & scopes', desc: 'Approved amounts with a race-safe cap, multi-division leaders, five-scope analytics + Excel.', done: true },
-    { week: 'Oct 13', start: '2026-10-13', end: '2026-10-13', title: 'Notifications', desc: '24 in-app events, five audiences — and the analytics chart kit.', done: true },
+    { week: 'Oct 13', start: '2026-10-13', end: '2026-10-13', title: 'Notifications', desc: '24 in-app events, five audiences, and the analytics chart kit.', done: true },
     { week: 'Oct 14 – 19', start: '2026-10-14', end: '2026-10-19', title: 'Production readiness', desc: 'CI/CD, clean-up, the security pass, nonce CSP, server-rendered first paint, design tokens.', done: true },
+    { week: 'Oct', start: '2026-10-20', end: '2026-10-31', title: 'Live', desc: 'Deployed to production in Mumbai; staff at headquarters and the divisions run every application on it.', done: true },
     { week: 'Oct 20 – 22', start: '2026-10-20', end: '2026-10-22', title: 'Mission Control', desc: 'MC-0 to MC-7: the schema-driven console, history and undo, field policy, document types.', done: true },
     { week: 'Oct 23', start: '2026-10-23', end: '2026-10-23', title: 'The audit', desc: 'CHU-27 to 33: seeds, the last Super Admin, email case, migrations, magic-byte uploads.', done: true },
   ],
   architectureGraph: {
     nodes: [
-      { id: 'engine', label: 'Workflow engine', description: 'src/lib/workflow/engine.ts — every status change except the applicant’s own submit and resubmit, which write the same history and audit rows (the resubmit under the same compare-and-set). 14 actions, each one Prisma transaction around a compare-and-set, with a history row and an audit row.', category: 'workflow', importance: 'center', x: 50, y: 30 },
+      { id: 'engine', label: 'Workflow engine', description: 'src/lib/workflow/engine.ts, every status change except the applicant’s own submit and resubmit, which write the same history and audit rows (the resubmit under the same compare-and-set). 14 actions, each one Prisma transaction around a compare-and-set, with a history row and an audit row.', category: 'workflow', importance: 'center', x: 50, y: 30 },
       { id: 'api', label: 'API routes', description: '37 route handlers. Each protected one checks the session first (requireUser(), or getCurrentUser() underneath), validates any JSON body with a zod schema, then checks row access. Status changes go through the engine.', category: 'core', importance: 'primary', x: 27, y: 50 },
       { id: 'pages', label: 'Server pages', description: '20 App Router pages. The dashboard, the six list pages, the application detail and Mission Control render on the server with their data already in the HTML; the lists and the detail use loadInitial, which calls the route handler in-process.', category: 'core', importance: 'primary', x: 27, y: 32 },
-      { id: 'proxy', label: 'Edge proxy', description: 'src/proxy.ts — a fresh CSP nonce per request, an Origin check on every mutation, and a request id on every response.', category: 'auth', importance: 'secondary', x: 27, y: 14 },
+      { id: 'proxy', label: 'Edge proxy', description: 'src/proxy.ts, a fresh CSP nonce per request, an Origin check on every mutation, and a request id on every response.', category: 'auth', importance: 'secondary', x: 27, y: 14 },
       { id: 'auth', label: 'Sessions & access', description: 'HS256 session JWT in an httpOnly cookie, scrypt passwords, an atomic login lockout, and one row-level rule per entity (canAccessApplication).', category: 'auth', importance: 'primary', x: 27, y: 68 },
       { id: 'offline', label: 'Offline form', description: 'A service worker caches the form; IndexedDB queues answers and files with the owner’s id; on reconnect it posts once with an offlineId.', category: 'storage', importance: 'secondary', x: 27, y: 86 },
-      { id: 'funding', label: 'Money rules', description: 'src/lib/finance/funding.ts — approval ≤ requested, releases ≤ approved − released, and only the President can adjust afterwards (a top-up may go above requested, never below what is released). Pure functions, 26 unit checks.', category: 'workflow', importance: 'primary', x: 50, y: 46 },
+      { id: 'funding', label: 'Money rules', description: 'src/lib/finance/funding.ts, approval ≤ requested, releases ≤ approved − released, and only the President can adjust afterwards (a top-up may go above requested, never below what is released). Pure functions, 26 unit checks.', category: 'workflow', importance: 'primary', x: 50, y: 46 },
       { id: 'config', label: 'Config · Mission Control', description: 'Zod schema with code defaults, sparse overrides in SystemConfig, a generated Super Admin editor, history with undo, and a snapshot frozen on every application.', category: 'core', importance: 'primary', x: 50, y: 12 },
       { id: 'notify', label: 'Notifications', description: '24 event types routed by a pure recipient matrix to five audiences; written after the response, deduped per user.', category: 'realtime', importance: 'secondary', x: 50, y: 62 },
       { id: 'analytics', label: 'Analytics', description: 'Five scopes (organisation, division, church, pastor, project), one access rule per role × scope, 4 queries in one Promise.all, a 60 s cache.', category: 'data', importance: 'secondary', x: 50, y: 78 },
       { id: 'daily', label: 'Daily job', description: '00:30 IST, idempotent: report templates, due and overdue, the delayed flag, ban expiry, retention, archive purge, one audit row.', category: 'workflow', importance: 'secondary', x: 50, y: 93 },
       { id: 'database', label: 'PostgreSQL · Prisma', description: '18 models and 12 enums on Supabase Postgres, with relationJoins and a baseline migration (0_init) that CI checks for drift.', category: 'data', importance: 'primary', x: 73, y: 30 },
-      { id: 'history', label: 'History & audit', description: 'ApplicationStatusHistory for every transition and AuditLog for every action, login event and config change — kept indefinitely.', category: 'data', importance: 'secondary', x: 73, y: 50 },
-      { id: 'fund-release', label: 'FundRelease', description: 'One immutable row per tranche: amount, transaction reference, who released it — written in the same transaction as the status move.', category: 'data', importance: 'secondary', x: 73, y: 66 },
+      { id: 'history', label: 'History & audit', description: 'ApplicationStatusHistory for every transition and AuditLog for every action, login event and config change, kept indefinitely.', category: 'data', importance: 'secondary', x: 73, y: 50 },
+      { id: 'fund-release', label: 'FundRelease', description: 'One immutable row per tranche: amount, transaction reference, who released it, written in the same transaction as the status move.', category: 'data', importance: 'secondary', x: 73, y: 66 },
       { id: 'storage', label: 'Private bucket', description: 'Supabase Storage. Files are typed by magic bytes on upload, stored under the uploader’s id, and only ever handed out as 1-hour signed links.', category: 'storage', importance: 'secondary', x: 73, y: 84 },
       { id: 'pgcron', label: 'pg_cron', description: 'Supabase’s scheduler calls /api/cron/daily at 00:30 IST with a bearer secret, compared in constant time.', category: 'infrastructure', importance: 'leaf', x: 93, y: 88 },
-      { id: 'excel', label: 'Excel export', description: 'ExcelJS workbook of exactly the analytics view on screen — summary, status, money, releases, phases, trends, reports.', category: 'data', importance: 'leaf', x: 93, y: 70 },
+      { id: 'excel', label: 'Excel export', description: 'ExcelJS workbook of exactly the analytics view on screen, summary, status, money, releases, phases, trends, reports.', category: 'data', importance: 'leaf', x: 93, y: 70 },
       { id: 'tier-pastor', label: 'Pastor', description: 'Applies for their church, builds, uploads phase photos, and files monthly and bi-annual reports.', category: 'workflow', importance: 'leaf', x: 6, y: 12 },
       { id: 'tier-division', label: 'Division Leader', description: 'A pastor with oversight: acts as the applicant for any project in the divisions they lead, and reviews those churches’ reports.', category: 'workflow', importance: 'leaf', x: 6, y: 27 },
       { id: 'tier-hq', label: 'HQ Team', description: 'Starts each review, flags exact fields for changes, approves or rejects, and reviews every construction phase.', category: 'workflow', importance: 'leaf', x: 6, y: 42 },
       { id: 'tier-president', label: 'President', description: 'Gives the one final approval and sets the approved amount; can hold, resume and adjust it later.', category: 'workflow', importance: 'leaf', x: 6, y: 57 },
-      { id: 'tier-finance', label: 'Finance', description: 'Releases each of the three tranches — never more, in total, than the President approved.', category: 'workflow', importance: 'leaf', x: 6, y: 72 },
-      { id: 'tier-admin', label: 'Super Admin', description: 'Runs Mission Control — rules, form fields, document types, people and places. Grants deadline extensions; takes no other workflow action.', category: 'auth', importance: 'leaf', x: 6, y: 87 },
+      { id: 'tier-finance', label: 'Finance', description: 'Releases each of the three tranches, never more, in total, than the President approved.', category: 'workflow', importance: 'leaf', x: 6, y: 72 },
+      { id: 'tier-admin', label: 'Super Admin', description: 'Runs Mission Control, rules, form fields, document types, people and places. Grants deadline extensions; takes no other workflow action.', category: 'auth', importance: 'leaf', x: 6, y: 87 },
     ],
     edges: [
       { source: 'tier-pastor', target: 'offline', label: 'fills in the form', direction: 'one-way' },
@@ -115,14 +116,14 @@ export const caseStudy = {
   media: { frame: 'private', shots: [] },
   live: null,
   problem:
-    'A national church organisation in India ran church construction on paper — applications, sign-offs from HQ, the President and Finance, three rounds of fund releases and years of reports — with no single view of where any project stood.',
+    'A national church organisation in India ran church construction on paper, applications, sign-offs from HQ, the President and Finance, three rounds of fund releases and years of reports, with no single view of where any project stood.',
   built:
     'A platform that carries a church-building project from first application to three years after completion: a 9-page offline-capable form, one workflow engine through HQ review, the President’s approval and three Finance-released construction phases, five-scope analytics, in-app notifications, and a Super Admin console that changes the rules without a deploy.',
   how: [
-    'One workflow engine — 14 actions over a 21-value status enum — runs every application from HQ review to completion; each action is a compare-and-set inside a single transaction, with a history row and an audit row.',
-    'The President’s approved amount caps every release — race-tested so two clicks can never pay out twice.',
+    'One workflow engine, 14 actions over a 21-value status enum, runs every application from HQ review to completion; each action is a compare-and-set inside a single transaction, with a history row and an audit row.',
+    'The President’s approved amount caps every release, race-tested so two clicks can never pay out twice.',
     'Mission Control generates its settings screens from the zod schema; each application freezes the rules it was submitted under.',
-    'Analytics went from 31.4 s to 1.28 s on the same connection (147 s → 2.8 s on the transaction pooler) by collapsing ~100 sequential queries into one concurrent wave — with 110/110 responses unchanged.',
+    'Analytics went from 31.4 s to 1.28 s on the same connection (147 s → 2.8 s on the transaction pooler) by collapsing ~100 sequential queries into one concurrent wave, with 110/110 responses unchanged.',
   ],
   next: [],
 };

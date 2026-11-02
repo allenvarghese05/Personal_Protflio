@@ -11,7 +11,7 @@ export const project = {
   badge: 'IN PROGRESS · SOLO',
   label: 'AutoMix AI',
   subtitle:
-    'A real-time engine that mixes live microphones and catches acoustic feedback — a classical ring detector, notch filters and a gain guard, scored in a simulated room',
+    'A real-time engine that mixes live microphones and catches acoustic feedback, a classical ring detector, notch filters and a gain guard, scored in a simulated room',
   role: 'Solo engineer',
   company: 'Personal project',
   dateRange: 'Apr 2026 – Present',
@@ -40,7 +40,7 @@ export const project = {
   architectureGraph: {
     nodes: [
       { id: 'channel', label: 'Channel pipeline', description: 'Per mic: gain → clipper → 80 Hz high-pass → gate → compressor → cut-only EQ → detector → notches → guard → trim → ceiling.', category: 'audio', importance: 'center', x: 48, y: 40 },
-      { id: 'venue', label: 'The room', description: 'Microphones and speakers in a venue — today, a Mac and a USB audio interface.', category: 'ui', importance: 'leaf', x: 6, y: 40 },
+      { id: 'venue', label: 'The room', description: 'Microphones and speakers in a venue, today, a Mac and a USB audio interface.', category: 'ui', importance: 'leaf', x: 6, y: 40 },
       { id: 'main', label: 'main.py', description: 'Opens N mics on one interface, builds a pipeline per channel and a master chain, runs the audio callback.', category: 'core', importance: 'primary', x: 26, y: 22 },
       { id: 'meter', label: 'Terminal meter', description: 'An ANSI meter redrawn every 50 ms; Ctrl+C prints a session report.', category: 'ui', importance: 'secondary', x: 26, y: 48 },
       { id: 'recorder', label: 'Ring recorder', description: 'Ramps forward gain until the oracle hears a ring, backs off 12 dB, saves the wav and a JSON description.', category: 'core', importance: 'secondary', x: 26, y: 74 },
@@ -79,7 +79,7 @@ export const caseStudy = {
   media: { frame: 'private', shots: [] },
   live: null,
   problem:
-    'Venues without an AV technician have no one to catch acoustic feedback, and it builds in seconds — while every open microphone adds gain to the loop.',
+    'Venues without an AV technician have no one to catch acoustic feedback, and it builds in seconds, while every open microphone adds gain to the loop.',
   built:
     'A Python real-time engine: a classical ring detector drives notch filters and a gain guard, Dugan gain-sharing keeps total gain constant, and a closed-loop room simulator scores every change.',
   how: [

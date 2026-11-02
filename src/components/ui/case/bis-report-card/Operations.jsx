@@ -63,11 +63,11 @@ const SIMS = OPS.scenarios.map((s) => {
   if (s.off.length) {
     const boot = withWhy.find((r) => r.catchUp);
     const after = withWhy[withWhy.indexOf(boot) + 1];
-    summary = `The ${pad2(RULE.hour)}:00 run was missed while the server was off. At boot the last success was ${hrs(boot.age)} old, so it ran at once${after ? `; the next followed ${hrs(after.at - boot.at)} later — a fresh backup every day, not a fixed hour` : ''}.`;
+    summary = `The ${pad2(RULE.hour)}:00 run was missed while the server was off. At boot the last success was ${hrs(boot.age)} old, so it ran at once${after ? `; the next followed ${hrs(after.at - boot.at)} later, a fresh backup every day, not a fixed hour` : ''}.`;
   } else if (failed) {
     const f = withWhy.find((r) => !r.ok);
     const retry = withWhy[withWhy.indexOf(f) + 1];
-    summary = `The upload at ${clockOf(f.at).split(' · ')[1]} failed — one alert email — and the retry ${retry ? `at ${clockOf(retry.at).split(' · ')[1]}` : 'an hour later'} succeeded. Success stays silent.`;
+    summary = `The upload at ${clockOf(f.at).split(' · ')[1]} failed, one alert email, and the retry ${retry ? `at ${clockOf(retry.at).split(' · ')[1]}` : 'an hour later'} succeeded. Success stays silent.`;
   } else {
     summary = `${ok} backups, one a night at ${pad2(RULE.hour)}:00. Success sends nothing.`;
   }
@@ -107,7 +107,7 @@ function Door() {
                 <li key={s.key} className="rounded-md border border-line px-3 py-2">
                   <span className="font-mono text-label text-ink">{s.label}</span>
                   <span className="mt-0.5 block text-label text-ink-subtle">{s.note}</span>
-                  <span className="sr-only"> — publishes no port</span>
+                  <span className="sr-only">, publishes no port</span>
                 </li>
               ))}
             </ul>
@@ -201,7 +201,7 @@ function Schedule({ accent }) {
         }
       >
         <p className="max-w-[70ch] text-label text-ink-muted">
-          Every {RULE.checkMin} minutes it asks: is the last success over {RULE.dueAfterH} h old — or is it {pad2(RULE.hour)}:00 and over{' '}
+          Every {RULE.checkMin} minutes it asks: is the last success over {RULE.dueAfterH} h old, or is it {pad2(RULE.hour)}:00 and over{' '}
           {RULE.atHourAfterH} h old? After a failure it waits {RULE.retryMin} minutes.
         </p>
         <div className="mt-5">
@@ -219,7 +219,7 @@ function Schedule({ accent }) {
               <Glyph kind={r.ok ? 'tick' : 'cross'} />
               <span className="font-mono text-label tabular-nums text-ink">{clockOf(r.at)}</span>
               <span className="text-label text-ink-muted">
-                <span className="sr-only">{r.ok ? 'succeeded' : 'failed'} — </span>
+                <span className="sr-only">{r.ok ? 'succeeded' : 'failed'}, </span>
                 {r.ok ? '' : 'failed · alert email · '}
                 {r.why}
               </span>

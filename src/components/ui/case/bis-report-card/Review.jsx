@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Review — "Three states, six moves — and a mark can change only while the
+ * Review — "Three states, six moves, and a mark can change only while the
  * card is a draft."
  *
  * Two blocks:
@@ -258,7 +258,7 @@ function RunPanel({ accent }) {
       </Readout>
     );
   } else {
-    footer = <p className="text-body text-ink-subtle">A new section starts as a draft — editable, and watermarked if printed.</p>;
+    footer = <p className="text-body text-ink-subtle">A new section starts as a draft, editable, and watermarked if printed.</p>;
   }
 
   return (
@@ -313,7 +313,7 @@ function RunPanel({ accent }) {
                   ))}
                 </ol>
               ) : (
-                <p className="mt-3 border-t border-line pt-3 text-label text-ink-subtle">Nothing yet — step forward.</p>
+                <p className="mt-3 border-t border-line pt-3 text-label text-ink-subtle">Nothing yet, step forward.</p>
               )}
             </div>
           </div>

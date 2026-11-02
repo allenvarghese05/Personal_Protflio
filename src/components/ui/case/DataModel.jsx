@@ -26,7 +26,7 @@ import { EASE_OUT } from '@/lib/motion';
 
 /* ── constants ─────────────────────────────────────────────────────────── */
 
-const RULE_ALPHA = 0.6; // top rule — present, not loud
+const RULE_ALPHA = 0.6; // top rule, present, not loud
 const RULE_PX = 2;
 const STEP_S = 0.07; // stagger between blocks
 const FADE_S = 0.6;

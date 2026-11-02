@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Templates — "One engine, two very different cards — the format is data,
+ * Templates — "One engine, two very different cards, the format is data,
  * not code."
  *
  * Two panels:
@@ -160,7 +160,7 @@ function CoScholastic({ template }) {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-label text-ink-subtle">So a legend belongs to its category — never to the template.</p>
+        <p className="mt-3 text-label text-ink-subtle">So a legend belongs to its category, never to the template.</p>
       </div>
     );
   }
@@ -247,7 +247,7 @@ function Check({ accent }) {
         footer={
           probe ? (
             <Readout runKey={runKey} reduce={reduce} tone={probe.ok ? P.jade : P.alert} status={probe.ok ? 'Saved' : 'Refused'}>
-              <span className="text-body text-ink-muted">{probe.ok ? 'Cosmetic changes never re-grade a card.' : `Stopped by the ${probe.by === 'zod' ? 'schema' : 'freeze'} — nothing is written.`}</span>
+              <span className="text-body text-ink-muted">{probe.ok ? 'Cosmetic changes never re-grade a card.' : `Stopped by the ${probe.by === 'zod' ? 'schema' : 'freeze'}, nothing is written.`}</span>
             </Readout>
           ) : (
             <p className="text-body text-ink-subtle">Pick an edit.</p>

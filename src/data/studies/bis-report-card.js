@@ -30,7 +30,7 @@ export const ROLES = [
 export const CARD_STAGES = [
   { key: 'marks', who: 'Subject teachers', does: 'type or paste marks', part: 'marks' },
   { key: 'class', who: 'Class teacher', does: 'co-scholastic · attendance · remark → submit', part: 'class' },
-  { key: 'review', who: 'Division head', does: 'approve & lock — the watermark goes', part: 'stamp' },
+  { key: 'review', who: 'Division head', does: 'approve & lock, the watermark goes', part: 'stamp' },
   { key: 'print', who: 'Class teacher · HOD · principal', does: 'print the section as PDF, one card per student', part: 'print' },
 ];
 // What the figure's sample card shows. Subjects and maxima are the
@@ -48,7 +48,7 @@ export const CARD_SAMPLE = {
   ],
   coScholastic: ['A', 'A+', 'B', 'A'],
   attendance: '38 / 40',
-  watermark: 'DRAFT — NOT YET APPROVED',
+  watermark: 'DRAFT, NOT YET APPROVED',
 };
 
 /* ── 02 · the review — backend/src/approval/approval.service.ts ─────────── */
@@ -57,7 +57,7 @@ export const REVIEW = {
     {
       key: 'draft',
       label: 'Draft',
-      edit: { code: 200, text: 'Saved — edits are allowed only in draft.' },
+      edit: { code: 200, text: 'Saved, edits are allowed only in draft.' },
       note: 'Editable. Subject teachers enter marks; the class teacher fills the class-level fields.',
     },
     {
@@ -94,7 +94,7 @@ export const REVIEW = {
     { move: 'submit' },
     { move: 'approve' },
   ],
-  watermark: 'DRAFT — NOT YET APPROVED',
+  watermark: 'DRAFT, NOT YET APPROVED',
   // report-card-html.renderer.ts:457 — printed only when the count passes 1
   revision: (n) => (n > 1 ? `Revision ${n}` : null),
 };
@@ -168,8 +168,8 @@ export const TEMPLATE_PROBES = [
   { key: 'total', label: 'totalMax 45, parts sum to 50', by: 'zod', ok: false, says: 'Subject "ENGLISH" totalMax 45 ≠ sum of component maxMarks 50' },
   { key: 'overlap', label: 'B band 56–76 (A starts at 75)', by: 'zod', ok: false, says: 'Grade bands B and A overlap' },
   { key: 'legend', label: 'Legend mentions grade E', by: 'zod', ok: false, says: 'Category "LONG_MUSCLE_DEV" legend mentions grade "E" not in its gradeScale' },
-  { key: 'frozen', label: 'Change the pass mark (cards approved)', by: 'freeze', ok: false, says: 'Cannot change the pass mark: report cards are approved on this template — LKG - A (PT1). Reopen them first, or make the change in next year’s template.' },
-  { key: 'label', label: 'Rename a label (cards approved)', by: 'freeze', ok: true, says: 'Saved — labels, notes and order are cosmetic and always pass.' },
+  { key: 'frozen', label: 'Change the pass mark (cards approved)', by: 'freeze', ok: false, says: 'Cannot change the pass mark: report cards are approved on this template, LKG - A (PT1). Reopen them first, or make the change in next year’s template.' },
+  { key: 'label', label: 'Rename a label (cards approved)', by: 'freeze', ok: true, says: 'Saved, labels, notes and order are cosmetic and always pass.' },
 ];
 
 /* ── 04 · marks entry — three ways in, one validator ─────────────────────── */
@@ -215,7 +215,7 @@ export const MARK_PATHS = [
     key: 'upload',
     label: 'Upload the Excel sheet',
     route: 'POST …/excel/upload',
-    note: 'The downloaded sheet carries each student’s id in its first column. Rows match on that id alone — an edited roll number is refused, never guessed. Ids and values are illustrative; the reasons are the code’s.',
+    note: 'The downloaded sheet carries each student’s id in its first column. Rows match on that id alone, an edited roll number is refused, never guessed. Ids and values are illustrative; the reasons are the code’s.',
     // this section's students (id → roll), then the uploaded rows, all in
     // the Written column; the verdicts are computed by the code's own rules
     roster: { 41: '1', 42: '2', 43: '3', 44: '4', 45: '5' },
@@ -301,9 +301,9 @@ export const DECISIONS = [
     problem:
       '“Check the status, then write” is a race: a teacher’s save can read “draft”, the division head’s approve commits, and the save lands in a card that is already locked. Two reviewers pressing Approve together could also both succeed.',
     decision:
-      'Every status move and every write runs in one transaction that first takes a Postgres advisory lock on a named key — section:<session>:<section> — and only then reads the status. The key is hashed with hashtextextended, so different lock concerns can’t collide; several locks are always taken in sorted order, so two transactions can’t deadlock; and no row has to exist, so a section that was never submitted is covered too.',
+      'Every status move and every write runs in one transaction that first takes a Postgres advisory lock on a named key, section:<session>:<section>, and only then reads the status. The key is hashed with hashtextextended, so different lock concerns can’t collide; several locks are always taken in sorted order, so two transactions can’t deadlock; and no row has to exist, so a section that was never submitted is covered too.',
     tradeoff:
-      'Writes to one section are serialised: one extra round trip, and a save can wait behind an approve. The proof is a test: approve plus 8 simultaneous cell saves, five rounds — every save gets 200 or 409, and no mark is ever updated after lockedAt. Two simultaneous approves: exactly one wins, and the revision goes up by one.',
+      'Writes to one section are serialised: one extra round trip, and a save can wait behind an approve. The proof is a test: approve plus 8 simultaneous cell saves, five rounds, every save gets 200 or 409, and no mark is ever updated after lockedAt. Two simultaneous approves: exactly one wins, and the revision goes up by one.',
     saves: 8,
     rounds: 5,
     // the position the approve takes in the lock queue each round — an
@@ -332,13 +332,13 @@ private lockKey(tx: Prisma.TransactionClient, name: string) {
   {
     id: 'devices',
     kicker: 'Shared computers',
-    title: 'One lab PC, many teachers — and a stolen password still isn’t enough',
+    title: 'One lab PC, many teachers, and a stolen password still isn’t enough',
     problem:
-      'Each new browser waits for the office to approve it (PR #12). But one token per browser meant every teacher who sat at a lab PC overwrote the last teacher’s approval — in the commit’s words, the office would have switched to “notify only” in week one.',
+      'Each new browser waits for the office to approve it (PR #12). But one token per browser meant every teacher who sat at a lab PC overwrote the last teacher’s approval, in the commit’s words, the office would have switched to “notify only” in week one.',
     decision:
       'The device cookie became a map: one random token per person (u<id>) plus one school token, the 20 most recent kept, only their SHA-256 hashes stored. The office can register a PC by MAC address, read from the host’s ARP table by a sidecar. A sign-in from it is trusted as a school device only if the browser’s OS matches the registration, the person isn’t an approver and isn’t still on a temporary password. The guard re-checks the device token on every request.',
     tradeoff:
-      'MAC matching is best-effort by design: it works only on the server’s own network segment, phones randomise MACs, and MACs can be spoofed. Behind a lab’s own router everything shares one MAC — hence the OS check, and a MAC seen with more than one OS in 30 days can’t be registered at all. So it is never the only lock, and the office is told every time.',
+      'MAC matching is best-effort by design: it works only on the server’s own network segment, phones randomise MACs, and MACs can be spoofed. Behind a lab’s own router everything shares one MAC, hence the OS check, and a MAC seen with more than one OS in 30 days can’t be registered at all. So it is never the only lock, and the office is told every time.',
     // illustrative people and machines; `cookie` = the per-person tokens the
     // browser already holds (people who signed in there before)
     people: [
@@ -347,14 +347,14 @@ private lockKey(tx: Prisma.TransactionClient, name: string) {
       { key: 'office', label: 'Office staff', id: 3, approver: true, tempPassword: false },
     ],
     machines: [
-      { key: 'lab', label: 'Lab PC 3 · Windows', mac: 'registered', os: 'Windows', registeredOs: 'Windows', cookie: ['u2'], note: 'the principal signed in here earlier — approvers always get a personal token, so it holds u2' },
+      { key: 'lab', label: 'Lab PC 3 · Windows', mac: 'registered', os: 'Windows', registeredOs: 'Windows', cookie: ['u2'], note: 'the principal signed in here earlier, approvers always get a personal token, so it holds u2' },
       { key: 'phone', label: 'Phone on the lab Wi-Fi', mac: 'registered', os: 'Android', registeredOs: 'Windows', cookie: [], note: 'behind the lab’s own router, so the server sees the registered MAC' },
       { key: 'laptop', label: 'Own laptop', mac: null, os: 'macOS', registeredOs: null, cookie: [] },
     ],
     code: {
       file: 'backend/src/devices/devices.service.ts',
       lang: 'ts',
-      body: `// createDevice — a browser this person has never used before
+      body: `// createDevice, a browser this person has never used before
 const schoolComputer =
   registered &&
   this.mayUseSchoolComputer(user) &&              // not an approver, no temporary password
@@ -374,7 +374,7 @@ const entries = [...Object.entries(rest), [key, token]].slice(-DEVICE_COOKIE_MAX
   {
     id: 'roll',
     kicker: 'Integrity',
-    title: 'Roll numbers: unique among active students — yet reusable, and renumberable',
+    title: 'Roll numbers: unique among active students, yet reusable, and renumberable',
     problem:
       'A student who leaves keeps their old roll number, and a newcomer may take it. Promotion and its undo renumber a whole section inside one transaction, so for a moment two rows share a roll. A plain unique index forbids all three.',
     decision:
@@ -392,11 +392,11 @@ const entries = [...Object.entries(rest), [key, token]].slice(-DEVICE_COOKIE_MAX
           { name: 'Kabir', active: true, roll: 3 },
         ],
         steps: [
-          { who: 'Aarav', roll: 1, note: 'Aarav and Diya both hold roll 1 — allowed mid-transaction' },
+          { who: 'Aarav', roll: 1, note: 'Aarav and Diya both hold roll 1, allowed mid-transaction' },
           { who: 'Diya', roll: 2, note: 'resolved' },
         ],
         ok: true,
-        says: 'COMMIT — the deferred check runs once, on the final numbers, and passes.',
+        says: 'COMMIT, the deferred check runs once, on the final numbers, and passes.',
       },
       {
         key: 'reuse',
@@ -405,9 +405,9 @@ const entries = [...Object.entries(rest), [key, token]].slice(-DEVICE_COOKIE_MAX
           { name: 'Ishaan', active: false, roll: 4 },
           { name: 'Meera', active: true, roll: 6 },
         ],
-        steps: [{ who: 'Meera', roll: 4, note: 'Ishaan has left — the constraint only compares active students' }],
+        steps: [{ who: 'Meera', roll: 4, note: 'Ishaan has left, the constraint only compares active students' }],
         ok: true,
-        says: 'COMMIT — passes. A leaver’s roll is free to reuse.',
+        says: 'COMMIT, passes. A leaver’s roll is free to reuse.',
       },
       {
         key: 'clash',
@@ -418,7 +418,7 @@ const entries = [...Object.entries(rest), [key, token]].slice(-DEVICE_COOKIE_MAX
         ],
         steps: [{ who: 'Diya', roll: 1, note: 'two active students on roll 1' }],
         ok: false,
-        says: 'COMMIT refused — 23P01, students_active_roll_no_unique.',
+        says: 'COMMIT refused, 23P01, students_active_roll_no_unique.',
       },
     ],
     code: {
@@ -540,50 +540,50 @@ export const BUILD = {
 /* ── the page's own copy ─────────────────────────────────────────────────── */
 export const COPY = {
   outcome:
-    'A report card system that lives inside the school: one server on the school’s own network, no cloud — teachers enter marks, a review locks them, and the office prints CBSE-format cards from templates the school controls.',
+    'A report card system that lives inside the school: one server on the school’s own network, no cloud, teachers enter marks, a review locks them, and the office prints CBSE-format cards from templates the school controls.',
   status: 'Built · rollout with the school in talks',
   // requirement (docs/specs/00) → what was built
   before: [
     'Replace manual and Excel-based report card preparation',
-    'Marks come from handwritten papers — no OCR, so entry has to be fast',
+    'Marks come from handwritten papers, no OCR, so entry has to be fast',
     'Nursery to Class 12, in very different card formats',
     'Subject teacher → class teacher → division head, then print',
     'Data stays at the school, and the office can only do basic upkeep',
   ],
   after: [
     'A marks grid per subject; totals, percentages and grades come from the server as you type',
-    'Enter and Tab advance, a column pastes straight from Excel, AB means absent — or fill the same sheet offline',
+    'Enter and Tab advance, a column pastes straight from Excel, AB means absent, or fill the same sheet offline',
     'Formats are templates stored as data: a marks-based LKG card and a descriptive Nursery record already run side by side',
     'One review state machine: edits only in draft, approval locks, reopening needs a reason, every move is audited',
     'One server at the school behind one HTTPS door, and a nightly encrypted backup that only speaks up when it fails',
   ],
   // what's next — README "Status against the phase plan" (Phases 21–27) and PR #16
   next: [
-    'Rollout with the school — the integration is being discussed with them now.',
+    'Rollout with the school, the integration is being discussed with them now.',
     'Stand the box up on the school’s own server: Docker on Ubuntu, reached from home over Tailscale. The deployment runbook is written.',
     'A Pre-Primary pilot: one real exam cycle with real teachers, on the two templates that exist today.',
-    'Primary through Senior Secondary formats, one class group at a time, from the school’s real cards — added in the template console, not in code.',
+    'Primary through Senior Secondary formats, one class group at a time, from the school’s real cards, added in the template console, not in code.',
   ],
 };
 
 /* ── the case study in one screen ─────────────────────────────────────────── */
 export const OVERVIEW = [
-  { label: 'What it is', text: 'The school’s own report card system. Subject teachers enter marks, class teachers consolidate, division heads approve and lock, and the office prints CBSE-format report cards — every card format coming from one template engine.' },
-  { label: 'Why it exists', text: 'Report cards were prepared by hand and in Excel. Student data should stay at the school, the internet there can’t be relied on, and nobody on site should have to run a cloud service — so it runs on one server inside the school, on its own network.' },
+  { label: 'What it is', text: 'The school’s own report card system. Subject teachers enter marks, class teachers consolidate, division heads approve and lock, and the office prints CBSE-format report cards, every card format coming from one template engine.' },
+  { label: 'Why it exists', text: 'Report cards were prepared by hand and in Excel. Student data should stay at the school, the internet there can’t be relied on, and nobody on site should have to run a cloud service, so it runs on one server inside the school, on its own network.' },
   { label: 'What Allen built', text: 'Solo (AI-assisted): the specs, a NestJS API, a Next.js app, the template engine and the template console, PDF printing, Excel import, the locking review, device controls for shared lab computers, encrypted backups, Docker ops and CI.' },
-  { label: 'Where it stands', text: 'Built and tested — phases 1–20 are done. The rollout with the school is being discussed now: next is installing it on the school’s server and a first pilot with real teachers.' },
+  { label: 'Where it stands', text: 'Built and tested, phases 1–20 are done. The rollout with the school is being discussed now: next is installing it on the school’s server and a first pilot with real teachers.' },
 ];
 
 /* ── the template console — the school's control panel for card formats ─── */
 // frontend/src/components/admin/templates-admin.tsx · shared/src/template/*.ts
 export const TEMPLATE_CONSOLE = {
-  intro: 'Adding or redesigning a card format is a data change, not a code change. In the admin console the school edits a template’s definition and its print layout, checks it, and saves — and the next print uses it.',
+  intro: 'Adding or redesigning a card format is a data change, not a code change. In the admin console the school edits a template’s definition and its print layout, checks it, and saves, and the next print uses it.',
   definition: ['Terms', 'Subjects → components', 'Max marks or descriptive options', 'Grading bands', 'Pass mark', 'Absent policy', 'Co-scholastic areas, each with its own legend', 'Extra fields'],
   page: ['Page size: A4 or Letter', 'Portrait or landscape', 'Margins (5–30 mm)', 'Heading and body fonts', 'Document title', 'Subtitle line'],
   layouts: [
-    { key: 'numeric', label: 'Progress Report (marks)', blocks: ['Header', 'Student details', 'Scholastic Areas — marks table', 'Co-Scholastic Areas', 'Attendance', 'Extra fields', 'Remarks', 'Grading legend', 'Signatures'] },
-    { key: 'descriptive', label: 'Achievement Record (descriptive)', blocks: ['Header', 'Student details', 'Learning Outcomes — skills table', 'Development Areas (new page)', 'Attendance', 'Remarks', 'Signatures'] },
+    { key: 'numeric', label: 'Progress Report (marks)', blocks: ['Header', 'Student details', 'Scholastic Areas, marks table', 'Co-Scholastic Areas', 'Attendance', 'Extra fields', 'Remarks', 'Grading legend', 'Signatures'] },
+    { key: 'descriptive', label: 'Achievement Record (descriptive)', blocks: ['Header', 'Student details', 'Learning Outcomes, skills table', 'Development Areas (new page)', 'Attendance', 'Remarks', 'Signatures'] },
   ],
-  steps: ['Start from a reference template, or paste a new one', 'Edit the definition and the print layout', 'Check it — the server validates it against the schema', 'Save — the next print uses it'],
-  guard: 'While any report card on a template is approved, changes that would re-grade it — the grading scale, pass mark, absent policy, components, subjects — are refused, naming the sections; labels and notes can still change.',
+  steps: ['Start from a reference template, or paste a new one', 'Edit the definition and the print layout', 'Check it, the server validates it against the schema', 'Save, the next print uses it'],
+  guard: 'While any report card on a template is approved, changes that would re-grade it, the grading scale, pass mark, absent policy, components, subjects, are refused, naming the sections; labels and notes can still change.',
 };

@@ -1010,3 +1010,114 @@ html {
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================
+   /projects — the résumé page. Dark (Signal Amber) by default; the toggle
+   sets html[data-work-theme="light"] while the page is open, which swaps
+   the same token names for a warm paper palette. Scoped to .work-root, so
+   the game and the case studies never change.
+   Light contrast on #f4f2ed: ink 17:1, muted 9:1, subtle 5.2:1, accent 4.9:1.
+   ============================================================ */
+.work-root {
+  background: var(--void);
+  color: var(--ink);
+  color-scheme: dark;
+}
+html[data-work-theme="light"],
+html[data-work-theme="light"] body {
+  background-color: #f4f2ed;
+}
+html[data-work-theme="light"] .work-root {
+  color-scheme: light;
+  --void: #f4f2ed;
+  --surface: #ffffff;
+  --surface-2: #ece9e2;
+  --raised: #e3dfd6;
+  --line: #e1dcd2;
+  --line-hi: #cbc5b9;
+  --ink: #16140f;
+  --ink-muted: #46423b;
+  --ink-subtle: #6b665d;
+  --ink-faint: #a39d92;
+  --accent: #a85410;
+  --accent-hi: #c2620f;
+  --accent-lo: #8a440c;
+  --ice: #2f62b8;
+  --jade: #12705a;
+  --sand: #7d5d33;
+  --lilac: #6a55c2;
+  --slate: #56607a;
+  --live: #16804f;
+}
+html[data-work-theme="light"] .work-root ::selection {
+  color: #ffffff;
+}
+/* the theme flips without every surface easing at its own pace */
+.work-root.is-theming,
+.work-root.is-theming * {
+  transition: none !important;
+}
+
+/* /projects index: the hover band's marquee. It only runs while its band is
+   showing; no hover (touch) means no band at all. */
+@keyframes work-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.work-marquee {
+  width: max-content;
+  animation: work-marquee 24s linear infinite;
+  animation-play-state: paused;
+}
+.work-marquee > span {
+  flex-shrink: 0;
+}
+.work-band__inner[data-running="true"] .work-marquee {
+  animation-play-state: running;
+}
+@media (prefers-reduced-motion: reduce) {
+  .work-marquee {
+    animation: none;
+  }
+}
+/* touch rows open their band when scrolled to the middle of the screen (see FlowIndex) */
+
+/* /projects on paper: recruiters print. Light ink on white, no chrome. */
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+  .work-root {
+    --void: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f2f0eb;
+    --line: #dddad3;
+    --line-hi: #cfcac0;
+    --ink: #111111;
+    --ink-muted: #333333;
+    --ink-subtle: #555555;
+    --accent: #a85410;
+    background: #fff;
+  }
+  .work-root [data-noprint],
+  .work-band {
+    display: none !important;
+  }
+  .work-root section,
+  .work-root article {
+    break-inside: avoid;
+  }
+  .work-root .lg\:sticky {
+    position: static !important;
+  }
+}
+
+/* overflow-x: hidden on html/body (above) turns body into a scroll container,
+   which silently disables position: sticky. On /projects, clip instead: the
+   same no-sideways-scroll, without breaking the held pictures. */
+html:has(.work-root),
+html:has(.work-root) body {
+  overflow-x: clip;
+}

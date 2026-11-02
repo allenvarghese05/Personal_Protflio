@@ -69,12 +69,12 @@ const unlockOf = (ev) => ev.breakdown.find((b) => b.id === 'unlocked');
 
 function outcome(gap, ev) {
   if (ev.decision === 'ignored_dedupe') {
-    return { tone: P.sand, glyph: 'undo', status: 'Ignored · duplicate', text: `${gap} min after the last tick is under ${DEDUPE} — a duplicate. It scores ${ev.score}, but is ignored: the streak holds at ${ev.consecutiveHigh}, no bonus.` };
+    return { tone: P.sand, glyph: 'undo', status: 'Ignored · duplicate', text: `${gap} min after the last tick is under ${DEDUPE}, a duplicate. It scores ${ev.score}, but is ignored: the streak holds at ${ev.consecutiveHigh}, no bonus.` };
   }
   if (ev.decision === 'confirm') {
-    return { tone: P.jade, glyph: 'tick', status: 'Confirmed · two in a row', text: `${gap} min apart is within ${MAX_GAP}: unlocked on both ticks earns the +10 bonus, ${ev.score} is the second high in a row — confirmed.` };
+    return { tone: P.jade, glyph: 'tick', status: 'Confirmed · two in a row', text: `${gap} min apart is within ${MAX_GAP}: unlocked on both ticks earns the +10 bonus, ${ev.score} is the second high in a row, confirmed.` };
   }
-  return { tone: P.sand, glyph: 'flag', status: `High · ${ev.consecutiveHigh} of 2 again`, text: `${gap} min is over ${MAX_GAP}: not consecutive. No bonus, ${ev.score} — high, but the streak starts again at ${ev.consecutiveHigh}.` };
+  return { tone: P.sand, glyph: 'flag', status: `High · ${ev.consecutiveHigh} of 2 again`, text: `${gap} min is over ${MAX_GAP}: not consecutive. No bonus, ${ev.score}, high, but the streak starts again at ${ev.consecutiveHigh}.` };
 }
 
 /* ── pieces ────────────────────────────────────────────────────────────── */

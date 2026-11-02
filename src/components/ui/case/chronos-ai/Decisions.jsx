@@ -13,12 +13,12 @@
  *              without — computed from RULES by ceilingWithoutApp(). Then
  *              the validator's catch: the design doc's 35 + 30 + 40 = 105,
  *              refused; the YAML's 35 + 25 + 40 = 100, accepted.
- *   versions — the rule_versions ledger and the four steps of
- *              activate_new_version(). Same rules: hashed, matched, stop —
+ *   versions, the rule_versions ledger and the four steps of
+ *              activate_new_version(). Same rules: hashed, matched, stop, 
  *              200, nothing written. Edited rules: version 1 deactivated,
- *              version 2 inserted — 201. Insert fails: the savepoint undoes
- *              the deactivation too — version 1 stays active.
- *   dst      — the night the clocks go back in New York, on a UTC axis with
+ *              version 2 inserted, 201. Insert fails: the savepoint undoes
+ *              the deactivation too, version 1 stays active.
+ *   dst     , the night the clocks go back in New York, on a UTC axis with
  *              the wall clock under it: 01:00 happens twice. The 03:00 day
  *              boundary splits the night between Saturday and Sunday, and
  *              Sunday's window opens at 13:00 UTC, an hour later than
@@ -75,7 +75,7 @@ function ReweightVisual({ inView, reduce, accent }) {
           <Readout runKey={runKey} delay={0.5} reduce={reduce} tone={off ? P.sand : P.jade} status={off ? `Ceiling ${ceiling} < ${CONFIRM}` : `Ceiling ${ceiling}`}>
             <span className="text-body text-ink-muted">
               {off
-                ? `Without the app, unlocked and unplugged top out at ${ceiling}. The no-pedometer, no-app fixture scores ${noAppScores.join(', then ')} — and never confirms. Opening the app (+${RULES.reweight.foreground}) is what gets a denied day over the line.`
+                ? `Without the app, unlocked and unplugged top out at ${ceiling}. The no-pedometer, no-app fixture scores ${noAppScores.join(', then ')}, and never confirms. Opening the app (+${RULES.reweight.foreground}) is what gets a denied day over the line.`
                 : `With the pedometer, the five background rules can reach ${ceiling} without the app ever opening.`}
             </span>
           </Readout>
@@ -396,7 +396,7 @@ function DstVisual({ decision, inView, reduce, accent }) {
           })}
         </ul>
         <p className="sr-only">
-          The 01:30 that happens twice — 05:30 and 06:30 UTC — is before the 03:00 boundary both times, so both belong to Saturday October 31. Sunday’s 08:00 window opens at 13:00 UTC.
+          The 01:30 that happens twice, 05:30 and 06:30 UTC, is before the 03:00 boundary both times, so both belong to Saturday October 31. Sunday’s 08:00 window opens at 13:00 UTC.
         </p>
       </div>
     </PanelFrame>

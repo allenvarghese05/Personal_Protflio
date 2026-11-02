@@ -67,17 +67,17 @@ function headlines() {
   const layers = SECURITY.layers.length;
   const findings = SECURITY.audit.length;
   return {
-    problem: `Every project lived on paper — an applicant, ${word(SIGNOFF_COUNT)} sign-offs, ${word(PHASE_COUNT)} funded phases, no single view.`,
-    lifecycle: `${STATUSES.length} statuses, one engine — and every move leaves a record.`,
+    problem: `Every project lived on paper, an applicant, ${word(SIGNOFF_COUNT)} sign-offs, ${word(PHASE_COUNT)} funded phases, no single view.`,
+    lifecycle: `${STATUSES.length} statuses, one engine, and every move leaves a record.`,
     decisions: `${capWord(DECISIONS.length)} hard problems: money that can’t be paid out twice, rule changes that can’t rewrite old applications, and data no one can reach by editing a URL.`,
-    control: 'The organisation changes its own rules — no engineer, no deploy.',
-    perf: `The heaviest report went from ${seconds(PERF.hero.before)} to ${seconds(PERF.hero.after)} — and returned the same bytes.`,
-    security: `${capWord(layers)} layers between a request and the data — then an audit: ${word(findings)} findings, ${word(findings)} fixes.`,
+    control: 'The organisation changes its own rules, no engineer, no deploy.',
+    perf: `The heaviest report went from ${seconds(PERF.hero.before)} to ${seconds(PERF.hero.after)}, and returned the same bytes.`,
+    security: `${capWord(layers)} layers between a request and the data, then an audit: ${word(findings)} findings, ${word(findings)} fixes.`,
     platform: 'Around the engine: analytics, notifications, an offline form and a nightly job.',
-    architecture: `One Next.js app, ${word(LAYERS.length)} layers — follow a request through it.`,
-    data: `${MODEL_COUNT} models in ${word(DATA_MODEL.domains.length)} domains — and every release of money is a row the app never edits.`,
-    build: PR_COUNT ? `A prototype in February — then ${PR_COUNT} pull requests in three weeks of October.` : 'Sole engineer, schema first.',
-    next: 'Production next — then what the roadmap deferred.',
+    architecture: `One Next.js app, ${word(LAYERS.length)} layers, follow a request through it.`,
+    data: `${MODEL_COUNT} models in ${word(DATA_MODEL.domains.length)} domains, and every release of money is a row the app never edits.`,
+    build: PR_COUNT ? `A prototype in February, then ${PR_COUNT} pull requests in three weeks of October.` : 'Sole engineer, schema first.',
+    next: 'Production next, then what the roadmap deferred.',
   };
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * WakeScore — "Six signals, one score out of 100 — two ticks at 70, or one at
+ * WakeScore — "Six signals, one score out of 100, two ticks at 70, or one at
  * 85, and you're up."
  *
  * The centrepiece: the golden mornings from the test suite, tick by tick.
@@ -13,7 +13,7 @@
  *            the final score is an accent mark (the current thing), with the
  *            70 and 85 thresholds as ticks above the track.
  *   rules    every rule as a row — what it reads, the value this tick sent,
- *            points against the rule's cap — with skipped rules (no
+ *            points against the rule's cap, with skipped rules (no
  *            pedometer), unmet requirements and the unlock bonus said in
  *            words. A dashed tag marks the value the server derives by
  *            comparing this snapshot with the previous one.
@@ -90,10 +90,10 @@ function inputText(rule, b, tick) {
 }
 
 function noteText(b) {
-  if (b.note === 'skipped') return 'skipped — no pedometer permission';
+  if (b.note === 'skipped') return 'skipped, no pedometer permission';
   if (b.note === 'requires') return 'needs medium or high confidence';
   if (b.bonus) return 'includes +10: unlocked last tick too';
-  if (b.note === 'reweighted') return 'reweighted — no pedometer';
+  if (b.note === 'reweighted') return 'reweighted, no pedometer';
   return null;
 }
 
@@ -128,7 +128,7 @@ function TickRail({ morning, evals, index, onPick, accent }) {
           >
             {v.glyph === 'low' ? <LowMark /> : <Glyph kind={v.glyph} />}
             {t.local}
-            <span className="sr-only"> — {v.status}</span>
+            <span className="sr-only">, {v.status}</span>
           </button>
         );
       })}
@@ -159,7 +159,7 @@ function ScoreBar({ ev, runKey, reduce, accent }) {
         <div key={runKey} className="relative h-11 overflow-hidden rounded-[4px] border border-line bg-surface-2">
           {ev.gate === 'closed' && (
             <span className="absolute inset-0 flex items-center justify-center font-mono text-micro uppercase tracking-[0.14em] text-ink-subtle">
-              gate closed — outside the window
+              gate closed, outside the window
             </span>
           )}
           {blocks.map((b, i) => {
@@ -247,7 +247,7 @@ function RuleRow({ rule, b, tick }) {
         <p className="mt-0.5 text-[13px] leading-snug text-ink-subtle">{note ?? rule.plain}</p>
       </div>
       <p className="row-start-2 font-mono text-micro text-ink-muted @min-[36rem]:row-start-auto @min-[36rem]:pt-0.5 @min-[36rem]:text-right">
-        {b ? inputText(rule, b, tick) : '—'}
+        {b ? inputText(rule, b, tick) : ', '}
       </p>
       <div className="row-span-2 flex flex-col items-end gap-1.5 @min-[36rem]:row-span-1">
         <span className="font-mono text-label tabular-nums">
@@ -268,11 +268,11 @@ function PenaltyRow({ penalty, fired }) {
       <div className="min-w-0">
         <p className={`text-label font-medium ${fired ? 'text-alert' : 'text-ink-subtle'}`}>
           Penalty · {penalty.label}
-          {fired && <span className="sr-only"> — applied</span>}
+          {fired && <span className="sr-only">, applied</span>}
         </p>
         <p className="mt-0.5 text-[13px] leading-snug text-ink-subtle">{penalty.plain}</p>
       </div>
-      <span className={`font-mono text-label tabular-nums ${fired ? 'text-alert' : 'text-ink-subtle'}`}>{fired ? penalty.points : '—'}</span>
+      <span className={`font-mono text-label tabular-nums ${fired ? 'text-alert' : 'text-ink-subtle'}`}>{fired ? penalty.points : ', '}</span>
     </li>
   );
 }
@@ -344,7 +344,7 @@ export default function WakeScore({ accent = P.ice }) {
         footer={
           <Readout runKey={tickKey} delay={0.35} reduce={reduce} tone={v.tone} status={v.status}>
             <span className="text-body text-ink-muted">
-              <span className="font-mono text-label text-ink">{tick.local}</span> — {tick.note}
+              <span className="font-mono text-label text-ink">{tick.local}</span>, {tick.note}
             </span>
           </Readout>
         }

@@ -68,7 +68,7 @@ function CopyButton({ text }) {
     try {
       await navigator.clipboard.writeText(text);
     } catch {
-      return; // no clipboard (insecure context / denied) — stay quiet
+      return; // no clipboard (insecure context / denied), stay quiet
     }
     setCopied(true);
     clearTimeout(timer.current);
@@ -124,7 +124,7 @@ export default function CodeBlock({ code }) {
       </figcaption>
 
       <div className="relative">
-        {/* the only horizontal scroller — the page never scrolls sideways.
+        {/* the only horizontal scroller, the page never scrolls sideways.
             Its focus ring is the overlay below (the figure clips an outside
             outline, and the sticky gutter would cover an inset one). */}
         <div

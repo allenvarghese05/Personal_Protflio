@@ -77,7 +77,7 @@ function TaskChip({ task, on, onPick, accent }) {
         {task.id}
         <span className="sr-only">
           {' '}
-          — {task.title}, {STATE_TEXT[task.state]}
+         , {task.title}, {STATE_TEXT[task.state]}
         </span>
       </button>
     </li>
@@ -122,7 +122,7 @@ export default function Milestones({ accent = P.ice }) {
             <Readout runKey={runKey} delay={0.05} reduce={reduce} tone={tone} status={`${task.id} · ${STATE_TEXT[task.state]}`}>
               <span className="text-body text-ink-muted">
                 <span className="text-ink">{task.title}</span>
-                {task.pr ? ` — merged in PR ${task.pr}.` : '.'}
+                {task.pr ? `, merged in PR ${task.pr}.` : '.'}
                 {task.note ? ` ${task.note}` : ''}
               </span>
             </Readout>

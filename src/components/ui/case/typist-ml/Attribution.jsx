@@ -90,7 +90,7 @@ const WORDS = (() => {
 
 const RESULT = {
   counted: { glyph: 'tick', tone: P.jade, status: 'counted', words: (p) => `“${p.pair}” counts as an attempt, and its ${p.sample} ms gap is a timing sample.` },
-  error: { glyph: 'cross', tone: P.alert, status: 'error', words: (p) => `“${p.pair}” counts as an attempt and an error — its second letter was wrong on the first try.` },
+  error: { glyph: 'cross', tone: P.alert, status: 'error', words: (p) => `“${p.pair}” counts as an attempt and an error, its second letter was wrong on the first try.` },
   paused: { glyph: 'flag', tone: P.sand, status: 'no timing', words: (p) => `“${p.pair}” counts as an attempt, but its gap followed a pause, so it gives no timing sample.` },
   skipFirst: { glyph: 'undo', tone: P.inkSubtle, status: 'skipped', words: (p) => `“${p.pair}” is skipped: its first letter was wrong on the first try.` },
   skipBackspace: { glyph: 'undo', tone: P.inkSubtle, status: 'skipped', words: (p) => `“${p.pair}” is skipped: a Backspace came between its two letters.` },
@@ -142,16 +142,16 @@ const msOf = (n) => (Number.isInteger(n) ? `${n.toLocaleString('en-US')}` : `${n
 
 function keyWords(k, prev) {
   if (k.outcome === 'bs') {
-    return k.seq === 0 ? 'Backspace before anything is typed — nothing to erase.' : `Backspace — position ${k.pos} is erased and the cursor steps back.`;
+    return k.seq === 0 ? 'Backspace before anything is typed, nothing to erase.' : `Backspace, position ${k.pos} is erased and the cursor steps back.`;
   }
   const where = `at position ${k.pos}`;
   const expected = TEXT[k.pos];
   const gap = prev ? ` ${msOf(k.t - prev.t)} ms after the last press` : '';
   const pause = k.pause ? ', the first key after the window lost focus' : '';
   if (k.outcome === 'err') {
-    return `“${show(k.key)}” ${where}, where “${show(expected)}” belongs — ${k.first ? 'wrong on the first try' : 'wrong again'}${pause}.`;
+    return `“${show(k.key)}” ${where}, where “${show(expected)}” belongs, ${k.first ? 'wrong on the first try' : 'wrong again'}${pause}.`;
   }
-  return `“${show(k.key)}” ${where}${gap}${pause} — ${k.first ? 'right on the first try' : 'a retype, not a first attempt'}.`;
+  return `“${show(k.key)}” ${where}${gap}${pause}, ${k.first ? 'right on the first try' : 'a retype, not a first attempt'}.`;
 }
 
 /* ── pieces ────────────────────────────────────────────────────────────── */
@@ -385,7 +385,7 @@ export default function Attribution({ accent }) {
             </div>
             <p className="mt-3 text-label text-ink-subtle">
               {atEnd
-                ? `The ${ROWS.length} rows the fixture expects — attribution must produce exactly these.`
+                ? `The ${ROWS.length} rows the fixture expects, attribution must produce exactly these.`
                 : `Filling in toward the ${ROWS.length} rows the fixture expects.`}
             </p>
           </div>
@@ -452,7 +452,7 @@ function Aside() {
           <span className="font-mono text-ink">
             {s.correct}/{s.firstAttempts}
           </span>{' '}
-          first attempts right — accuracy <span className="font-mono text-ink">{pct(s.accuracy)}</span>,{' '}
+          first attempts right, accuracy <span className="font-mono text-ink">{pct(s.accuracy)}</span>,{' '}
           <span className="font-mono text-ink">{s.wpm}</span> WPM (pauses included).
         </p>
       </div>

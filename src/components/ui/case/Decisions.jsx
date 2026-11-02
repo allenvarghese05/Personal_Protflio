@@ -150,7 +150,7 @@ const SNAP = {
   pos: { before: 0.14, change: 0.6, after: 0.86 },
   now: { before: 0.32, after: 0.95 },
   lead: 0.35, // s before the cursor sets off
-  travel: 1.7, // s from before to after — linear, it's time passing
+  travel: 1.7, // s from before to after, linear, it's time passing
   resubmit: 0.25, // s after the cursor passes the new application
   judge: 0.6, // s after it, both applications are judged
   settle: 0.35,
@@ -264,7 +264,7 @@ function stationFor(mode, i, plan, skipAt, blockAt) {
 }
 
 /** A station's final state, in words — the text twin of the diagram. */
-const STATION_WORDS = { pass: 'passed', block: 'stopped here — 403', skip: 'skipped', idle: 'not reached' };
+const STATION_WORDS = { pass: 'passed', block: 'stopped here, 403', skip: 'skipped', idle: 'not reached' };
 
 /* ── hooks ─────────────────────────────────────────────────────────────── */
 
@@ -314,7 +314,7 @@ function TxRow({ index, label, cue, reduce, compact }) {
         transition={at(reduce, cue.revert ?? 0, 0.3)}
       >
         {softBreaks(label)}
-        {words && <span className="sr-only"> — {words}</span>}
+        {words && <span className="sr-only">, {words}</span>}
       </motion.span>
       <span aria-hidden="true" className="relative h-5 w-5 shrink-0">
         <span className="absolute inset-0">
@@ -737,9 +737,9 @@ function SnapshotVisual({ decision, inView, reduce, accent }) {
 
   let sentence = '';
   if (changed && early && late) {
-    sentence = `From ${sc.changedOn} the rule is ${sc.after} — yet ${early.id} is still judged by its snapshot of ${sc.before}; only ${late.id} is asked for ${sc.after}.`;
+    sentence = `From ${sc.changedOn} the rule is ${sc.after}, yet ${early.id} is still judged by its snapshot of ${sc.before}; only ${late.id} is asked for ${sc.after}.`;
   } else if (early) {
-    sentence = `${early.id} froze the rule at ${sc.before} when it was submitted on ${early.submitted} — its ${early.photos} photos pass.`;
+    sentence = `${early.id} froze the rule at ${sc.before} when it was submitted on ${early.submitted}, its ${early.photos} photos pass.`;
   }
 
   return (
@@ -895,7 +895,7 @@ function RbacVisual({ decision, inView, reduce, accent }) {
   const passed = path.slice(entry, blockAt).map((s) => s.label);
   const words = (i) => {
     if (!mode) return '';
-    if (!forged && i === n - 1) return 'passed — 200';
+    if (!forged && i === n - 1) return 'passed, 200';
     return STATION_WORDS[states[i].state];
   };
 
@@ -925,8 +925,8 @@ function RbacVisual({ decision, inView, reduce, accent }) {
           >
             <span className="text-body text-ink-muted">
               {forged
-                ? `It skipped the ${path[skipAt].label} and cleared ${listOf(passed)} — then ${path[blockAt].label} stopped it.`
-                : `Every station passed — ${lastStation.label} last, ${lastStation.note}.`}
+                ? `It skipped the ${path[skipAt].label} and cleared ${listOf(passed)}, then ${path[blockAt].label} stopped it.`
+                : `Every station passed, ${lastStation.label} last, ${lastStation.note}.`}
             </span>
           </Readout>
         ) : (
@@ -1111,7 +1111,7 @@ function RbacVisual({ decision, inView, reduce, accent }) {
               <span className="mt-1 block text-micro leading-snug text-ink-subtle [overflow-wrap:anywhere]">
                 {step.note}
               </span>
-              {words(i) && <span className="sr-only"> — {words(i)}</span>}
+              {words(i) && <span className="sr-only">, {words(i)}</span>}
             </li>
           ))}
         </ol>

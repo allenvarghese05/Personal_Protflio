@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Performance — "The heaviest report went from 146.7 s to 1.28 s — and
+ * Performance — "The heaviest report went from 146.7 s to 1.28 s, and
  * returned the same bytes."
  *
  * Recruiters read this section hardest, so every number comes with what it
@@ -715,7 +715,7 @@ function EndpointRow({ row, pooler, shown, reduce, delay }) {
     <li className={`${ROW_GRID} items-center gap-y-2 border-t border-line py-3 first:border-t-0`}>
       <div className="order-1 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
         <span className={hero ? 'text-label font-medium text-ink' : 'text-label text-ink-muted'}>{row.label}</span>
-        {/* emphasis by weight and a plain chip — amber stays for the active control */}
+        {/* emphasis by weight and a plain chip, amber stays for the active control */}
         {hero && <span className="mc-chip">headline</span>}
       </div>
       <span

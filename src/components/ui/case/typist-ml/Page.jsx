@@ -29,7 +29,7 @@
  * around them. Motion: the hero's deal plays on mount, section heads fade up
  * once in view; with reduced motion everything is simply there.
  */
-import { ASSIGN, BUILD, COPY, DATA_MODEL, DECISIONS, GATE, GOLDEN, LAYERS, LIMITS, MEASURED, OVERVIEW, PLANNER, TOUR, TRACES, ARMS } from '@/data/studies/typist-ml';
+import { ASSIGN, BUILD, COPY, DATA_MODEL, DECISIONS, GATE, GOLDEN, LAYERS, LIMITS, MEASURED, OVERVIEW, PLANNER, RESULTS, TOUR, TRACES, ARMS } from '@/data/studies/typist-ml';
 import { CodeTour, Overview } from '@/components/ui/case/story';
 import WhyArms from '@/components/ui/case/typist-ml/WhyArms';
 import { BeforeAfter, CaseArticle, Hero, NextSection, Section, SectionIndex, WRAP, accentFor, capWord, word } from '@/components/ui/case/shell';
@@ -45,6 +45,7 @@ import Measured from '@/components/ui/case/typist-ml/Measured';
 import PracticeDay from '@/components/ui/case/typist-ml/PracticeDay';
 import Decisions from '@/components/ui/case/typist-ml/Decisions';
 import Pipeline from '@/components/ui/case/typist-ml/Pipeline';
+import PilotResults from '@/components/ui/case/typist-ml/PilotResults';
 
 const SCOPE = 'typist-ml';
 
@@ -63,24 +64,24 @@ const markovRareNever = markovRare ? markovRare[NOW.key].ok === 0 : false;
 function headlines() {
   const measured = [
     heuristicAlways ? 'The heuristic clears the gate on every seed' : 'The heuristic mostly clears the gate',
-    markovRareNever ? 'the Markov chain needed the floor lowered — and on rare pairs it still never does.' : 'the Markov chain needed the floor lowered.',
+    markovRareNever ? 'the Markov chain needed the floor lowered, and on rare pairs it still never does.' : 'the Markov chain needed the floor lowered.',
   ].join('; ');
   return {
     problem: `Targeted drills sound obviously better. Testing that fairly means getting ${word(COPY.before.length)} things right that the easy way gets wrong.`,
-    why: `Two questions, ${word(ARMS.length)} methods — and every participant runs all ${word(ARMS.length)}, each on their own weak pairs.`,
-    code: 'The experiment’s fairness lives in four places in the code — here they are.',
-    attribution: `${GOLDEN.keys.length} keystrokes, ${GOLDEN.cases.length} edge cases, one rule for what counts as an error — and both languages must pass it.`,
-    assignment: `Rank the weak pairs with a prior, deal the top ${PAIR_COUNT} into ${word(ASSIGN.sets.length)} equally hard sets, shuffle which method gets which — then freeze it.`,
-    gate: `Every drill, from every method, passes the same ${word(GATE.rules.length)} checks — the generator never grades itself.`,
+    why: `Two questions, ${word(ARMS.length)} methods, and every participant runs all ${word(ARMS.length)}, each on their own weak pairs.`,
+    code: 'The experiment’s fairness lives in four places in the code, here they are.',
+    attribution: `${GOLDEN.keys.length} keystrokes, ${GOLDEN.cases.length} edge cases, one rule for what counts as an error, and both languages must pass it.`,
+    assignment: `Rank the weak pairs with a prior, deal the top ${PAIR_COUNT} into ${word(ASSIGN.sets.length)} equally hard sets, shuffle which method gets which, then freeze it.`,
+    gate: `Every drill, from every method, passes the same ${word(GATE.rules.length)} checks, the generator never grades itself.`,
     measured,
-    day: `${capWord(PLANNER.practiceDays)} practice days, ${word(ARMS.length)} blocks a day, the order rotating daily — and the browser is never told which method wrote which block.`,
+    day: `${capWord(PLANNER.practiceDays)} practice days, ${word(ARMS.length)} blocks a day, the order rotating daily, and the browser is never told which method wrote which block.`,
     decisions: `${capWord(DECISIONS.length)} hard problems: a picker that overshoots, workers that could collide, and randomness that has to replay exactly.`,
-    architecture: `A browser, an API and a separate worker over one SQLite file — ${word(LAYERS.length)} layers, all on one laptop.`,
-    data: `${capWord(TABLE_COUNT)} tables — keystrokes append-only, the weak-pair map frozen by a trigger, every generation attempt kept.`,
+    architecture: `A browser, an API and a separate worker over one SQLite file, ${word(LAYERS.length)} layers, all on one laptop.`,
+    data: `${capWord(TABLE_COUNT)} tables, keystrokes append-only, the weak-pair map frozen by a trigger, every generation attempt kept.`,
     build: TASKS
-      ? `${TASKS} design-doc tasks in ${BUILD.days} days — briefed, planned, built and reviewed by coding agents, merged by Allen.`
+      ? `${TASKS} design-doc tasks in ${BUILD.days} days, briefed, planned, built and reviewed by coding agents, merged by Allen.`
       : 'Design doc first, then one task at a time.',
-    next: 'The code is done — the pilot is next, then the numbers, whatever they say.',
+    next: 'The code is done and the pilot is run; the numbers are in, and they say what they say.',
   };
 }
 
@@ -98,6 +99,7 @@ const SECTIONS = [
   { id: 'architecture', num: '10', label: 'Architecture' },
   { id: 'data', num: '11', label: 'Data model' },
   { id: 'build', num: '12', label: 'How it was built' },
+  { id: 'results', num: '13', label: 'The pilot' },
 ];
 const SECTION = Object.fromEntries(SECTIONS.map((x) => [x.id, x]));
 
@@ -198,6 +200,10 @@ export default function Page({ project, study }) {
 
         <Section {...sec('data')}>
           <DataModel model={DATA_MODEL} accent={accent} />
+        </Section>
+
+        <Section {...sec('results')}>
+          <PilotResults accent={accent} />
         </Section>
 
         <Section {...sec('build')}>

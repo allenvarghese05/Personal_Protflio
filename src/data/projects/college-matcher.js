@@ -11,7 +11,7 @@ export const project = {
   badge: 'PERSONAL PROJECT · SOLO',
   label: 'College Matcher',
   subtitle:
-    'Explainable college matching — a 100-point score you can read part by part, a balanced safety/target/reach list, and a GPT-4 voice counselor for careers',
+    'Explainable college matching, a 100-point score you can read part by part, a balanced safety/target/reach list, and a GPT-4 voice counselor for careers',
   role: 'Solo full-stack developer',
   company: 'Personal project',
   dateRange: 'Aug 2025',
@@ -29,12 +29,12 @@ export const project = {
   primaryStack: ['React 18', 'Express', 'Node.js', 'OpenAI GPT-4', 'Web Speech API'],
   secondaryStack: ['React Router', 'Axios', 'Multer'],
   keyDecisions: [
-    { title: 'Weights you can defend', body: 'Academic 50, financial 20, personality 15, location & size 10, activities 5 — returned as a breakdown with the top reasons.' },
+    { title: 'Weights you can defend', body: 'Academic 50, financial 20, personality 15, location & size 10, activities 5, returned as a breakdown with the top reasons.' },
     { title: 'Realism caps', body: 'A GPA under 80% of a school’s average caps it at 30; tuition over 1.5× the budget caps it at 20.' },
     { title: 'A list with safeties in it', body: 'Schools are labelled safety, target or reach and balanced by the student’s GPA into a top ten.' },
   ],
   timeline: [
-    { week: 'Aug 6', start: '2025-08-06', end: '2025-08-06', title: 'The prototype', desc: 'Matching engine, career matcher, the Alex voice counselor, the React client — one commit.', done: true },
+    { week: 'Aug 6', start: '2025-08-06', end: '2025-08-06', title: 'The prototype', desc: 'Matching engine, career matcher, the Alex voice counselor, the React client, one commit.', done: true },
   ],
   architectureGraph: {
     nodes: [
@@ -70,11 +70,11 @@ export const caseStudy = {
   media: { frame: 'browser', shots: [] },
   live: null,
   problem:
-    'College rankings give one opaque number; students need to know why a school fits, whether they can get in and afford it, and a balanced list — not ten reaches.',
+    'College rankings give one opaque number; students need to know why a school fits, whether they can get in and afford it, and a balanced list, not ten reaches.',
   built:
-    'A React + Express prototype with an explainable 100-point matching engine, a safety/target/reach balance, and Alex — a GPT-4 voice career counselor in the browser.',
+    'A React + Express prototype with an explainable 100-point matching engine, a safety/target/reach balance, and Alex, a GPT-4 voice career counselor in the browser.',
   how: [
-    'Five weighted parts — academic 50, financial 20, personality 15, location & size 10, activities 5 — with a readable breakdown.',
+    'Five weighted parts, academic 50, financial 20, personality 15, location & size 10, activities 5, with a readable breakdown.',
     'Realism caps for schools out of reach or out of budget.',
     'A spoken counselor session with pause and resume, mapped to career profiles.',
   ],

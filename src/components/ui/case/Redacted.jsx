@@ -24,7 +24,7 @@ import { COPY } from '@/data/studies/iet';
  */
 
 const NOTE_LEAD = 'Private client system';
-const NOTE_REST = ' — the interface is redacted; everything below shows how it works.';
+const NOTE_REST = ', the interface is redacted; everything below shows how it works.';
 const REGION_LABEL = 'Redacted interface previews';
 const STAMP = 'Redacted';
 
@@ -49,7 +49,7 @@ const BAYER_4 = [
   [3, 11, 1, 9],
   [15, 7, 13, 5],
 ];
-const CELL = 2; // grid pitch — a dot every 2 units (~1px dots at desktop size)
+const CELL = 2; // grid pitch, a dot every 2 units (~1px dots at desktop size)
 const DOT = 1.2;
 const DOT_INSET = (CELL - DOT) / 2;
 const BAYER_MAX = 16;
@@ -104,7 +104,7 @@ const DEVELOP_VARIANTS = {
 };
 
 /* ── wireframe primitives (all y's on the even dither grid) ─────────────── */
-/** A line of redacted text. Text bars only use mid/high — low is too sparse. */
+/** A line of redacted text. Text bars only use mid/high, low is too sparse. */
 const bar = (x, y, w, h = 4, tone = 'high', hue = 'ink') => ({ kind: 'rect', x, y, w, h, r: 1, tone, hue });
 const box = (x, y, w, h, { r = 3, tone, hue = 'ink', stroke } = {}) => ({ kind: 'rect', x, y, w, h, r, tone, hue, stroke });
 const disc = (cx, cy, r, { tone, hue = 'ink', stroke } = {}) => ({ kind: 'circle', cx, cy, r, tone, hue, stroke });
@@ -414,7 +414,7 @@ function Wireframe({ screen, uid, custom }) {
         ))}
       </motion.g>
 
-      {/* hover: exactly the next threshold's dots fade in — one step denser */}
+      {/* hover: exactly the next threshold's dots fade in, one step denser */}
       <g className="opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100 motion-reduce:transition-none">
         {filled.map((s, i) => (
           <Shape key={i} s={s} fill={`url(#${patternId(uid, s.hue, s.tone, true)})`} />

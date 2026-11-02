@@ -69,7 +69,7 @@ function decisionOf(ev) {
 
 const SUMMARY = COLUMNS.map(({ tick, ev, blocks }) => {
   const parts = blocks.map((b) => `${RULE_BY_ID[b.id].label.toLowerCase()} ${b.points}`).join(', ');
-  return `${tick.local}: ${ev.gate === 'closed' ? 'outside the window, 0' : `${parts} — ${ev.score}, ${decisionOf(ev).text}`}`;
+  return `${tick.local}: ${ev.gate === 'closed' ? 'outside the window, 0' : `${parts}, ${ev.score}, ${decisionOf(ev).text}`}`;
 }).join('. ');
 
 /* ── pieces ────────────────────────────────────────────────────────────── */

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * IngestProbe — "Eight stages between a phone's snapshot and its score —
+ * IngestProbe — "Eight stages between a phone's snapshot and its score, 
  * every refusal answers with a code."
  *
  * POST /v1/telemetry as a stack of stages, top to bottom, in the order the
@@ -114,7 +114,7 @@ function StageRow({ stage, index, plan, code, reduce, accent }) {
                   {state === 'undo' ? `returns · ${code}` : `refused · ${code}`}
                 </motion.span>
               )}
-              <span className="sr-only"> — {SR[state]}</span>
+              <span className="sr-only">, {SR[state]}</span>
             </p>
             <p className="mt-0.5 font-mono text-micro text-ink-subtle [overflow-wrap:anywhere]">{stage.where}</p>
           </div>

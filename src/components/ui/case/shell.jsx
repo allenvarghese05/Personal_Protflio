@@ -18,7 +18,7 @@
  * section heads fade up once in view, before → after rows reveal in pairs.
  * Reduced motion: everything is simply there.
  */
-import { useRef } from 'react';
+import { createContext, useContext, useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { useStore } from '@/lib/store';
 import { ENGINEERING_PROJECTS } from '@/data/projects';
@@ -70,7 +70,7 @@ function nextAfter(id) {
 }
 
 /**
- * Move focus to the first heading in Mission Control's stage — the next brief's
+ * Move focus to the first heading in Mission Control's stage, the next brief's
  * title. Going to the next project unmounts this page and the focused button
  * with it; without this, focus drops to <body>, outside the modal dialog.
  */
@@ -99,7 +99,7 @@ const heroItem = {
 
 /* ── the page wrapper ──────────────────────────────────────────────────── */
 
-/** The page's outer frame — mirrors the generic brief's motion.article. */
+/** The page's outer frame, mirrors the generic brief's motion.article. */
 export function CaseArticle({ children }) {
   return (
     <motion.article
@@ -263,7 +263,7 @@ export function SectionHead({ id, num, label, title, accent }) {
           <>
             <span style={{ color: accent }}>{num}</span>
             <span aria-hidden className="text-ink-faint">
-              {' — '}
+              {', '}
             </span>
           </>
         )}
@@ -437,14 +437,26 @@ export function NextList({ items, accent }) {
   );
 }
 
+/**
+ * Outside Mission Control (the /projects/<id> pages) a case study moves to the
+ * next one by URL: the page provides navigate(id). Inside, it's null and the
+ * store swaps the brief in place.
+ */
+export const CaseNavContext = createContext(null);
+
 /** The unnumbered closing section: what's next, then the next case study. */
 export function NextSection({ scope, project, title, items, accent }) {
   const rootRef = useRef(null);
   const setSelected = useStore((s) => s.setSelectedProject);
+  const navigate = useContext(CaseNavContext);
   const next = nextAfter(project.id);
 
   const goNext = () => {
     if (!next) return;
+    if (navigate) {
+      navigate(next.id);
+      return;
+    }
     const scroller = rootRef.current?.closest(SCROLLER) || document.querySelector(SCROLLER);
     scroller?.scrollTo({ top: 0 });
     setSelected(next.id);

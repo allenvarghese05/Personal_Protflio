@@ -137,7 +137,7 @@ function LockVisual({ decision, inView, reduce, accent }) {
     footer = (
       <Readout runKey={runKey} delay={doneAt} reduce={reduce} tone={P.jade} status="0 marks after lockedAt">
         <span className="text-body text-ink-muted">
-          {race.before} {race.before === 1 ? 'save' : 'saves'} committed before the approve; {race.after} got 409. Every save is one or the other — never
+          {race.before} {race.before === 1 ? 'save' : 'saves'} committed before the approve; {race.after} got 409. Every save is one or the other, never
           both.
         </span>
       </Readout>
@@ -153,7 +153,7 @@ function LockVisual({ decision, inView, reduce, accent }) {
     doneAt = LEAD_S + NOLOCK_STEPS.length * ROW_S;
     footer = (
       <Readout runKey={runKey} delay={doneAt} reduce={reduce} tone={P.alert} status="A mark in a locked card">
-        <span className="text-body text-ink-muted">What the lock rules out: with it, the approve waits for the save to commit — or the save reads “approved” and gets 409.</span>
+        <span className="text-body text-ink-muted">What the lock rules out: with it, the approve waits for the save to commit, or the save reads “approved” and gets 409.</span>
       </Readout>
     );
   }
@@ -224,18 +224,18 @@ function signIn(person, machine, policy) {
     { label: 'Password', value: 'argon2id · ok', state: 'pass' },
     {
       label: 'Tokens already in this browser',
-      value: machine.cookie.length ? `${machine.cookie.join(', ')} — none for u${person.id}` : 'none',
+      value: machine.cookie.length ? `${machine.cookie.join(', ')}, none for u${person.id}` : 'none',
       state: 'pass',
     },
     { label: 'MAC from the ARP table', value: registered ? `registered as ${machine.registeredOs} PC` : 'not a registered PC', state: registered ? 'pass' : 'skip' },
     {
       label: 'May use a school computer?',
-      value: person.approver ? 'no — approvers never' : person.tempPassword ? 'no — still on a temporary password' : 'yes',
+      value: person.approver ? 'no, approvers never' : person.tempPassword ? 'no, still on a temporary password' : 'yes',
       state: !registered ? 'skip' : eligible ? 'pass' : 'stop',
     },
     {
       label: 'Browser OS = registered OS?',
-      value: registered ? `${machine.os} vs ${machine.registeredOs}` : '—',
+      value: registered ? `${machine.os} vs ${machine.registeredOs}` : ', ',
       state: !registered || !eligible ? 'skip' : osMatch ? 'pass' : 'stop',
     },
   ];
@@ -264,7 +264,7 @@ function DeviceVisual({ decision, inView, reduce, accent }) {
         : 'Pending · holding screen';
   const told =
     r.kind === 'school'
-      ? `The office is told: “… signed in on ${machine.label.split(' · ')[0]} (a registered school computer) — trusted automatically.”`
+      ? `The office is told: “… signed in on ${machine.label.split(' · ')[0]} (a registered school computer), trusted automatically.”`
       : r.status === 'trusted'
         ? 'The office is told: “… signed in from a new device.”'
         : 'The office is asked: “… is signing in from a device that is new … Open Devices to approve or deny it.”';
@@ -399,7 +399,7 @@ function RollVisual({ decision, inView, reduce, accent }) {
               <motion.li key={`${st.who}-${st.roll}`} {...rowIn(reduce, i + 1)} className="grid grid-cols-[minmax(0,1fr)_20px] items-start gap-x-3 border-t border-line py-2">
                 <span className="min-w-0">
                   <span className="block text-ink [overflow-wrap:anywhere]">
-                    UPDATE students SET roll_no = {st.roll} <span className="text-ink-subtle">— {st.who}</span>
+                    UPDATE students SET roll_no = {st.roll} <span className="text-ink-subtle">, {st.who}</span>
                   </span>
                   <span className="mt-0.5 block font-sans text-micro text-ink-subtle">{st.note}</span>
                 </span>

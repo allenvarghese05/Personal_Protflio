@@ -6,7 +6,7 @@
  * Trade-off beside a small interactive diagram, and a "Show the code" drawer.
  *
  * The diagrams:
- *   governor — a real heuristic drill built word by word (seed 7, targets
+ *   governor, a real heuristic drill built word by word (seed 7, targets
  *              th he in an). A line traces the drill's density before each
  *              word against the window (shaded) and its midpoint (dashed).
  *              Each word is a dot: filled when it was picked for a target
@@ -79,7 +79,7 @@ function GovernorVisual({ decision, inView, reduce, accent }) {
       footer={
         <Readout runKey={`g-${step}`} delay={0} reduce={reduce} tone={over ? P.inkSubtle : P.jade} status={over ? 'filler' : 'target word'}>
           <span className="text-body text-ink-muted">
-            Word {step + 1}: density so far {fixed(cur.before)} — {branch}
+            Word {step + 1}: density so far {fixed(cur.before)}, {branch}
             {step === last && ` The finished drill: ${fixed(decision.finalDensity)}, ${targets} of ${words.length} words picked for a target pair.`}
           </span>
         </Readout>
@@ -168,8 +168,8 @@ function ClaimVisual({ decision, inView, reduce, accent }) {
 
   let readout;
   if (sc.jobs === 0) readout = { tone: P.inkSubtle, status: 'no row', text: `Nothing pending: no row comes back, the transaction rolls back, the worker rewrites its heartbeat and sleeps ${decision.pollSeconds} s.` };
-  else if (sc.callers > 1) readout = { tone: P.jade, status: '1 claimed', text: `${sc.callers} callers, one statement each: exactly one gets the id back and the other ${sc.callers - 1} get no row — the repo’s concurrency test asserts exactly that. A worker that gets no row polls again in ${decision.pollSeconds} s.` };
-  else readout = { tone: P.jade, status: 'oldest first', text: `The oldest pending job — by created_at, then id — is the one claimed; the other ${sc.jobs - 1} wait for the next poll.` };
+  else if (sc.callers > 1) readout = { tone: P.jade, status: '1 claimed', text: `${sc.callers} callers, one statement each: exactly one gets the id back and the other ${sc.callers - 1} get no row, the repo’s concurrency test asserts exactly that. A worker that gets no row polls again in ${decision.pollSeconds} s.` };
+  else readout = { tone: P.jade, status: 'oldest first', text: `The oldest pending job, by created_at, then id, is the one claimed; the other ${sc.jobs - 1} wait for the next poll.` };
 
   return (
     <PanelFrame
@@ -269,9 +269,9 @@ function LedgerVisual({ decision, inView, reduce, accent }) {
 
   const text = accepted
     ? n === 1
-      ? `Passed on the first attempt — one row in generation_attempts, and the drill is saved as ready.`
+      ? `Passed on the first attempt, one row in generation_attempts, and the drill is saved as ready.`
       : `Rejected ${n - 1}×, then passed on attempt ${n}. All ${n} attempts are rows in generation_attempts; the drill is saved as ready.`
-    : `Rejected all ${n} times — the job is marked failed, with the last reasons. Every attempt is kept, so the failure is visible, not hidden.`;
+    : `Rejected all ${n} times, the job is marked failed, with the last reasons. Every attempt is kept, so the failure is visible, not hidden.`;
 
   return (
     <PanelFrame

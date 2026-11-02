@@ -11,15 +11,14 @@ import { unlockAudio } from '@/lib/audio';
 const EASE = [0.16, 1, 0.3, 1];
 const MIN_LOADER_MS = 1400;
 
-/** Jump straight to the surface — used by Skip and the "view work" fast lane. */
-export function skipToWorld({ openWork = false } = {}) {
+/** Jump straight to the surface — used by Skip / Esc. ("Skip to projects" is a link to /projects.) */
+export function skipToWorld() {
   const s = useStore.getState();
   worldState.reveal = 1;
   worldState.altitude = 0;
   worldState.shake = 0;
   document.body.style.overflow = '';
   s.setJourneyPhase('world');
-  if (openWork) s.setEnteredZone('engineering');
 }
 
 /* ───────────────────────────────── LOADER ─────────────────────────────── */
@@ -236,9 +235,11 @@ function Hero() {
                   Enter Allen&rsquo;s World
                   <span aria-hidden className="hero-cta__arrow">→</span>
                 </button>
-                <button onClick={() => skipToWorld({ openWork: true })} className="hero-link text-sm text-ink-muted">
+                {/* a full page load: the intro's WebGL and audio are torn down, not carried along */}
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full load on purpose */}
+                <a href="/projects" className="hero-link text-sm text-ink-muted">
                   Skip to projects
-                </button>
+                </a>
               </motion.div>
             </div>
           </div>

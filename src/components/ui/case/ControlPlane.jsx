@@ -1,14 +1,14 @@
 'use client';
 
 /**
- * ControlPlane — "The organisation changes its own rules — no engineer, no
+ * ControlPlane — "The organisation changes its own rules, no engineer, no
  * deploy." The body of the Mission Control section: the client system's Super
  * Admin control plane (MC-0 … MC-7). The name is the client's; this file has
  * nothing to do with the portfolio's own MissionControl.jsx. Top to bottom:
  *
- *   principle — the idea as three quiet display lines, beside four stats in
+ *   principle, the idea as three quiet display lines, beside four stats in
  *               ink display type (amber stays with the linked pair below).
- *   schema → screen — the centrepiece panel. On the left, real zod lines from
+ *   schema → screen, the centrepiece panel. On the left, real zod lines from
  *               the config schema as a numbered listing. On the right, the
  *               control the introspector draws for each one: a number field
  *               with a min…max track, a switch, a table of named switches, a
@@ -18,12 +18,12 @@
  *               control lights (and the other way round). The accent marks the
  *               linked pair, a thin connector joins them from 768px up, and the
  *               readout spells out the mapping from the data.
- *   history   — the change log, per field, old → new. Undo is live and
+ *   history  , the change log, per field, old → new. Undo is live and
  *               deterministic. It writes the old value back as a new
  *               CONFIG_REVERTED row on top, marks the row Undone and
  *               supersedes any older change to the same field. Reset restores
  *               the log.
- *   build     — MC-0 … MC-7 over the span. From 768px it's a ruler (four to a
+ *   build    , MC-0 … MC-7 over the span. From 768px it's a ruler (four to a
  *               row until the block is 64rem wide, then all eight on one
  *               line); below that, a vertical rail. Admin features get filled
  *               markers and design-system rebuilds hollow ones, so shape
@@ -60,7 +60,7 @@ const MIN_GUTTER_PX = 16; // narrower than this, the columns are stacked: no con
 
 // copy that isn't study data
 const EDITOR_CAPTION = 'src/lib/config/schema.ts → the generated editor';
-const IDLE_SCHEMA = 'Add a schema line — the screen follows.';
+const IDLE_SCHEMA = 'Add a schema line, the screen follows.';
 const HINT_SCHEMA = 'Hover, focus or press a line to link it to its control.';
 const IDLE_HISTORY = 'Undo writes the old value back as a new change.';
 const REVERT = { tag: 'CONFIG_REVERTED', who: 'superadmin', when: 'just now' };
@@ -709,7 +709,7 @@ function SchemaScreen({ accent, reduce }) {
             ref={bodyRef}
             className="relative grid gap-6 md:grid-cols-[minmax(0,1fr)_56px_minmax(0,1fr)] md:gap-0 lg:grid-cols-[minmax(0,0.95fr)_88px_minmax(0,1.05fr)]"
           >
-            {/* schema — centred against the taller screen, so the lines fan out */}
+            {/* schema, centred against the taller screen, so the lines fan out */}
             <div
               data-cp-col="code"
               className="min-w-0 rounded-md border border-line bg-void py-2 md:col-start-1 md:row-start-1 md:self-center"
@@ -729,7 +729,7 @@ function SchemaScreen({ accent, reduce }) {
               </ol>
             </div>
 
-            {/* screen — the controls the introspector generates */}
+            {/* screen, the controls the introspector generates */}
             <div data-cp-col="screen" className="flex min-w-0 flex-col gap-2 md:col-start-3 md:row-start-1">
               {SCHEMA.map((e) => (
                 <ControlRow
@@ -809,7 +809,7 @@ function RowAction({ row, onUndo }) {
       return (
         <span className="mc-chip">
           Changed again since
-          <span className="sr-only"> — undo is refused (409) until the newer change is undone</span>
+          <span className="sr-only">, undo is refused (409) until the newer change is undone</span>
         </span>
       );
     case 'undone':
@@ -843,7 +843,7 @@ function HistoryReadout({ last }) {
         <span className="sr-only"> to </span>
         <span className="text-ink">{last.to}</span>
       </span>
-      {' '}— the old value, written back as a new change.
+      {' '}, the old value, written back as a new change.
     </p>
   );
 }
@@ -939,7 +939,7 @@ function History({ accent, reduce }) {
             </ol>
             {anySuperseded && (
               <p className="mt-4 max-w-[70ch] text-label text-ink-subtle">
-                <span className="text-ink-muted">Changed again since</span> — a newer change touched the same field, so
+                <span className="text-ink-muted">Changed again since</span>, a newer change touched the same field, so
                 undo is refused (409) until that change is undone.
               </p>
             )}

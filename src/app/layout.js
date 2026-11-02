@@ -23,11 +23,11 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata = {
-  title: "Allen Shaji Varghese — Mission Control",
+  title: "Allen Shaji Varghese, Mission Control",
   description:
     "Software Engineering student at Drexel building products that solve real problems through AI and technology. An immersive journey through the work of Allen Shaji Varghese.",
   openGraph: {
-    title: "Mission Allen — Allen Shaji Varghese",
+    title: "Mission Allen, Allen Shaji Varghese",
     description:
       "An immersive space odyssey through the engineering and creative work of Allen Shaji Varghese.",
     type: "website",
