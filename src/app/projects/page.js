@@ -13,6 +13,7 @@ export const metadata = {
     type: 'website',
     url: '/projects',
   },
+  twitter: { card: 'summary_large_image' },
 };
 
 export default function ProjectsPage() {

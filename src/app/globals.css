@@ -1057,3 +1057,67 @@ html[data-work-theme="light"] .work-root ::selection {
 .work-root.is-theming * {
   transition: none !important;
 }
+
+/* /projects index: the hover band's marquee. It only runs while its band is
+   showing; no hover (touch) means no band at all. */
+@keyframes work-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.work-marquee {
+  animation: work-marquee 24s linear infinite;
+  animation-play-state: paused;
+}
+.work-band__inner[data-running="true"] .work-marquee {
+  animation-play-state: running;
+}
+@media (prefers-reduced-motion: reduce) {
+  .work-marquee {
+    animation: none;
+  }
+}
+@media (hover: none) {
+  .work-band {
+    display: none;
+  }
+}
+
+/* /projects on paper: recruiters print. Light ink on white, no chrome. */
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+  .work-root {
+    --void: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f2f0eb;
+    --line: #dddad3;
+    --line-hi: #cfcac0;
+    --ink: #111111;
+    --ink-muted: #333333;
+    --ink-subtle: #555555;
+    --accent: #a85410;
+    background: #fff;
+  }
+  .work-root [data-noprint],
+  .work-band {
+    display: none !important;
+  }
+  .work-root section,
+  .work-root article {
+    break-inside: avoid;
+  }
+  .work-root .lg\:sticky {
+    position: static !important;
+  }
+}
+
+/* overflow-x: hidden on html/body (above) turns body into a scroll container,
+   which silently disables position: sticky. On /projects, clip instead: the
+   same no-sideways-scroll, without breaking the held pictures. */
+html:has(.work-root),
+html:has(.work-root) body {
+  overflow-x: clip;
+}

@@ -7,13 +7,12 @@ import { travelTo } from '@/lib/worldNav';
 /**
  * The dock — click-to-travel, the primary way around Allen's World. Each
  * district glides the astronaut there along the causeways; "All projects"
- * jumps straight into Mission Control. Walking stays the bonus.
+ * opens the /projects page. Walking stays the bonus.
  */
 export default function WorldDock() {
   const journeyPhase = useStore((s) => s.journeyPhase);
   const enteredZone = useStore((s) => s.enteredZone);
   const here = useStore((s) => s.nearZone);
-  const setEnteredZone = useStore((s) => s.setEnteredZone);
   const show = journeyPhase === 'world' && !enteredZone;
 
   return (
@@ -38,9 +37,11 @@ export default function WorldDock() {
             </button>
           ))}
           <span className="world-dock__sep" aria-hidden />
-          <button onClick={() => setEnteredZone('engineering')} className="world-dock__item world-dock__item--cta">
+          {/* the projects page, outside the game (a full load drops the 3D scene) */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full load on purpose */}
+          <a href="/projects" className="world-dock__item world-dock__item--cta">
             All projects <span aria-hidden>→</span>
-          </button>
+          </a>
         </motion.nav>
       )}
     </AnimatePresence>
