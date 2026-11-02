@@ -11,7 +11,7 @@ export const LINKS = [{ href: 'https://learnflow-ai.app/', label: 'learnflow-ai.
 export const COPY = {
   outcome:
     'A student planner that builds itself: paste your Canvas calendar link and your classes and deadlines appear; upload a syllabus and the rest of the semester fills in.',
-  status: 'Beta · not launched yet',
+  status: 'Beta · 150+ testers · not launched yet',
   before: [
     'Classes, deadlines and syllabi live in Canvas, PDFs and your head',
     'Setting up a planner means typing in every class and every due date',
@@ -149,9 +149,9 @@ export const TRACES = [
 /* ── the case study in one screen ─────────────────────────────────────────── */
 export const OVERVIEW = [
   { label: 'What it is', text: 'A planner that sets itself up. Paste your Canvas calendar link and your classes and deadlines appear; upload a syllabus and the term fills in — lectures, office hours and the assignments Canvas didn’t list.' },
-  { label: 'Why it exists', text: 'Version 1 was a desktop study companion — explain the screen, take lecture notes, quiz you. Beta testers used it, then browsers built the same help in. What nobody did for you was set up the semester, so LearnFlow became that.' },
+  { label: 'Why it exists', text: 'Version 1 was a desktop study companion — explain the screen, take lecture notes, quiz you. More than 150 beta testers used it, then browsers built the same help in. What nobody did for you was set up the semester, so LearnFlow became that.' },
   { label: 'What Allen did', text: 'Co-founder. Helped ship version 1 (dashboard, onboarding, the desktop builds), then rebuilt the product himself: the Canvas sync and its ownership rules, the syllabus reader, assignment guides, a class assistant and a new web app.' },
-  { label: 'Where it stands', text: 'Beta: real users, not officially launched. The rebuild is about a tenth of the old code — a web app instead of a desktop download.' },
+  { label: 'Where it stands', text: 'Beta: over 150 testers, not officially launched. The rebuild is about a tenth of the old code — a web app instead of a desktop download.' },
 ];
 
 /* ── the story — why the product was rebuilt ─────────────────────────────── */
@@ -167,7 +167,7 @@ export const STORY = [
   {
     when: 'Nov 2025',
     title: 'Beta with real students',
-    body: 'Cross-platform builds and a release workflow got version 1 into beta testers’ hands. It worked — and it showed what students actually came back for: knowing what’s due and when.',
+    body: 'Cross-platform builds and a release workflow got version 1 into the hands of more than 150 beta testers. It worked — and it showed what students actually came back for: knowing what’s due and when.',
   },
   {
     when: '2025 – 2026',

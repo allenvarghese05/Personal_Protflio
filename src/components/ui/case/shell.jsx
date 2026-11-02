@@ -18,7 +18,7 @@
  * section heads fade up once in view, before → after rows reveal in pairs.
  * Reduced motion: everything is simply there.
  */
-import { useRef } from 'react';
+import { createContext, useContext, useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { useStore } from '@/lib/store';
 import { ENGINEERING_PROJECTS } from '@/data/projects';
@@ -437,14 +437,26 @@ export function NextList({ items, accent }) {
   );
 }
 
+/**
+ * Outside Mission Control (the /projects/<id> pages) a case study moves to the
+ * next one by URL: the page provides navigate(id). Inside, it's null and the
+ * store swaps the brief in place.
+ */
+export const CaseNavContext = createContext(null);
+
 /** The unnumbered closing section: what's next, then the next case study. */
 export function NextSection({ scope, project, title, items, accent }) {
   const rootRef = useRef(null);
   const setSelected = useStore((s) => s.setSelectedProject);
+  const navigate = useContext(CaseNavContext);
   const next = nextAfter(project.id);
 
   const goNext = () => {
     if (!next) return;
+    if (navigate) {
+      navigate(next.id);
+      return;
+    }
     const scroller = rootRef.current?.closest(SCROLLER) || document.querySelector(SCROLLER);
     scroller?.scrollTo({ top: 0 });
     setSelected(next.id);

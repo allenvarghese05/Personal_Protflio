@@ -23,7 +23,7 @@ export const project = {
     { value: '1 link', label: 'Canvas feed → classes and deadlines' },
     { value: '5', label: 'Assignment types, classified on import' },
     { value: '0.1', label: 'Syllabus model temperature, JSON-only' },
-    { value: 'Beta', label: 'Real users, not launched yet' },
+    { value: '150+', label: 'Beta testers, not launched yet' },
   ],
   primaryStack: ['React', 'Vite', 'Tailwind CSS', 'Node.js · Express', 'Supabase (Postgres + Auth)'],
   secondaryStack: ['OpenAI GPT-4o', 'pdf-parse', 'Canvas iCalendar feeds', 'Server-sent events', 'Electron (v1)'],
