@@ -5,7 +5,8 @@
  *
  *   header     name, contact, résumé, theme, the way into the 3D portfolio;
  *              a progress line and the project you're on
- *   opening    "Projects", one sentence, and the index: all ten in a list
+ *   opening    "Projects" as Tech Text (./TechText), one sentence carrying the strongest proof (its
+ *              phrases link to their projects), and the index: all ten in a list
  *              whose rows flow open on hover (./FlowIndex)
  *   featured   four large sections: the picture holds (sticky) on the
  *              project's colour while the story, numbers and steps scroll
@@ -21,8 +22,53 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion';
 import { projectById } from '@/data/projects';
-import { ALL_IDS, LAYOUT, PROFILE, SHORT, SHOWCASE } from '@/data/showcase';
+import { ALL_IDS, LAYOUT, OPENING, PROFILE, SHORT, SHOWCASE } from '@/data/showcase';
 import FlowIndex from './FlowIndex';
+import TechText from './TechText';
+import dynamic from 'next/dynamic';
+
+// WebGL, client only: loads after the page, never blocks the first paint
+const ASCIIText = dynamic(() => import('./ASCIIText'), { ssr: false, loading: () => null });
+
+/* The name behind the opening, in 3D ASCII: very faint grey, swaying slowly,
+   decoded once on arrival. In light mode the component inverts its colours,
+   so the tints there are 1 − the grey we want (#d9d9dd centre, #e8e8eb edge). */
+const NAME_TINT = {
+  light: ['#262622', '#1f1f1b', '#171714'],
+  dark: ['#2b2e37', '#24262e', '#1c1e25'],
+};
+
+function NameField({ theme }) {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[min(500px,75vh)] w-screen -translate-x-1/2"
+      style={{
+        maskImage: 'linear-gradient(to bottom, black 35%, transparent 92%), radial-gradient(75% 90% at 50% 40%, black 45%, transparent 100%)',
+        maskComposite: 'intersect',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 35%, transparent 92%)',
+      }}
+    >
+      <ASCIIText
+        text="Allen"
+        theme={theme === 'light' ? 'light' : 'dark'}
+        colors={NAME_TINT[theme === 'light' ? 'light' : 'dark']}
+        textColor="#ffffff"
+        asciiFontSize={9}
+        textScale={1.35}
+        blocks={0}
+        chroma={0.4}
+        waves={0.5}
+        waveSpeed={0.5}
+        tilt={1}
+        hueShift={0}
+        scramble={0}
+        interactive={false}
+        clickRipple={false}
+      />
+    </div>
+  );
+}
 import Stage from './Stage';
 import { Chip, HowItWorks, Mark, Stats, Steps, TONE } from './parts';
 import { ThemeToggle, useWorkTheme } from './theme';
@@ -149,6 +195,44 @@ function ResumeButton({ compact = false }) {
     >
       {label} <span className="text-label">soon</span>
     </span>
+  );
+}
+
+/* GitHub and LinkedIn marks: Simple Icons path data (CC0). Calm outlined
+   pills; the only colour is LinkedIn's own blue on its mark. */
+const GITHUB_MARK =
+  'M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12';
+const LINKEDIN_MARK =
+  'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.847 3.37-1.847 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z';
+
+const ICON_PILL = `${PILL} gap-2.5 pl-4 pr-5 text-ink ring-1 ring-inset ring-line-hi hover:bg-surface-2 hover:ring-ink-subtle`;
+
+function BrandMark({ path, className = '' }) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className={`h-[18px] w-[18px] shrink-0 ${className}`} fill="currentColor">
+      <path d={path} />
+    </svg>
+  );
+}
+
+/** Where to find Allen, right under the opening: GitHub, LinkedIn, email. */
+function ContactButtons() {
+  return (
+    <div className="flex flex-wrap gap-2 lg:justify-end">
+      <a href={PROFILE.links.github} target="_blank" rel="noreferrer" className={ICON_PILL}>
+        <BrandMark path={GITHUB_MARK} /> GitHub
+      </a>
+      <a href={PROFILE.links.linkedin} target="_blank" rel="noreferrer" className={ICON_PILL}>
+        <BrandMark path={LINKEDIN_MARK} className="text-[#0a66c2]" /> LinkedIn
+      </a>
+      <a href={`mailto:${PROFILE.links.email}`} className={PILL_SOLID}>
+        Email me <ArrowDot />
+      </a>
+      {/* the header carries the résumé on wider screens */}
+      <span className="md:hidden">
+        <ResumeButton />
+      </span>
+    </div>
   );
 }
 
@@ -401,42 +485,59 @@ export default function ProjectIndex() {
 
       <main className={WRAP}>
         {/* ── opening ── */}
-        <section aria-labelledby="page-title" className="pb-10 pt-14 sm:pt-20 lg:pb-12">
+        <section aria-labelledby="page-title" className="relative isolate pb-10 pt-14 sm:pt-20 lg:pb-12">
+          <NameField theme={theme} />
           <div className="mb-10 flex flex-col gap-6 lg:mb-14 lg:flex-row lg:items-end lg:justify-between">
-            <motion.h1
-              id="page-title"
-              initial={reduce ? false : { opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, ease: EASE_OUT }}
-              className="font-display text-[clamp(3.75rem,11vw,9.5rem)] font-semibold leading-[0.86] tracking-[-0.055em] text-ink"
-            >
-              Projects
-            </motion.h1>
+            {/* the word itself is the visual: Tech Text rules the font's lines and
+                fills the letters once, then a selection frame drifts across it,
+                or follows the pointer; its role="img" label keeps "Projects" */}
+            {/* the height lives on the h1: TechText fills its parent (its own CSS) */}
+            {/* -ml-6: the canvas keeps 24px for the selection frame left of the word */}
+            <h1 id="page-title" className="-ml-6 h-[clamp(6.5rem,19vw,14.5rem)] w-[calc(100%+1.5rem)] min-w-0 lg:flex-1">
+              <TechText
+                text="Projects"
+                align="left"
+                fontWeight={600}
+                fontSize={176}
+                letterSpacing={-0.055}
+                accentColor="var(--accent)"
+                intro="metrics"
+                introDuration={2.2}
+                sweep
+                speed={0.55}
+                specks={12}
+                className="font-display text-ink"
+              />
+            </h1>
             <motion.div
               initial={reduce ? false : { opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: EASE_OUT, delay: 0.1 }}
-              className="max-w-[42ch] lg:pb-3 lg:text-right"
+              className="max-w-[46ch] lg:pb-3 lg:text-right"
             >
-              <p className="text-lg leading-snug text-ink">
-                {count} projects, from a client’s grant system to a NASA Space Apps nominee.
+              {/* the proof, in words: each linked phrase jumps to its project */}
+              <p className="text-balance text-lg leading-snug text-ink-muted">
+                {count} projects,{' '}
+                {OPENING.map((part) =>
+                  part.id ? (
+                    <a
+                      key={part.text}
+                      href={`#${part.id}`}
+                      onClick={(e) => jump(e, part.id)}
+                      className="font-medium text-ink underline decoration-line-hi decoration-1 underline-offset-[5px] transition-[text-decoration-color] duration-200 hover:decoration-ink"
+                    >
+                      {part.text}
+                    </a>
+                  ) : (
+                    <span key={part.text}>{part.text}</span>
+                  ),
+                )}
               </p>
               <p className="mt-2 text-sm text-ink-subtle">Written up from the code · Updated {PROFILE.updated}</p>
+              <div className="mt-6">
+                <ContactButtons />
+              </div>
             </motion.div>
-          </div>
-
-          {/* contact on a phone, where the header has no room for it */}
-          <div className="mb-8 flex flex-wrap gap-2 md:hidden">
-            <ResumeButton compact />
-            <a href={`mailto:${PROFILE.links.email}`} className={`${LINK_QUIET} ring-1 ring-inset ring-line`}>
-              Email
-            </a>
-            <a href={PROFILE.links.linkedin} target="_blank" rel="noreferrer" className={`${LINK_QUIET} ring-1 ring-inset ring-line`}>
-              LinkedIn
-            </a>
-            <a href={PROFILE.links.github} target="_blank" rel="noreferrer" className={`${LINK_QUIET} ring-1 ring-inset ring-line`}>
-              GitHub
-            </a>
           </div>
 
           <FlowIndex onJump={jump} />
