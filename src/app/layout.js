@@ -41,7 +41,9 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    // /projects sets data-work-theme on <html> before React loads (its theme
+    // script); that one attribute is expected to differ from the server's
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geist.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >

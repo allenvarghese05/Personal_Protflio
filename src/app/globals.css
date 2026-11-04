@@ -1012,11 +1012,13 @@ html {
 }
 
 /* ============================================================
-   /projects — the résumé page. Dark (Signal Amber) by default; the toggle
-   sets html[data-work-theme="light"] while the page is open, which swaps
-   the same token names for a warm paper palette. Scoped to .work-root, so
-   the game and the case studies never change.
-   Light contrast on #f4f2ed: ink 17:1, muted 9:1, subtle 5.2:1, accent 4.9:1.
+   /projects — the résumé page. Dark (Signal Amber) by default; light when
+   opened from the résumé link (/projects?theme=light) or chosen with the
+   toggle, which sets html[data-work-theme="light"] while the page is open
+   and swaps the same token names for a clean white palette. Scoped to
+   .work-root, so the game and the case studies never change.
+   Light contrast: ink 16.8:1 on white, muted 10:1, subtle 5.5:1 (4.9:1 on
+   surface-2), accent 5.3:1 (4.7:1 on surface-2).
    ============================================================ */
 .work-root {
   background: var(--void);
@@ -1025,20 +1027,20 @@ html {
 }
 html[data-work-theme="light"],
 html[data-work-theme="light"] body {
-  background-color: #f4f2ed;
+  background-color: #ffffff;
 }
 html[data-work-theme="light"] .work-root {
   color-scheme: light;
-  --void: #f4f2ed;
-  --surface: #ffffff;
-  --surface-2: #ece9e2;
-  --raised: #e3dfd6;
-  --line: #e1dcd2;
-  --line-hi: #cbc5b9;
-  --ink: #16140f;
-  --ink-muted: #46423b;
-  --ink-subtle: #6b665d;
-  --ink-faint: #a39d92;
+  --void: #ffffff;
+  --surface: #f5f5f7;
+  --surface-2: #f0f0f3;
+  --raised: #e8e8ed;
+  --line: #e5e5ea;
+  --line-hi: #d2d2d7;
+  --ink: #1d1d1f;
+  --ink-muted: #424245;
+  --ink-subtle: #68686d;
+  --ink-faint: #a1a1a6;
   --accent: #a85410;
   --accent-hi: #c2620f;
   --accent-lo: #8a440c;
@@ -1059,7 +1061,8 @@ html[data-work-theme="light"] .work-root ::selection {
 }
 
 /* /projects index: the hover band's marquee. It only runs while its band is
-   showing; no hover (touch) means no band at all. */
+   showing; no hover (touch) means no band at all. FlowIndex sets each band's
+   duration from its width so all run at one speed; 24s is the fallback. */
 @keyframes work-marquee {
   to {
     transform: translateX(-50%);
@@ -1082,6 +1085,15 @@ html[data-work-theme="light"] .work-root ::selection {
   }
 }
 /* touch rows open their band when scrolled to the middle of the screen (see FlowIndex) */
+/* /projects index: the hover glow behind the list (FlowIndex). Faint on
+   white, a touch stronger on the dark page, where colour reads quieter. */
+.work-glow-field {
+  opacity: 0.32;
+}
+html[data-work-theme="light"] .work-root .work-glow-field {
+  opacity: 0.2;
+}
+
 
 /* /projects on paper: recruiters print. Light ink on white, no chrome. */
 @media print {

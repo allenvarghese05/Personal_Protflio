@@ -8,8 +8,11 @@
  *   ground     the project's own colour (its product's brand, darkened), the
  *              field its picture sits on and the band in the index. Always
  *              dark, so white type on it reads in both themes.
+ *   hue        the same colour lifted to middle lightness (OKLCH L 0.6): the
+ *              soft glow behind the index on hover, readable as colour on
+ *              both the white page and the dark one
  *   year       shown in the index row
- *   status     the index row's one-word state
+ *   status     the index row's state, with its proof where there is one
  *   band       three short phrases that run through the index row on hover
  *   highlight  the status chip: tone 'award' (amber), 'built' (jade),
  *              'progress' (sand), 'side' (slate)
@@ -37,11 +40,25 @@ export const PROFILE = {
 
 /** Three tiers, three compositions. Order = the index's order. */
 export const LAYOUT = {
-  featured: ['iet', 'aircast', 'bis-report-card', 'learnflow-ai', 'typist-ml'],
+  featured: ['aircast', 'iet', 'bis-report-card', 'learnflow-ai', 'typist-ml'],
   progress: ['chronos-ai', 'automix-ai'],
   earlier: ['jam-duel', 'college-matcher', 'streetspot'],
 };
 export const ALL_IDS = [...LAYOUT.featured, ...LAYOUT.progress, ...LAYOUT.earlier];
+
+/**
+ * The sentence under "Projects": the strongest proof, in words, before the
+ * list. Each linked phrase jumps to its project. Starts after "Ten projects, ".
+ */
+export const OPENING = [
+  { text: 'including a ' },
+  { text: 'NASA Space Apps 2025 Global Nominee', id: 'aircast' },
+  { text: ', a grant system ' },
+  { text: 'in production for a client', id: 'iet' },
+  { text: ', and a planner with ' },
+  { text: '150+ beta testers', id: 'learnflow-ai' },
+  { text: '.' },
+];
 
 /** Short names for the header's "now viewing" and the index. */
 export const SHORT = {
@@ -61,10 +78,11 @@ export const SHOWCASE = {
   iet: {
     mark: 'C',
     ground: '#3d0f2e',
+    hue: '#be5399',
     year: '2026',
-    status: 'Production-ready',
+    status: 'In production · client system',
     context: 'Client system · sole engineer · Jan 2026 to now',
-    highlight: { text: 'Production-ready · sole engineer', tone: 'built' },
+    highlight: { text: 'In production · sole engineer', tone: 'built' },
     pitch: 'The grant system for building churches across India: apply, review, approve, then fund construction in three phases.',
     band: ['Client system, sole engineer', '146.7 s → 1.28 s analytics', '21 statuses, one engine'],
     cover: {
@@ -94,8 +112,9 @@ export const SHOWCASE = {
   aircast: {
     mark: 'A',
     ground: '#0a2766',
+    hue: '#4b7bdf',
     year: '2025',
-    status: 'Global Nominee',
+    status: 'Global Nominee · Top 1,219 of 11,500+',
     prefix: 'NASA Space Apps 2025',
     context: 'Two-person team · Oct 2025',
     highlight: { text: 'Global Nominee', tone: 'award' },
@@ -128,8 +147,9 @@ export const SHOWCASE = {
   'bis-report-card': {
     mark: 'B',
     ground: '#4a1420',
+    hue: '#cc4f69',
     year: '2026',
-    status: 'Built',
+    status: 'Built · 282 tests',
     context: 'Sole developer · Jul to Oct 2026',
     highlight: { text: 'Built · rollout with the school in talks', tone: 'built' },
     pitch: 'Report cards that run inside the school: one server on its own network, no cloud, CBSE-format PDFs.',
@@ -161,8 +181,9 @@ export const SHOWCASE = {
   'learnflow-ai': {
     mark: 'L',
     ground: '#082e24',
+    hue: '#009777',
     year: '2025–26',
-    status: 'Beta',
+    status: 'Beta · 150+ testers',
     context: 'Co-founder · Jun 2025 to now',
     highlight: { text: 'Beta · 150+ testers', tone: 'built' },
     pitch: 'A student planner that sets itself up: paste a Canvas calendar link and your classes and deadlines appear.',
@@ -195,6 +216,7 @@ export const SHOWCASE = {
   'chronos-ai': {
     mark: 'C',
     ground: '#33240f',
+    hue: '#a5762e',
     year: '2026',
     status: 'In progress',
     context: 'Solo · Oct 2026 to now',
@@ -225,6 +247,7 @@ export const SHOWCASE = {
   'typist-ml': {
     mark: 'T',
     ground: '#1b222e',
+    hue: '#6981ab',
     year: '2026',
     status: 'Complete',
     context: 'Sole researcher and engineer · Sep 2026 to now',
@@ -257,6 +280,7 @@ export const SHOWCASE = {
   'automix-ai': {
     mark: 'A',
     ground: '#2a1712',
+    hue: '#ac6e5d',
     year: '2026',
     status: 'In progress',
     context: 'Solo · Apr 2026 to now',
@@ -282,6 +306,7 @@ export const SHOWCASE = {
   'jam-duel': {
     mark: 'J',
     ground: '#13281c',
+    hue: '#4c916a',
     year: '2025',
     status: 'Class project',
     context: 'Team of three · Drexel INFO310 · Aug 2025',
@@ -302,6 +327,7 @@ export const SHOWCASE = {
   'college-matcher': {
     mark: 'C',
     ground: '#18213a',
+    hue: '#5f7ccc',
     year: '2025',
     status: 'Personal project',
     context: 'Solo · Aug 2025',
@@ -322,6 +348,7 @@ export const SHOWCASE = {
   streetspot: {
     mark: 'S',
     ground: '#1f2a14',
+    hue: '#6a8d45',
     year: '2025',
     status: 'Prototype',
     context: 'Solo · Jul 2025 · one evening',

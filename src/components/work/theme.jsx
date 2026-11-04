@@ -1,7 +1,8 @@
 'use client';
 /**
  * Light / dark for the projects page. Dark (the site's Signal Amber) is the
- * default; the choice is remembered in localStorage.
+ * default; the résumé link (?theme=light) opens it light, and a choice made
+ * with the toggle is remembered and wins (see resolveWorkTheme).
  *
  * The theme lives on <html data-work-theme="light"> so it can be set before
  * first paint (THEME_SCRIPT in ./themeScript.js runs inline, ahead of the page's markup) and so
@@ -9,7 +10,7 @@
  * unmounts: the game and the case-study pages are dark-only.
  */
 import { useCallback, useLayoutEffect, useSyncExternalStore } from 'react';
-import { THEME_KEY as KEY } from './themeScript';
+import { THEME_KEY as KEY, resolveWorkTheme } from './themeScript';
 
 const html = () => document.documentElement;
 
@@ -33,13 +34,7 @@ export function useWorkTheme() {
   // before paint on client-side navigation too, where the inline script
   // doesn't run; and off again when the page goes (the rest is dark-only)
   useLayoutEffect(() => {
-    let saved = 'dark';
-    try {
-      saved = localStorage.getItem(KEY) === 'light' ? 'light' : 'dark';
-    } catch {
-      /* private mode: stay dark */
-    }
-    apply(saved);
+    apply(resolveWorkTheme());
     return () => apply('dark');
   }, []);
 
