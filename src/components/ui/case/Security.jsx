@@ -5,20 +5,20 @@
  * seven findings, seven fixes."
  *
  * Five blocks, top to bottom:
- *   stack    the centrepiece panel. SECURITY.layers as a vertical stack on a
- *            rail, outermost first: index, layer, where it lives, what it
- *            enforces. Pick a request (SECURITY.probes) and a marker rides the
- *            rail down, one layer per beat. The layers it clears tick jade.
+ *   stack    the centrepiece. SECURITY.layers as a numbered vertical stack,
+ *            outermost first: index, layer, where it lives, what it
+ *            enforces. Pick a request (SECURITY.probes) and the layers resolve
+ *            down the stack, one per beat. The layers it clears tick jade.
  *            The layer that stops it turns red with a cross and the code it
- *            answered with, and the marker goes no further. The layers under
+ *            answered with, and nothing below it resolves. The layers under
  *            it stay dim. A request nothing stops reaches the 200 at the foot
  *            of the stack. The readout is the probe's own result.
  *   sign-in  the three failed sign-ins as three rows. Each has the same
- *            timing bar, and all three are wired into one response box. The
- *            facts sit beside them.
- *   audit    CHU-27 … CHU-33 as cards. Each card: id, severity chip (C
+ *            timing bar, and the one response they all get sits beside them.
+ *            The facts follow.
+ *   audit    CHU-27 … CHU-33 on hairlines. Each: id, severity chip (C
  *            critical, H high; critical a step stronger), PR, then Found
- *            (hollow ring) → Fixed (filled jade dot). That is the page's
+ *            (hollow ring) and Fixed (filled jade dot). That is the page's
  *            before / after marker grammar.
  *   bytes    the signatures the upload route accepts, byte by byte with each
  *            byte's ASCII under it, then the renamed text file it refuses.
@@ -45,7 +45,7 @@
  */
 import { useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { SECURITY } from '@/data/studies/iet';
 
@@ -55,7 +55,6 @@ import { SECURITY } from '@/data/studies/iet';
 const LABEL = 'font-mono text-micro font-medium uppercase tracking-[0.18em]';
 const H3 = 'font-display text-[1.375rem] font-semibold leading-tight tracking-[-0.01em] text-ink';
 const BLOCK_GAP = 'mt-20 sm:mt-24'; // between the blocks, as in the sibling sections
-const PANEL_SHADOW = 'inset 0 1px 0 rgba(255, 255, 255, 0.04)';
 
 const RISE_PX = 16;
 const RISE_S = 0.6;
@@ -130,13 +129,13 @@ function Choices({ label, options, value, onChoose, accent, className = 'flex fl
   );
 }
 
-/** Status glyph: idle ring, jade tick, red cross. Opaque, so the rail and
- *  the marker riding it disappear under a node rather than through it. */
+/** Status glyph: idle ring, jade tick, red cross. Opaque, so a verdict
+ *  covers the idle ring under it. */
 function Glyph({ kind, size = 18 }) {
   const tone = { pass: P.jade, block: P.alert, idle: P.lineHi }[kind];
   return (
     <svg viewBox="0 0 18 18" width={size} height={size} aria-hidden="true" className="block shrink-0">
-      <circle cx="9" cy="9" r="7.75" fill={P.surface} />
+      <circle cx="9" cy="9" r="7.75" fill={P.void} />
       <circle cx="9" cy="9" r="7.75" fill={kind === 'idle' ? 'none' : alpha(tone, 0.16)} stroke={tone} strokeWidth="1.25" />
       {kind === 'pass' && (
         <path d="M5.6 9.2 L7.9 11.5 L12.4 6.8" fill="none" stroke={tone} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -188,62 +187,13 @@ const STACK = { lead: 0.25, hop: 0.18, mark: 0.2, dim: 0.4 };
 const arriveAt = (k) => STACK.lead + (k + 1) * STACK.hop;
 const SR_STATE = { pass: 'passed', block: 'stopped here', idle: 'not reached' };
 
-// Rail geometry (px). Nothing is measured: every row draws the rail from its
-// own node down to the next row's node, which sits at the same NODE_Y. So a
-// segment starts at its node and runs the row's height (+ NODE_Y − start).
+// Status column geometry (px): each row's glyph is centred on its title line.
 const RAIL_W = 28;
-const RAIL_X = 13; // the 1px line's left edge
-const RAIL_CX = RAIL_X + 0.5;
+const RAIL_CX = 13.5;
 const NODE = 18;
-const TOKEN = 9;
 const NODE_Y = 31; // 1px rule + py-4 + half the 28px title line
-const ENTRY_Y = 20; // py-2 + half the 24px request line
-const ENTRY_DOT = 7;
 
-/** The rail from one node to the next: a hairline, the jade trail once the
- *  marker has ridden it, and the marker itself. It is amber because it is
- *  the live thing, and it slides under the nodes at both ends. */
-function RailSegment({ top, lit, delay, reduce, accent }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="absolute w-px"
-      style={{ left: RAIL_X, top, height: `calc(100% - ${top}px + ${NODE_Y}px)` }}
-    >
-      <span className="absolute inset-0 bg-line-hi" />
-      {lit && (
-        <motion.span
-          className="absolute inset-0 origin-top"
-          style={{ background: alpha(P.jade, 0.75) }}
-          initial={{ scaleY: reduce ? 1 : 0 }}
-          animate={{ scaleY: 1 }}
-          transition={reduce ? { duration: 0 } : { delay, duration: STACK.hop, ease: 'linear' }}
-        />
-      )}
-      {lit && !reduce && (
-        <motion.span
-          className="absolute z-[2] rounded-full"
-          style={{
-            left: 0.5 - TOKEN / 2,
-            width: TOKEN,
-            height: TOKEN,
-            marginTop: -TOKEN / 2,
-            background: accent,
-            boxShadow: `0 0 0 2px ${P.surface}`,
-          }}
-          initial={{ top: '0%', opacity: 0 }}
-          animate={{ top: '100%', opacity: 1 }}
-          transition={{
-            top: { delay, duration: STACK.hop, ease: 'linear' },
-            opacity: { delay, duration: 0 },
-          }}
-        />
-      )}
-    </span>
-  );
-}
-
-/** A node on the rail: the idle ring, with the verdict landing on top. */
+/** A row's status: the idle ring, with the verdict landing on top. */
 function RailNode({ state, delay, reduce }) {
   return (
     <span
@@ -291,7 +241,7 @@ function RowBody({ plan, reached, stopped, delay, reduce, children }) {
   );
 }
 
-function LayerRow({ layer, index, plan, runKey, reduce, accent }) {
+function LayerRow({ layer, index, plan, runKey, reduce }) {
   let state = 'idle';
   if (plan) state = index < plan.stop ? 'pass' : index === plan.stop ? 'block' : 'idle';
   const reached = Boolean(plan) && index <= plan.stop;
@@ -301,14 +251,6 @@ function LayerRow({ layer, index, plan, runKey, reduce, accent }) {
   return (
     <li className="relative flex">
       <span className="relative shrink-0" style={{ width: RAIL_W }}>
-        <RailSegment
-          key={`seg-${runKey}`}
-          top={NODE_Y}
-          lit={Boolean(plan) && index < plan.stop}
-          delay={t}
-          reduce={reduce}
-          accent={accent}
-        />
         <RailNode key={`node-${runKey}`} state={state} delay={t} reduce={reduce} />
       </span>
 
@@ -355,9 +297,8 @@ function LayerRow({ layer, index, plan, runKey, reduce, accent }) {
   );
 }
 
-function StackLegend({ accent }) {
+function StackLegend() {
   const items = [
-    { key: 'token', label: 'the request' },
     { key: 'pass', label: 'passed' },
     { key: 'block', label: 'stopped' },
     { key: 'idle', label: 'not reached' },
@@ -366,11 +307,7 @@ function StackLegend({ accent }) {
     <ul className="flex flex-wrap gap-x-4 gap-y-2 font-mono text-micro text-ink-subtle">
       {items.map((it) => (
         <li key={it.key} className="inline-flex items-center gap-2">
-          {it.key === 'token' ? (
-            <span aria-hidden="true" className="mx-[2.5px] h-[9px] w-[9px] rounded-full" style={{ background: accent }} />
-          ) : (
-            <Glyph kind={it.key} size={14} />
-          )}
+          <Glyph kind={it.key} size={14} />
           {it.label}
         </li>
       ))}
@@ -396,12 +333,12 @@ function RequestStack({ accent }) {
     : null;
 
   return (
-    <div className="mc-panel min-w-0">
+    <div className="min-w-0">
       <div className="@container">
         <div className="grid grid-cols-1 gap-7 @3xl:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] @3xl:gap-10">
           {/* the requests, and what each one was told */}
           <div className="flex min-w-0 flex-col gap-5">
-            <h3 className="mc-label">Send a request down the stack</h3>
+            <h3 className="mc-label">Send a request through the layers</h3>
             <Choices
               label="Send a request"
               options={PROBE_OPTIONS}
@@ -424,49 +361,28 @@ function RequestStack({ accent }) {
                   <p className="mt-3 text-body text-ink-muted">{probe.result}</p>
                 </motion.div>
               ) : (
-                <p className="text-body text-ink-subtle">Pick a request to send it down.</p>
+                <p className="text-body text-ink-subtle">Pick a request to see which layer stops it.</p>
               )}
             </div>
             <div className="@3xl:mt-auto">
-              <StackLegend accent={accent} />
+              <StackLegend />
             </div>
           </div>
 
           {/* the stack */}
           <div ref={stackRef} className="@container min-w-0">
-            {/* where the request comes in */}
+            {/* the request being sent */}
             <div className="relative flex">
-              <span className="relative shrink-0" style={{ width: RAIL_W }}>
-                <RailSegment
-                  key={`seg-entry-${runKey}`}
-                  top={ENTRY_Y}
-                  lit={Boolean(plan)}
-                  delay={STACK.lead}
-                  reduce={reduce}
-                  accent={accent}
-                />
-                <span
-                  aria-hidden="true"
-                  className="absolute z-[3] rounded-full"
-                  style={{
-                    left: RAIL_CX - ENTRY_DOT / 2,
-                    top: ENTRY_Y - ENTRY_DOT / 2,
-                    width: ENTRY_DOT,
-                    height: ENTRY_DOT,
-                    background: P.surface,
-                    boxShadow: `inset 0 0 0 1.25px ${P.inkSubtle}`,
-                  }}
-                />
-              </span>
+              <span className="relative shrink-0" style={{ width: RAIL_W }} />
               <p className="min-w-0 flex-1 py-2 pl-3 leading-6">
                 <span className={`${LABEL} mr-3 text-ink-subtle`}>Request</span>
-                <span className="font-mono text-label text-ink">{probe ? probe.label : ', '}</span>
+                <span className="font-mono text-label text-ink">{probe ? probe.label : 'none yet'}</span>
               </p>
             </div>
 
             <ol aria-label="The layers, outermost first">
               {LAYERS.map((layer, i) => (
-                <LayerRow key={layer.key} layer={layer} index={i} plan={plan} runKey={runKey} reduce={reduce} accent={accent} />
+                <LayerRow key={layer.key} layer={layer} index={i} plan={plan} runKey={runKey} reduce={reduce} />
               ))}
             </ol>
 
@@ -506,34 +422,15 @@ const LOGIN = SECURITY.login;
 const CASES = LOGIN.cases;
 // '401 · “Invalid email or password.” · no Retry-After' → code, message, the rest
 const [RESPONSE_CODE, RESPONSE_MESSAGE, ...RESPONSE_REST] = LOGIN.response.split(' · ');
-// Seconds: the timing bars fill together, then the wires draw, then the box lands
-const LOGIN_T = { lead: 0.25, bar: 0.9, wire: 0.45, land: 0.35 };
-const WIRE_W = 56; // the wide layout's middle column (px)
-const WIRE_H = 300; // its viewBox height, stretched to the rows
-const WIRE_PATHS = CASES.map((_, i) => {
-  const y = ((i + 0.5) * WIRE_H) / CASES.length;
-  const mid = WIRE_W / 2;
-  return `M0 ${y} C${mid} ${y} ${mid} ${WIRE_H / 2} ${WIRE_W} ${WIRE_H / 2}`;
-});
+// Seconds: the timing bars fill together, then the response lands
+const LOGIN_T = { lead: 0.25, bar: 0.9, land: 0.35 };
 const BAR_TONE = alpha(P.inkMuted, 0.8);
-
-function Chevron({ tone, className }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 6 10" width="6" height="10" className={`block ${className}`}>
-      <path d="M0.75 1 L5 5 L0.75 9" fill="none" stroke={tone} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 /** One failed sign-in: what was tried, what the server still does, how long it took. */
 function Attempt({ item, shown, reduce }) {
   return (
-    <li className="relative @xl:flex @xl:py-1.5">
-      {/* narrow: a stub into the bus line down the left, and the bus on to the next row */}
-      <span aria-hidden="true" className="absolute -left-[17px] top-[25px] h-px w-[17px] bg-line-hi @xl:hidden" />
-      <span aria-hidden="true" className="absolute -left-[17px] top-[25px] h-[calc(100%+12px)] w-px bg-line-hi @xl:hidden" />
-
-      <div className="w-full rounded-md border border-line bg-surface-2 px-3.5 py-3">
+    <li className="border-t border-line py-3.5">
+      <div className="w-full">
         <p className="text-body font-medium leading-6 text-ink">{item.label}</p>
         <p className="mt-0.5 text-label text-ink-subtle">{item.note}</p>
         <div aria-hidden="true" className="relative mt-3 h-[3px] rounded-full bg-line">
@@ -553,8 +450,7 @@ function Attempt({ item, shown, reduce }) {
 
 function Login({ accent }) {
   const { ref, reduce, shown } = useBlock(BLOCK_VIEW);
-  const wireAt = LOGIN_T.lead + LOGIN_T.bar;
-  const landAt = wireAt + LOGIN_T.wire;
+  const landAt = LOGIN_T.lead + LOGIN_T.bar;
   const variants = rise(reduce);
 
   return (
@@ -565,48 +461,27 @@ function Login({ accent }) {
       </motion.div>
 
       <div className="mt-8 grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-14">
-        <motion.div variants={variants} custom={1} className="mc-panel min-w-0">
+        <motion.div variants={variants} custom={1} className="min-w-0">
           <p className="mc-label">
             {capWord(CASES.length)} {plural(CASES.length, 'failure')} · one response
           </p>
 
           <div className="@container mt-5 min-w-0">
-            <div className="grid grid-cols-1 gap-3 @xl:grid-cols-[minmax(0,1fr)_56px_minmax(0,0.85fr)] @xl:items-center @xl:gap-0">
-              <ol aria-label="Failed sign-ins" className="grid gap-3 pl-6 @xl:auto-rows-fr @xl:gap-0 @xl:self-stretch @xl:pl-0">
+            <div className="grid grid-cols-1 gap-8 @xl:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] @xl:items-center @xl:gap-10">
+              <ol aria-label="Failed sign-ins" className="border-b border-line">
                 {CASES.map((c) => (
                   <Attempt key={c.key} item={c} shown={shown} reduce={reduce} />
                 ))}
               </ol>
 
-              {/* wide: the rows converge on one point */}
-              <div aria-hidden="true" className="relative hidden self-stretch @xl:block">
-                <motion.div
-                  className="absolute inset-0"
-                  initial={reduce ? false : { clipPath: 'inset(0 100% 0 0)' }}
-                  animate={{ clipPath: shown ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
-                  transition={at(reduce, wireAt, LOGIN_T.wire)}
-                >
-                  <svg viewBox={`0 0 ${WIRE_W} ${WIRE_H}`} preserveAspectRatio="none" className="block h-full w-full overflow-visible">
-                    {WIRE_PATHS.map((d) => (
-                      <path key={d} d={d} fill="none" stroke={P.inkSubtle} strokeWidth="1.25" vectorEffect="non-scaling-stroke" />
-                    ))}
-                  </svg>
-                  <Chevron tone={P.inkSubtle} className="absolute right-0 top-1/2 -mt-[5px]" />
-                </motion.div>
-              </div>
-
               {/* the one response every failure gets */}
               <motion.div
-                className="relative pl-6 @xl:pl-0"
+                className="min-w-0"
                 initial={reduce ? false : { opacity: 0, x: -6 }}
                 animate={shown ? { opacity: 1, x: 0 } : { opacity: 0, x: -6 }}
                 transition={at(reduce, landAt, LOGIN_T.land)}
               >
-                {/* narrow: the bus line turns into the box */}
-                <span aria-hidden="true" className="absolute left-[7px] top-[25px] h-px w-[13px] bg-line-hi @xl:hidden" />
-                <Chevron tone={P.lineHi} className="absolute left-[18px] top-[20px] @xl:hidden" />
-
-                <div className="rounded-md border bg-void p-4" style={{ borderColor: alpha(P.alert, 0.4) }}>
+                <div>
                   <p className={`${LABEL} text-ink-subtle`}>Response</p>
                   {RESPONSE_MESSAGE ? (
                     <>
@@ -648,8 +523,8 @@ const AUDIT = SECURITY.audit;
 const PR_NUMBERS = AUDIT.map((a) => parseInt(String(a.pr).replace(/\D/g, ''), 10)).filter((n) => n > 0);
 const PR_COUNT = new Set(AUDIT.map((a) => a.pr)).size;
 const PR_RANGE =
-  PR_NUMBERS.length > 1 ? `#${Math.min(...PR_NUMBERS)}–#${Math.max(...PR_NUMBERS)}` : (AUDIT[0]?.pr ?? '');
-const TICKET_RANGE = AUDIT.length > 1 ? `${AUDIT[0].id} – ${AUDIT[AUDIT.length - 1].id}` : (AUDIT[0]?.id ?? '');
+  PR_NUMBERS.length > 1 ? `#${Math.min(...PR_NUMBERS)} to #${Math.max(...PR_NUMBERS)}` : (AUDIT[0]?.pr ?? '');
+const TICKET_RANGE = AUDIT.length > 1 ? `${AUDIT[0].id} to ${AUDIT[AUDIT.length - 1].id}` : (AUDIT[0]?.id ?? '');
 // iet.js gives the merge date in its comment on SECURITY.audit ("merged
 // Oct 23"); it isn't a field yet, so it's named here, not buried in copy.
 const AUDIT_MERGED = 'Oct 23';
@@ -685,20 +560,17 @@ function AuditCard({ item, order, variants, shown, reduce }) {
     <motion.li
       variants={variants}
       custom={order}
-      className="flex min-w-0 flex-col rounded-panel border border-line bg-surface p-4 sm:p-5"
-      style={{ boxShadow: PANEL_SHADOW }}
+      className="flex min-w-0 flex-col border-t border-line pt-4"
     >
       <header className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
         <h4 className="font-mono text-label font-medium text-ink">{item.id}</h4>
         <Severity sev={item.sev} />
         <span className="ml-auto font-mono text-micro text-ink-subtle">PR {item.pr}</span>
       </header>
-      <dl className="mt-4 flex flex-1 flex-col gap-4 border-t border-line pt-4">
+      <dl className="mt-4 flex flex-1 flex-col gap-4">
         <div className="flex gap-3">
-          {/* the hollow marker, and the line down to the filled one */}
           <span aria-hidden="true" className="flex flex-col items-center">
             <Marker />
-            <span className="-mb-4 mt-1.5 w-px flex-1 bg-line-hi" />
           </span>
           <div className="min-w-0">
             <dt className={`${LABEL} text-ink-subtle`}>Found</dt>
@@ -753,7 +625,7 @@ function AuditBoard() {
           </li>
         </ul>
       </motion.div>
-      <ul className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <ul className="mt-8 grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {AUDIT.map((item, i) => (
           <AuditCard key={item.id} item={item} order={i + 1} variants={variants} shown={shown} reduce={reduce} />
         ))}
@@ -822,7 +694,7 @@ function MagicBytes() {
         {MAGIC_LINE && <h3 className={`mt-3 ${H3}`}>{MAGIC_LINE}</h3>}
       </motion.div>
 
-      <motion.div variants={variants} custom={1} className="mc-panel mt-8 min-w-0">
+      <motion.div variants={variants} custom={1} className="mt-8 min-w-0">
         <div className="@container min-w-0">
           <p className={`${LABEL} flex items-center gap-2 text-ink-subtle`}>
             <Glyph kind="pass" size={14} />
@@ -845,8 +717,7 @@ function MagicBytes() {
           <motion.div
             variants={variants}
             custom={SIGNATURES.length + 2}
-            className={`${BYTE_GRID} mt-3 rounded-md border px-3.5 py-4`}
-            style={{ borderColor: alpha(P.alert, 0.35), background: alpha(P.alert, 0.04) }}
+            className={`${BYTE_GRID} mt-3 border-y border-line py-4`}
           >
             <div className="min-w-0">
               <p className="font-mono text-label font-medium text-ink [overflow-wrap:anywhere]">{REFUSED.name}</p>

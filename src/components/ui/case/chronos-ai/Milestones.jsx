@@ -26,7 +26,7 @@
  */
 import { useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { MILESTONES } from '@/data/studies/chronos-ai';
 import { IN_VIEW, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
 
@@ -75,10 +75,7 @@ function TaskChip({ task, on, onPick, accent }) {
       >
         <Mark state={task.state} accent={accent} />
         {task.id}
-        <span className="sr-only">
-          {' '}
-         , {task.title}, {STATE_TEXT[task.state]}
-        </span>
+        <span className="sr-only">{`, ${task.title}, ${STATE_TEXT[task.state]}`}</span>
       </button>
     </li>
   );
@@ -165,7 +162,7 @@ export default function Milestones({ accent = P.ice }) {
             })}
           </ol>
           <p className="mt-3 font-mono text-micro text-ink-subtle">
-            {MERGED} of {TOTAL} merged · the phone has only run in the iOS Simulator · of the reel, only a Remotion cover scene exists (T0.5); M3–M5 are not built
+            {MERGED} of {TOTAL} merged · the phone has only run in the iOS Simulator · of the reel, only a Remotion cover scene exists (T0.5); M3 to M5 are not built
           </p>
         </div>
       </PanelFrame>

@@ -27,7 +27,7 @@
  */
 import { Fragment, useEffect, useId, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import CodeBlock from '@/components/ui/case/CodeBlock';
 
@@ -111,10 +111,11 @@ export function Choices({ label, options, value, onChoose, accent }) {
   );
 }
 
-/** The panel every diagram sits in: caption + controls, body, readout. */
+/** The open frame every diagram sits in: a hairline, caption + controls, body,
+ *  readout. No box: the rules and the caption do the grouping. */
 export function PanelFrame({ caption, controls, footer, children }) {
   return (
-    <div className="mc-panel flex min-w-0 flex-col">
+    <div className="flex min-w-0 flex-col border-t border-line pt-5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <span className="mc-label">{caption}</span>
         {controls}

@@ -137,7 +137,7 @@ export function matchUploadRow(row, roster) {
     return {
       reason: row.id
         ? 'Student is not in this section (download a fresh template for this class)'
-        : 'Student ID missing, this row was not produced by the template; download a fresh one',
+        : 'Student ID missing: this row was not produced by the template; download a fresh one',
     };
   }
   if (row.roll && row.roll.trim().toLowerCase() !== String(roster[id]).trim().toLowerCase()) {

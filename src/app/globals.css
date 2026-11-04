@@ -1016,7 +1016,9 @@ html {
    opened from the résumé link (/projects?theme=light) or chosen with the
    toggle, which sets html[data-work-theme="light"] while the page is open
    and swaps the same token names for a clean white palette. Scoped to
-   .work-root, so the game and the case studies never change.
+   .work-root: /projects and the case studies opened from it (/projects/<id>,
+   whose colours are variables, see components/ui/case/tokens.js). The game
+   never changes.
    Light contrast: ink 16.8:1 on white, muted 10:1, subtle 5.5:1 (4.9:1 on
    surface-2), accent 5.3:1 (4.7:1 on surface-2).
    ============================================================ */
@@ -1050,6 +1052,7 @@ html[data-work-theme="light"] .work-root {
   --lilac: #6a55c2;
   --slate: #56607a;
   --live: #16804f;
+  --alert: #c0392b;
 }
 html[data-work-theme="light"] .work-root ::selection {
   color: #ffffff;

@@ -26,7 +26,7 @@
  */
 import { useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { INGEST } from '@/data/studies/chronos-ai';
 import { Choices, Glyph, IN_VIEW, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
 
@@ -204,7 +204,7 @@ export default function IngestProbe({ accent = P.ice }) {
               </motion.span>
               score, breakdown, decision, day state
             </p>
-            <p className="font-mono text-micro text-ink-subtle">server side built and tested · the phone sends since T2.3 (Simulator)</p>
+            <p className="font-mono text-micro text-ink-subtle">server side built and tested · the phone has sent snapshots since T2.3 (in the Simulator)</p>
           </div>
         </div>
       </PanelFrame>

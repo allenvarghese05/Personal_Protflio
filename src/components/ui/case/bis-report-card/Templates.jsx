@@ -31,7 +31,7 @@
  */
 import { useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { Choices, Glyph, IN_VIEW, PanelFrame, Readout, at, softBreaks, useRun } from '@/components/ui/case/kit';
 import { LABEL } from '@/components/ui/case/shell';
 import { GRADING, TEMPLATE_PARTS, TEMPLATE_PROBES, TEMPLATES } from '@/data/studies/bis-report-card';
@@ -160,7 +160,7 @@ function CoScholastic({ template }) {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-label text-ink-subtle">So a legend belongs to its category, never to the template.</p>
+        <p className="mt-3 text-label text-ink-subtle">That is why each category has its own legend, instead of one legend for the whole template.</p>
       </div>
     );
   }
@@ -204,8 +204,8 @@ function Morph({ accent }) {
           <Readout runKey={runKey} reduce={reduce} tone={P.ice} status={template.label}>
             <span className="text-body text-ink-muted">
               {numeric
-                ? `English: ${MARKS_RESULT.total} of ${MARKS_MAX} → ${MARKS_RESULT.percentage}% → ${MARKS_RESULT.grade}, worked out on the server. The browser never computes a grade.`
-                : 'The same subject as six skill lines, each one of three answers. Descriptive parts are recorded, not graded.'}
+                ? `English: ${MARKS_RESULT.total} of ${MARKS_MAX} is ${MARKS_RESULT.percentage}%, which is grade ${MARKS_RESULT.grade}. The server works this out; the browser never computes a grade.`
+                : 'The same subject as six skill lines, each with one of three answers. Descriptive parts are recorded but not graded.'}
             </span>
           </Readout>
         }
@@ -247,7 +247,7 @@ function Check({ accent }) {
         footer={
           probe ? (
             <Readout runKey={runKey} reduce={reduce} tone={probe.ok ? P.jade : P.alert} status={probe.ok ? 'Saved' : 'Refused'}>
-              <span className="text-body text-ink-muted">{probe.ok ? 'Cosmetic changes never re-grade a card.' : `Stopped by the ${probe.by === 'zod' ? 'schema' : 'freeze'}, nothing is written.`}</span>
+              <span className="text-body text-ink-muted">{probe.ok ? 'Cosmetic changes never re-grade a card.' : `Stopped by the ${probe.by === 'zod' ? 'schema' : 'freeze'}. Nothing is written.`}</span>
             </Readout>
           ) : (
             <p className="text-body text-ink-subtle">Pick an edit.</p>
@@ -262,7 +262,7 @@ function Check({ accent }) {
                 <motion.div key={runKey} initial={reduce ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={at(reduce, 0, 0.3)}>
                   <p className={`${LABEL} text-ink-subtle`}>Checked by · {CHECK_NAME[probe.by]}</p>
                   <div
-                    className="mt-3 flex items-start gap-3 rounded-md border bg-void p-4"
+                    className="mt-3 flex items-start gap-3 border-t pt-4"
                     style={{ borderColor: probe.ok ? alpha(P.jade, 0.4) : alpha(P.alert, 0.4) }}
                   >
                     <span className="mt-0.5">

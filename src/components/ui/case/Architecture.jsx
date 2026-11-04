@@ -3,10 +3,11 @@
 /**
  * Architecture — "One Next.js app, N layers — follow a request through it."
  *
- * The system as layers, left → right (who · the app · the rules in src/lib ·
+ * The system as layers, left to right (who · the app · the rules in src/lib ·
  * data · outside), one column per entry in LAYERS from the study data. Pick a
- * trace (TRACES) and its steps light in order while a path draws between
- * them; the first trace autoplays once the section is in view. Hover, tap or
+ * trace (TRACES) and its parts light in order, each with its step number; no
+ * connector lines, the numbers carry the sequence. The first trace autoplays
+ * once the section is in view. Hover, tap or
  * tab to any part to read what it does. "Explore the full graph" swaps in the
  * existing force graph (project.architectureGraph) for every node and edge.
  *
@@ -14,29 +15,20 @@
  * carries the parts that graph doesn't have. People in the Who column read
  * their tier and headcount from ROLES when they have an entry there (the
  * Super Admin sits outside the approval chain and has none). Under 1024px
- * the layers stack as rows of wrapping pills. Node centres are measured from
- * layout offsets (transform-free) and re-measured by a ResizeObserver, so the
- * path follows every reflow. Reduced motion: the whole trace, instantly.
+ * the layers stack as rows of wrapping pills. Reduced motion: the whole trace,
+ * instantly.
  */
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
 import ArchitectureGraph from '@/components/ui/ArchitectureGraph';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 
 /* ── tuning ───────────────────────────────────────────────────────────────── */
-const STEP_MS = 380; // one step of a trace lights every STEP_MS
+const STEP_MS = 480; // one step of a trace lights every STEP_MS
 const FIRST_STEP_MS = 120; // lead-in before step 1 lights
 const AUTOPLAY_DELAY_MS = 450; // after the section scrolls into view
-const COLUMNS_QUERY = '(min-width: 1024px)'; // Tailwind `lg`, one column per layer
-const BRACKET_GAP = 14; // px a same-column hop bulges past the pill edge
-const RETURN_BOW = 36; // px a backward hop bows away from the forward path
-const ARC_GAP = 9; // px a same-row hop (stacked layout) arcs above the pills
 const DIM_DOT = 0.4; // dot opacity for parts outside the active trace
-const DRAW_S = (STEP_MS * 0.9) / 1000; // a hop finishes drawing as its node lights
-const PORT_R = 2.5; // px, the dot where a hop meets a pill edge
-const SKIP_GAP = 12; // px a layer-skipping hop runs clear of the layers it skips
-const CORNER_R = 10; // px corner radius on a layer-skipping hop
 
 const WHO_KEY = 'who';
 // one grid column per layer at lg — whole literals, so Tailwind can see them
@@ -89,8 +81,6 @@ const keyRank = (category) => {
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const pad2 = (n) => String(n).padStart(2, '0');
-const round1 = (n) => Math.round(n * 10) / 10;
-const pt = (p) => `${round1(p.x)} ${round1(p.y)}`; // SVG path coordinate pair
 
 /** LAYERS entry (graph id or own object) → one flat node record. */
 function resolveNode(entry, layer, graphById) {
@@ -116,133 +106,6 @@ function resolveNode(entry, layer, graphById) {
 /** Who-layer node id ('tier-pastor') → its ROLES entry, for tier + headcount.
  *  Undefined for people outside the approval chain (tier-admin). */
 const roleOf = (id, roles = []) => roles.find((r) => `tier-${r.key}` === id);
-
-/** Layout position of `el` inside `root`, ignoring transforms (entrance
- *  animations), so the path never measures a pill mid-slide. */
-function offsetWithin(el, root) {
-  let x = 0;
-  let y = 0;
-  let node = el;
-  while (node && node !== root) {
-    x += node.offsetLeft;
-    y += node.offsetTop;
-    node = node.offsetParent;
-  }
-  if (node === root) return { x, y };
-  // root isn't an offset ancestor — fall back to the rendered rects
-  const a = el.getBoundingClientRect();
-  const b = root.getBoundingClientRect();
-  return { x: a.left - b.left, y: a.top - b.top };
-}
-
-// pill edge anchors — hops start and end on the border, so the whole path
-// lives in the gutters and draws on in full (hops that skip a column route
-// around the columns between — see skipHopPath)
-const rightOf = (n) => ({ x: n.x + n.w / 2, y: n.y });
-const leftOf = (n) => ({ x: n.x - n.w / 2, y: n.y });
-const topOf = (n) => ({ x: n.x, y: n.y - n.h / 2 });
-const bottomOf = (n) => ({ x: n.x, y: n.y + n.h / 2 });
-
-/**
- * One hop of a trace as a cubic Bézier between two measured nodes.
- * `rel`: 0 = same layer, 1 = to a later layer, -1 = back to an earlier one.
- * Columns: forward hops are horizontal S-curves edge to edge; same-column
- * hops bracket out to the right; backward hops bow below the forward line.
- * (Hops that skip a column take skipHopPath instead.)
- * Rows (stacked): the same idea turned 90°. Returns { d, from, to }.
- */
-function hopPath(a, b, rel, columns) {
-  let from;
-  let to;
-  let c1;
-  let c2;
-  // a cubic whose two handles sit k out from the ends peaks at 0.75k
-  const bracket = (gap) => (gap * 4) / 3;
-
-  if (columns) {
-    if (rel === 0) {
-      from = rightOf(a);
-      to = rightOf(b);
-      const k = bracket(BRACKET_GAP);
-      c1 = { x: from.x + k, y: from.y };
-      c2 = { x: to.x + k, y: to.y };
-    } else if (rel > 0) {
-      from = rightOf(a);
-      to = leftOf(b);
-      const half = (to.x - from.x) / 2;
-      c1 = { x: from.x + half, y: from.y };
-      c2 = { x: to.x - half, y: to.y };
-    } else {
-      from = leftOf(a);
-      to = rightOf(b);
-      const half = (from.x - to.x) / 2;
-      c1 = { x: from.x - half, y: from.y + RETURN_BOW };
-      c2 = { x: to.x + half, y: to.y + RETURN_BOW };
-    }
-  } else {
-    const tol = Math.min(a.h, b.h) / 2;
-    if (Math.abs(a.y - b.y) < tol) {
-      // same line of pills — arc over the top
-      from = topOf(a);
-      to = topOf(b);
-      const k = bracket(ARC_GAP);
-      c1 = { x: from.x, y: from.y - k };
-      c2 = { x: to.x, y: to.y - k };
-    } else if (b.y > a.y) {
-      from = bottomOf(a);
-      to = topOf(b);
-      const half = (to.y - from.y) / 2;
-      c1 = { x: from.x, y: from.y + half };
-      c2 = { x: to.x, y: to.y - half };
-    } else {
-      from = topOf(a);
-      to = bottomOf(b);
-      const half = (from.y - to.y) / 2;
-      const bow = rel < 0 ? RETURN_BOW : 0;
-      c1 = { x: from.x + bow, y: from.y - half };
-      c2 = { x: to.x + bow, y: to.y + half };
-    }
-  }
-
-  return { d: `M${pt(from)} C${pt(c1)} ${pt(c2)} ${pt(to)}`, from, to };
-}
-
-/** Polyline → path with each inner vertex rounded off by up to `radius`. */
-function roundedPath(points, radius) {
-  let d = `M${pt(points[0])}`;
-  for (let i = 1; i < points.length - 1; i += 1) {
-    const prev = points[i - 1];
-    const p = points[i];
-    const next = points[i + 1];
-    const inLen = Math.hypot(p.x - prev.x, p.y - prev.y);
-    const outLen = Math.hypot(next.x - p.x, next.y - p.y);
-    const r = Math.min(radius, inLen / 2, outLen / 2);
-    if (r > 0) {
-      const enter = { x: p.x - ((p.x - prev.x) / inLen) * r, y: p.y - ((p.y - prev.y) / inLen) * r };
-      const exit = { x: p.x + ((next.x - p.x) / outLen) * r, y: p.y + ((next.y - p.y) / outLen) * r };
-      d += ` L${pt(enter)} Q${pt(p)} ${pt(exit)}`;
-    } else {
-      d += ` L${pt(p)}`;
-    }
-  }
-  return `${d} L${pt(points[points.length - 1])}`;
-}
-
-/**
- * Columns only: a hop that skips layers (app → outside). Edge to edge it would
- * pass under the pills of every layer between, so it steps into the gutter
- * beside `a`, runs along `bandY` — over the headers going forward, under the
- * skipped stacks coming back — then drops into the gutter beside `b`.
- */
-function skipHopPath(a, b, forward, gutterA, gutterB, bandY) {
-  const from = forward ? rightOf(a) : leftOf(a);
-  const to = forward ? leftOf(b) : rightOf(b);
-  const d = roundedPath(
-    [from, { x: gutterA, y: from.y }, { x: gutterA, y: bandY }, { x: gutterB, y: bandY }, { x: gutterB, y: to.y }, to],
-    CORNER_R,
-  );
-  return { d, from, to };
-}
 
 /** Pill colours for its state — inline so the accent prop drives them. */
 function pillStyle({ lit, dim, pending, focused, accent }) {
@@ -282,7 +145,6 @@ export default function Architecture({ project, layers: LAYERS = [], traces: TRA
   const graph = project?.architectureGraph;
 
   const rootRef = useRef(null);
-  const nodeEls = useRef(new Map());
   const inView = useInView(rootRef, { once: true, amount: 0.3 });
 
   const [explore, setExplore] = useState(false);
@@ -294,10 +156,6 @@ export default function Architecture({ project, layers: LAYERS = [], traces: TRA
   const [step, setStep] = useState(0); // steps lit in the current run
   const [peek, setPeek] = useState(null); // hovered / focused node id
   const [pinned, setPinned] = useState(null); // clicked / tapped node id
-  const [geo, setGeo] = useState(null); // measured { columns, nodes: {id: {x,y,w,h}} }
-  // the canvas element, as state: it mounts late when returning from the graph
-  // (AnimatePresence waits for the exit), and measuring must follow it
-  const [canvas, setCanvas] = useState(null);
 
   /* data → layers of resolved nodes */
   const { layers, nodeById, layerIndexOf, legend } = useMemo(() => {
@@ -375,82 +233,6 @@ export default function Architecture({ project, layers: LAYERS = [], traces: TRA
     return () => timers.forEach(clearTimeout);
   }, [run, steps, reduced]);
 
-  /* measurement — node centres relative to the canvas */
-  const nodeRefs = useMemo(() => {
-    const refs = {};
-    nodeById.forEach((_, id) => {
-      refs[id] = (el) => {
-        if (el) nodeEls.current.set(id, el);
-        else nodeEls.current.delete(id);
-      };
-    });
-    return refs;
-  }, [nodeById]);
-
-  useEffect(() => {
-    const root = canvas;
-    if (!root) return undefined;
-    let frame = 0;
-    let alive = true;
-    const measure = () => {
-      frame = 0;
-      const nodes = {};
-      nodeEls.current.forEach((el, id) => {
-        const { x, y } = offsetWithin(el, root);
-        const w = el.offsetWidth;
-        const h = el.offsetHeight;
-        nodes[id] = { x: x + w / 2, y: y + h / 2, w, h };
-      });
-      setGeo({ columns: window.matchMedia(COLUMNS_QUERY).matches, nodes });
-    };
-    const schedule = () => {
-      if (alive && !frame) frame = requestAnimationFrame(measure);
-    };
-    const ro = new ResizeObserver(schedule); // fires once on observe, then on every reflow
-    ro.observe(root);
-    nodeEls.current.forEach((el) => ro.observe(el));
-    document.fonts?.ready.then(schedule); // webfonts change pill sizes
-    return () => {
-      alive = false;
-      ro.disconnect();
-      cancelAnimationFrame(frame);
-    };
-  }, [canvas]);
-
-  const hops = useMemo(() => {
-    if (!geo) return [];
-    // each layer's measured extent — a hop that skips layers routes around them
-    const cols = layers.map((layer) => {
-      const boxes = layer.nodes.map((n) => geo.nodes[n.id]).filter(Boolean);
-      return {
-        left: Math.min(...boxes.map((n) => n.x - n.w / 2)),
-        right: Math.max(...boxes.map((n) => n.x + n.w / 2)),
-        bottom: Math.max(...boxes.map((n) => n.y + n.h / 2)),
-      };
-    });
-    const gutterAfter = (li) => (cols[li].right + cols[li + 1].left) / 2;
-    return steps.slice(0, -1).map((id, i) => {
-      const a = geo.nodes[id];
-      const b = geo.nodes[steps[i + 1]];
-      if (!a || !b) return null;
-      const ia = layerIndexOf.get(id) ?? 0;
-      const ib = layerIndexOf.get(steps[i + 1]) ?? 0;
-      if (geo.columns && Math.abs(ib - ia) > 1) {
-        const forward = ib > ia;
-        const gutterA = gutterAfter(forward ? ia : ia - 1);
-        const gutterB = gutterAfter(forward ? ib - 1 : ib);
-        // forward: over the layer headers (the canvas top); back: under the
-        // tallest of the skipped stacks
-        const skipped = cols.slice(Math.min(ia, ib) + 1, Math.max(ia, ib));
-        const band = forward ? -SKIP_GAP : Math.max(...skipped.map((c) => c.bottom)) + SKIP_GAP;
-        if ([gutterA, gutterB, band].every(Number.isFinite)) {
-          return skipHopPath(a, b, forward, gutterA, gutterB, band);
-        }
-      }
-      return hopPath(a, b, Math.sign(ib - ia), geo.columns);
-    });
-  }, [geo, steps, layers, layerIndexOf]);
-
   /* detail */
   const detailId = peek ?? pinned;
   const detail = detailId ? nodeById.get(detailId) : null;
@@ -524,7 +306,7 @@ export default function Architecture({ project, layers: LAYERS = [], traces: TRA
               animate={{ opacity: 1 }}
               exit={reduced ? undefined : { opacity: 0 }}
               transition={{ duration: 0.3, ease: EASE_OUT }}
-              className="h-[440px] overflow-hidden rounded-panel border border-line"
+              className="h-[440px] overflow-hidden border-t border-line"
             >
               {graph ? (
                 <ArchitectureGraph
@@ -542,50 +324,15 @@ export default function Architecture({ project, layers: LAYERS = [], traces: TRA
               animate={{ opacity: 1 }}
               exit={reduced ? undefined : { opacity: 0 }}
               transition={{ duration: 0.3, ease: EASE_OUT }}
-              className="overflow-hidden rounded-panel border border-line px-4 pb-5 pt-5 sm:px-6 sm:pt-6"
+              className="pt-2"
             >
-              {/* ── the layers; the trace path draws underneath the pills ── */}
-              <div
-                ref={setCanvas}
-                className={`relative grid gap-6 lg:gap-x-8 xl:gap-x-12 ${LAYER_COLS[layers.length] ?? 'lg:grid-cols-5'}`}
-              >
-                <svg aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1] h-full w-full overflow-visible">
-                  {hops.map((hop, i) =>
-                    hop && shown > i ? (
-                      <g key={`${run}-${traceId}-${i}`}>
-                        <motion.path
-                          d={hop.d}
-                          fill="none"
-                          stroke={accent}
-                          strokeWidth={geo?.columns ? 1.5 : 1.25}
-                          strokeLinecap="round"
-                          strokeOpacity={geo?.columns ? 0.85 : 0.6}
-                          initial={reduced ? false : { pathLength: 0 }}
-                          animate={{ pathLength: 1 }}
-                          transition={{ duration: DRAW_S, ease: 'easeInOut' }}
-                        />
-                        <circle cx={hop.from.x} cy={hop.from.y} r={PORT_R} fill={accent} />
-                        <motion.circle
-                          cx={hop.to.x}
-                          cy={hop.to.y}
-                          r={PORT_R}
-                          fill={accent}
-                          initial={reduced ? false : { opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ duration: 0.15, delay: reduced ? 0 : DRAW_S }}
-                        />
-                      </g>
-                    ) : null,
-                  )}
-                </svg>
-
+              {/* ── the layers; a trace lights its parts in order, numbered ── */}
+              <div className={`grid gap-6 lg:gap-x-8 xl:gap-x-12 ${LAYER_COLS[layers.length] ?? 'lg:grid-cols-5'}`}>
                 {layers.map((layer, li) => {
                   const headId = `${uid}-layer-${layer.key}`;
                   return (
                     <div key={layer.key} role="group" aria-labelledby={headId} className="min-w-0">
-                      {/* above the trace (z-2, opaque) so a hop into this row
-                          passes under the header instead of striking it out */}
-                      <div className="relative z-[2] mb-3 flex items-baseline justify-between gap-2 border-b border-line bg-void pb-2">
+                      <div className="mb-3 flex items-baseline justify-between gap-2 border-b border-line pb-2">
                         <span
                           id={headId}
                           className="font-mono text-micro font-medium uppercase tracking-[0.18em] text-ink-muted"
@@ -607,7 +354,6 @@ export default function Architecture({ project, layers: LAYERS = [], traces: TRA
                           return (
                             <li key={node.id} className="lg:w-full">
                               <motion.button
-                                ref={nodeRefs[node.id]}
                                 type="button"
                                 aria-pressed={pinned === node.id}
                                 aria-describedby={`${uid}-desc-${node.id}`}
@@ -619,7 +365,7 @@ export default function Architecture({ project, layers: LAYERS = [], traces: TRA
                                 initial={reduced ? false : { opacity: 0, y: 6 }}
                                 animate={inView || reduced ? { opacity: 1, y: 0 } : undefined}
                                 transition={{ duration: 0.45, ease: EASE_OUT, delay: li * 0.07 + ni * 0.035 }}
-                                className="relative z-[2] flex min-h-10 items-center gap-2.5 rounded-md border px-3 py-2 text-left text-[13px] leading-snug transition-[background-color,border-color,color] duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:min-h-11 lg:w-full lg:text-sm"
+                                className="relative flex min-h-10 items-center gap-2.5 rounded-md border px-3 py-2 text-left text-[13px] leading-snug transition-[background-color,border-color,color] duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:min-h-11 lg:w-full lg:text-sm"
                                 style={pillStyle({ lit, dim, pending, focused, accent })}
                               >
                                 <Dot color={colorOf(node)} dim={dim && !focused} />
@@ -680,13 +426,12 @@ export default function Architecture({ project, layers: LAYERS = [], traces: TRA
 
 /* ── the steps of the current trace, in words ─────────────────────────────── */
 function TraceCaption({ trace, shown, nodeById, accent }) {
-  const last = trace.steps.length - 1;
   return (
     <div className="min-w-0">
       <p className="mc-label mb-3">
         {trace.label} · {trace.steps.length} steps
       </p>
-      <ol aria-label={`${trace.label}, step by step`} className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
+      <ol aria-label={`${trace.label}, step by step`} className="flex flex-wrap items-center gap-x-5 gap-y-2">
         {trace.steps.map((id, i) => {
           const reached = i < shown;
           return (
@@ -700,11 +445,6 @@ function TraceCaption({ trace, shown, nodeById, accent }) {
               <span className={`transition-colors duration-300 ${reached ? 'text-ink' : 'text-ink-subtle'}`}>
                 {nodeById.get(id)?.label ?? id}
               </span>
-              {i < last ? (
-                <span aria-hidden="true" className="px-0.5 text-ink-subtle">
-                  →
-                </span>
-              ) : null}
             </li>
           );
         })}

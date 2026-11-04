@@ -11,7 +11,7 @@
  *   01 problem    before → after, then one paragraph
  *   story         what happened and why, when the project changed course
  *   02 how        the flow, step by step (StepThrough: pick a step or play)
- *   03 inside     what it's made of — feature cards with a stat each
+ *   03 inside     what it's made of, features with a stat each
  *   04 decisions  the hard problems (DecisionList), each with its steps
  *   05 arch       layers + traced requests (Architecture)
  *   06 data       the data model, when the project has one (DataModel)
@@ -29,7 +29,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { BeforeAfter, CaseArticle, Hero, NextSection, Section, SectionIndex, WRAP, accentFor } from '@/components/ui/case/shell';
 import { Choices, DecisionList, Glyph, PanelFrame, Readout, at } from '@/components/ui/case/kit';
@@ -59,21 +59,20 @@ function FlowFigure({ steps, accent }) {
 
   const current = reduce ? -1 : beat % steps.length;
   return (
-    <div ref={ref} className="mc-panel mx-auto w-full max-w-[460px]">
-      <ol className="relative flex flex-col gap-1">
-        <span aria-hidden className="absolute bottom-5 left-[15px] top-5 w-px bg-line-hi" />
+    <div ref={ref} className="mx-auto w-full max-w-[460px]">
+      <ol className="flex flex-col gap-1">
         {steps.map((s, i) => {
           const on = i === current;
           const done = reduce || i < current;
           return (
-            <li key={s.key} className="relative flex items-center gap-4 py-2.5">
+            <li key={s.key} className="flex items-center gap-4 py-2.5">
               <span
                 aria-hidden
-                className="relative z-10 flex h-[31px] w-[31px] shrink-0 items-center justify-center rounded-full border font-mono text-micro tabular-nums transition-colors duration-500"
+                className="flex h-[31px] w-[31px] shrink-0 items-center justify-center rounded-full border font-mono text-micro tabular-nums transition-colors duration-500"
                 style={{
                   borderColor: on ? accent : done ? alpha(P.jade, 0.6) : P.lineHi,
                   color: on ? accent : done ? P.jade : P.inkSubtle,
-                  background: on ? alpha(accent, 0.1) : P.surface,
+                  background: on ? alpha(accent, 0.1) : 'transparent',
                 }}
               >
                 {String(i + 1).padStart(2, '0')}
@@ -172,17 +171,15 @@ function Features({ features }) {
   const reduce = useReducedMotion();
   const inView = useInView(ref, { once: true, amount: 0.15 });
   return (
-    <ul ref={ref} className="grid grid-cols-1 gap-3 md:grid-cols-2">
+    <ul ref={ref} className="grid grid-cols-1 gap-x-12 gap-y-10 md:grid-cols-2">
       {features.map((f, i) => (
         <motion.li
           key={f.key}
           initial={reduce ? false : { opacity: 0, y: 14 }}
           animate={reduce || inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }}
           transition={reduce ? { duration: 0 } : { duration: 0.6, ease: EASE_OUT, delay: i * 0.07 }}
-          className="relative flex min-w-0 flex-col overflow-hidden rounded-panel border border-line bg-surface p-5"
-          style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)' }}
+          className="flex min-w-0 flex-col border-t border-line pt-5"
         >
-          <span aria-hidden className="absolute inset-x-0 top-0" style={{ height: 2, background: alpha(P.ice, 0.6) }} />
           <p className="mc-label">{f.label}</p>
           <h3 className="mt-3 font-display text-[1.375rem] font-semibold leading-tight tracking-[-0.01em] text-ink">{f.title}</h3>
           <p className="mt-3 flex-1 text-body text-ink-muted">{f.body}</p>

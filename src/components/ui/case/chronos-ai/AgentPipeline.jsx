@@ -20,7 +20,7 @@
  */
 import { useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { PIPELINE } from '@/data/studies/chronos-ai';
 import { at } from '@/components/ui/case/kit';
 
@@ -29,7 +29,7 @@ const VIEW = { once: true, amount: 0.3 };
 /** The owner's gate: a sand diamond — the work waits here for a person. */
 function Gate({ text }) {
   return (
-    <div className="flex items-center gap-2.5 py-2 h-full @min-[64rem]:flex-col @min-[64rem]:justify-center @min-[64rem]:px-1 @min-[64rem]:py-0 @min-[64rem]:text-center">
+    <div className="flex h-full items-center gap-2.5 pb-4 pt-1 @min-[64rem]:flex-col @min-[64rem]:items-start @min-[64rem]:justify-start @min-[64rem]:px-3 @min-[64rem]:pb-0 @min-[64rem]:pt-3.5">
       <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true" className="block shrink-0">
         <rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill={alpha(P.sand, 0.15)} stroke={P.sand} strokeWidth="1.25" />
       </svg>
@@ -45,7 +45,7 @@ export default function AgentPipeline() {
   const shown = reduce || inView;
 
   return (
-    <div ref={ref} className="mc-panel @container min-w-0">
+    <div ref={ref} className="@container min-w-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span className="mc-label">Every task · four agents, one owner</span>
         <span className="font-mono text-micro text-ink-subtle">AGENTS.md · .pi/agents/</span>
@@ -54,7 +54,7 @@ export default function AgentPipeline() {
         {PIPELINE.stages.map((s, i) => (
           <li key={s.key} className="contents">
             <motion.div
-              className="min-w-0 rounded-[6px] border border-line bg-surface-2 p-3.5"
+              className="min-w-0 border-t border-line pt-3.5 pb-2"
               initial={reduce ? false : { opacity: 0, y: 8 }}
               animate={shown ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
               transition={at(reduce, i * 0.1, 0.4)}
@@ -71,7 +71,7 @@ export default function AgentPipeline() {
         ))}
       </ol>
       <p className="mt-4 border-t border-line pt-4 text-body text-ink-muted">
-        The record is in the repo: {PIPELINE.record}. Allen’s part is the product plan, the decision records, every answer, every approval and every merge, so on this page, “built” means built by that pipeline under his direction, not typed by hand.
+        The record is in the repo: {PIPELINE.record}. Allen’s part is the product plan, the decision records, every answer, every approval and every merge. So on this page, “built” means built by that pipeline under his direction, not typed by hand.
       </p>
     </div>
   );

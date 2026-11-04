@@ -8,7 +8,7 @@
  *
  *   principle, the idea as three quiet display lines, beside four stats in
  *               ink display type (amber stays with the linked pair below).
- *   schema → screen, the centrepiece panel. On the left, real zod lines from
+ *   schema to screen, the centrepiece. On the left, real zod lines from
  *               the config schema as a numbered listing. On the right, the
  *               control the introspector draws for each one: a number field
  *               with a min…max track, a switch, a table of named switches, a
@@ -16,9 +16,9 @@
  *               its limits, a switch flips, and a value that leaves its default
  *               is tagged as an override. Hover, focus or press a line and its
  *               control lights (and the other way round). The accent marks the
- *               linked pair, a thin connector joins them from 768px up, and the
- *               readout spells out the mapping from the data.
- *   history  , the change log, per field, old → new. Undo is live and
+ *               linked pair, and the readout spells out the mapping from the
+ *               data.
+ *   history    the change log, per field, old to new. Undo is live and
  *               deterministic. It writes the old value back as a new
  *               CONFIG_REVERTED row on top, marks the row Undone and
  *               supersedes any older change to the same field. Reset restores
@@ -28,18 +28,16 @@
  *               line); below that, a vertical rail. Admin features get filled
  *               markers and design-system rebuilds hollow ones, so shape
  *               carries the kind, not colour.
- *   fixes     — two bugs found while building it: before (struck) → after.
+ *   fixes      two bugs found while building it: before (struck), then after.
  *
  * Renders only from CONTROL in src/data/studies/iet.js. Readouts, counts and
  * legends are derived from it. Motion: each block fades up once in view,
- * staggered; the connectors draw in; a new history row slides in on top
- * (AnimatePresence + layout). With reduced motion everything is simply there
- * and nothing animates. Connector geometry is measured by a ResizeObserver
- * (→ rAF → state), never during render.
+ * staggered; a new history row slides in on top (AnimatePresence + layout).
+ * With reduced motion everything is simply there and nothing animates.
  */
 import { useEffect, useId, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { CONTROL } from '@/data/studies/iet';
 
@@ -53,14 +51,10 @@ const RISE_PX = 16;
 const RISE_S = 0.6;
 const STAGGER_S = 0.07;
 const ROW_S = 0.35; // a history row sliding in
-const LINK_S = 0.3; // the linked connector drawing
-const DRAW_S = 0.55; // each idle connector drawing in
-const DRAW_DELAY_S = 0.25;
-const MIN_GUTTER_PX = 16; // narrower than this, the columns are stacked: no connectors
 
 // copy that isn't study data
-const EDITOR_CAPTION = 'src/lib/config/schema.ts → the generated editor';
-const IDLE_SCHEMA = 'Add a schema line, the screen follows.';
+const EDITOR_CAPTION = 'src/lib/config/schema.ts and the editor generated from it';
+const IDLE_SCHEMA = 'Add a line to the schema and the editor gets a new control.';
 const HINT_SCHEMA = 'Hover, focus or press a line to link it to its control.';
 const IDLE_HISTORY = 'Undo writes the old value back as a new change.';
 const REVERT = { tag: 'CONFIG_REVERTED', who: 'superadmin', when: 'just now' };
@@ -98,7 +92,7 @@ function isChanged(e, v) {
 function widgetOf(e) {
   switch (e.kind) {
     case 'number':
-      return `a number field, ${e.min}–${e.max} ${e.unit}, default ${e.value}`;
+      return `a number field, ${e.min} to ${e.max} ${e.unit}, default ${e.value}`;
     case 'boolean':
       return `a switch, ${onOff(e.value)} by default`;
     case 'toggles':
@@ -176,7 +170,7 @@ function useShown(reduce) {
 /** The panel every interactive block sits in: caption + controls, body, readout. */
 function PanelFrame({ caption, controls, footer, live = false, children }) {
   return (
-    <div className="mc-panel flex min-w-0 flex-col">
+    <div className="flex min-w-0 flex-col border-t border-line pt-5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         {caption}
         {controls}
@@ -308,109 +302,7 @@ function Principle({ reduce }) {
   );
 }
 
-/* ── 2 · schema → screen ───────────────────────────────────────────────── */
-
-/** Where each connector starts (a code line) and ends (its control), in the
- *  body's own coordinates — or null when the columns are stacked. */
-function measureConnectors(el) {
-  const code = el.querySelector('[data-cp-col="code"]');
-  const screen = el.querySelector('[data-cp-col="screen"]');
-  if (!code || !screen) return null;
-  const box = el.getBoundingClientRect();
-  const x0 = code.getBoundingClientRect().right - box.left;
-  const x1 = screen.getBoundingClientRect().left - box.left;
-  if (x1 - x0 < MIN_GUTTER_PX) return null;
-  const centres = (selector) =>
-    Array.from(el.querySelectorAll(selector), (n) => {
-      const r = n.getBoundingClientRect();
-      return r.top + r.height / 2 - box.top;
-    });
-  const a = centres('[data-cp-from]');
-  const b = centres('[data-cp-to]');
-  if (a.length !== SCHEMA.length || b.length !== SCHEMA.length) return null;
-  return { w: box.width, h: box.height, x0, x1, a, b };
-}
-
-/** Connector geometry, re-measured whenever the body or a column resizes. */
-function useConnectors(ref) {
-  const [geo, setGeo] = useState(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return undefined;
-    let frame = 0;
-    let alive = true;
-    const measure = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        if (alive) setGeo(measureConnectors(el));
-      });
-    };
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    el.querySelectorAll('[data-cp-col]').forEach((n) => ro.observe(n));
-    document.fonts?.ready.then(measure); // the mono face swapping in re-wraps the code
-    return () => {
-      alive = false;
-      cancelAnimationFrame(frame);
-      ro.disconnect();
-    };
-  }, [ref]);
-  return geo;
-}
-
-const fx = (n) => n.toFixed(1);
-function curve({ x0, x1, a, b }, i) {
-  const xm = (x0 + x1) / 2;
-  return `M${fx(x0)} ${fx(a[i])} C${fx(xm)} ${fx(a[i])} ${fx(xm)} ${fx(b[i])} ${fx(x1)} ${fx(b[i])}`;
-}
-
-/** The thin lines from each schema line to its control (≥768px only). */
-function Connectors({ geo, linkedIndex, shown, reduce, accent }) {
-  if (!geo) return null;
-  return (
-    <svg
-      aria-hidden="true"
-      className="pointer-events-none absolute left-0 top-0 overflow-visible"
-      width={geo.w}
-      height={geo.h}
-    >
-      {SCHEMA.map((e, i) => (
-        <motion.path
-          key={e.key}
-          d={curve(geo, i)}
-          fill="none"
-          stroke={P.lineHi}
-          strokeWidth="1"
-          initial={{ pathLength: reduce ? 1 : 0 }}
-          animate={{ pathLength: shown ? 1 : 0 }}
-          transition={reduce ? { duration: 0 } : { delay: DRAW_DELAY_S + i * STAGGER_S, duration: DRAW_S, ease: EASE_OUT }}
-        />
-      ))}
-      {linkedIndex >= 0 && (
-        <motion.path
-          key={`linked-${SCHEMA[linkedIndex].key}`}
-          d={curve(geo, linkedIndex)}
-          fill="none"
-          stroke={accent}
-          strokeWidth="1.25"
-          initial={{ pathLength: reduce ? 1 : 0 }}
-          animate={{ pathLength: 1 }}
-          transition={reduce ? { duration: 0 } : { duration: LINK_S, ease: EASE_OUT }}
-        />
-      )}
-      {SCHEMA.map((e, i) => {
-        const on = i === linkedIndex;
-        const port = { r: 2.5, fill: on ? accent : P.surface, stroke: on ? accent : P.lineHi, strokeWidth: 1 };
-        return (
-          <g key={`ports-${e.key}`}>
-            <circle cx={geo.x0} cy={geo.a[i]} {...port} />
-            <circle cx={geo.x1} cy={geo.b[i]} {...port} />
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
+/* ── 2 · schema to screen ──────────────────────────────────────────────── */
 
 /** One numbered zod line: a button that links (hover / focus) or pins (press). */
 function CodeLine({ index, on, pinned, accent, onPin, linkProps }) {
@@ -431,7 +323,6 @@ function CodeLine({ index, on, pinned, accent, onPin, linkProps }) {
         />
         <span
           aria-hidden
-          data-cp-from=""
           className="select-none pr-4 text-right tabular-nums transition-colors duration-200 motion-reduce:transition-none"
           style={{ color: on ? accent : P.inkFaint }}
         >
@@ -561,13 +452,13 @@ function ControlRow({ entry, value, on, accent, labelId, linkProps, onSet, onFli
   const inline = entry.kind === 'boolean';
 
   return (
-    <div
-      {...linkProps}
-      className="relative rounded-md border px-3.5 py-3 transition-colors duration-200 motion-reduce:transition-none"
-      style={{ borderColor: on ? alpha(accent, 0.5) : P.line, background: on ? alpha(accent, 0.05) : P.surface }}
-    >
-      {/* where the connector lands: the label's first line */}
-      <span aria-hidden data-cp-to="" className="pointer-events-none absolute left-0 top-[22px] h-0 w-0" />
+    <div {...linkProps} className="relative border-t border-line py-3.5 pl-4 first:border-t-0 first:pt-1.5">
+      {/* the linked pair: the same accent bar as its schema line */}
+      <span
+        aria-hidden
+        className="absolute bottom-3 left-0 top-3.5 w-[2px] transition-opacity duration-200 motion-reduce:transition-none"
+        style={{ background: accent, opacity: on ? 1 : 0 }}
+      />
 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -591,9 +482,9 @@ function ControlRow({ entry, value, on, accent, labelId, linkProps, onSet, onFli
       )}
 
       {entry.kind === 'toggles' && (
-        <ul aria-labelledby={labelId} className="mt-3 divide-y divide-line rounded-md border border-line bg-void">
+        <ul aria-labelledby={labelId} className="mt-3 divide-y divide-line">
           {entry.value.map(([name], i) => (
-            <li key={name} className="flex items-center justify-between gap-3 py-0.5 pl-3 pr-1.5">
+            <li key={name} className="flex items-center justify-between gap-3 py-0.5 pr-1.5">
               <span className="min-w-0 text-label text-ink-muted">{name}</span>
               <Switch on={value[i]} onToggle={() => onFlip(i)} label={`${entry.label}: ${name}`} />
             </li>
@@ -645,15 +536,12 @@ function SchemaReadout({ entry, value, accent }) {
       <code className="font-mono text-label [overflow-wrap:anywhere]" style={{ color: accent }}>
         {exprOf(entry.code)}
       </code>
-      <span aria-hidden className="text-ink-subtle">
-        {' → '}
-      </span>
-      <span className="sr-only">, drawn as </span>
-      <span className="text-ink">{widgetOf(entry)}</span>
+      <span className="text-ink-subtle"> is drawn as </span>
+      <span className="text-ink">{widgetOf(entry)}</span>.
       {changed && (
         <span>
           {' '}
-          · now {nowOf(entry, value)}: saved as an override, the default stays in code.
+          Now set to {nowOf(entry, value)}. This is saved as an override, and the default stays in the code.
         </span>
       )}
     </p>
@@ -663,8 +551,6 @@ function SchemaReadout({ entry, value, accent }) {
 function SchemaScreen({ accent, reduce }) {
   const idBase = useId();
   const [ref, shown] = useShown(reduce);
-  const bodyRef = useRef(null);
-  const geo = useConnectors(bodyRef);
 
   const [values, setValues] = useState(DEFAULTS);
   const [hover, setHover] = useState(null);
@@ -694,7 +580,7 @@ function SchemaScreen({ accent, reduce }) {
 
   return (
     <motion.div ref={ref} {...rise(reduce, shown)} className="min-w-0">
-      <Eyebrow step={EDITOR_STEP} fallback="Schema → screen" accent={accent} />
+      <Eyebrow step={EDITOR_STEP} fallback="Schema to screen" accent={accent} />
       <div className="mt-5">
         <PanelFrame
           caption={
@@ -705,15 +591,9 @@ function SchemaScreen({ accent, reduce }) {
           }
           footer={<SchemaReadout entry={linkedEntry} value={linkedEntry ? values[linkedEntry.key] : null} accent={accent} />}
         >
-          <div
-            ref={bodyRef}
-            className="relative grid gap-6 md:grid-cols-[minmax(0,1fr)_56px_minmax(0,1fr)] md:gap-0 lg:grid-cols-[minmax(0,0.95fr)_88px_minmax(0,1.05fr)]"
-          >
-            {/* schema, centred against the taller screen, so the lines fan out */}
-            <div
-              data-cp-col="code"
-              className="min-w-0 rounded-md border border-line bg-void py-2 md:col-start-1 md:row-start-1 md:self-center"
-            >
+          <div className="relative grid gap-6 md:grid-cols-2 md:gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-14">
+            {/* schema, centred against the taller screen */}
+            <div className="min-w-0 rounded-md bg-surface py-2 md:col-start-1 md:row-start-1 md:self-center">
               <ol aria-label="The zod schema, one line per setting">
                 {SCHEMA.map((e, i) => (
                   <CodeLine
@@ -730,7 +610,7 @@ function SchemaScreen({ accent, reduce }) {
             </div>
 
             {/* screen, the controls the introspector generates */}
-            <div data-cp-col="screen" className="flex min-w-0 flex-col gap-2 md:col-start-3 md:row-start-1">
+            <div className="flex min-w-0 flex-col md:col-start-2 md:row-start-1">
               {SCHEMA.map((e) => (
                 <ControlRow
                   key={e.key}
@@ -745,8 +625,6 @@ function SchemaScreen({ accent, reduce }) {
                 />
               ))}
             </div>
-
-            <Connectors geo={geo} linkedIndex={linkedIndex} shown={shown} reduce={reduce} accent={accent} />
           </div>
         </PanelFrame>
       </div>
@@ -756,7 +634,7 @@ function SchemaScreen({ accent, reduce }) {
 
 /* ── 3 · change history ────────────────────────────────────────────────── */
 
-// field | old → new | by · when | action — stacked under a 42rem panel
+// field | old to new | by · when | action, stacked under a 42rem panel
 const ROW_GRID = '@2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.9fr)_10.5rem]';
 
 /**
@@ -833,17 +711,13 @@ function HistoryReadout({ last }) {
   if (!last) return <p className="text-body text-ink-subtle">{IDLE_HISTORY}</p>;
   return (
     <p className="min-w-0 text-body text-ink-muted">
-      <span className="text-ink">{last.field}</span>:{' '}
+      <span className="text-ink">{last.field}</span> went from{' '}
       <span className="font-mono text-label">
-        <span className="sr-only">from </span>
         <s className="text-ink-subtle">{last.from}</s>
-        <span aria-hidden className="text-ink-faint">
-          {' → '}
-        </span>
-        <span className="sr-only"> to </span>
+        <span className="text-ink-subtle"> back to </span>
         <span className="text-ink">{last.to}</span>
       </span>
-      {' '}, the old value, written back as a new change.
+      . Undo wrote the old value as a new change.
     </p>
   );
 }
@@ -882,7 +756,7 @@ function History({ accent, reduce }) {
       <Eyebrow step={HISTORY_STEP} fallback="Change history" accent={accent} />
       <div className="mt-5">
         <PanelFrame
-          caption={<span className="mc-label">Per field · old → new</span>}
+          caption={<span className="mc-label">Each change, per field</span>}
           controls={<ResetButton pristine={pristine} onReset={reset} label="Reset the change history" />}
           footer={<HistoryReadout last={last} />}
           live
@@ -890,7 +764,7 @@ function History({ accent, reduce }) {
           <div className="@container min-w-0">
             <div aria-hidden className={`hidden gap-x-6 border-b border-line pb-2.5 @2xl:grid ${ROW_GRID}`}>
               <span className="mc-label">Field</span>
-              <span className="mc-label">Old → new</span>
+              <span className="mc-label">Old to new</span>
               <span className="mc-label">By · when</span>
               <span />
             </div>
@@ -919,10 +793,7 @@ function History({ accent, reduce }) {
                       <p className="min-w-0 font-mono text-label leading-normal">
                         <span className="sr-only">from </span>
                         <s className="text-ink-subtle">{row.from}</s>
-                        <span aria-hidden className="text-ink-faint">
-                          {' → '}
-                        </span>
-                        <span className="sr-only"> to </span>
+                        <span className="text-ink-faint"> to </span>
                         <span className={undone ? 'text-ink-subtle' : 'text-ink'}>{row.to}</span>
                       </p>
                       <p className="min-w-0 font-mono text-micro leading-normal text-ink-subtle">
@@ -939,8 +810,8 @@ function History({ accent, reduce }) {
             </ol>
             {anySuperseded && (
               <p className="mt-4 max-w-[70ch] text-label text-ink-subtle">
-                <span className="text-ink-muted">Changed again since</span>, a newer change touched the same field, so
-                undo is refused (409) until that change is undone.
+                <span className="text-ink-muted">Changed again since</span> means a newer change touched the same
+                field. Undo is refused (409) until that newer change is undone.
               </p>
             )}
           </div>
@@ -978,10 +849,7 @@ function BuildStrip({ reduce }) {
       >
         <h3 className={`${LABEL} text-ink-subtle`}>
           {first.id}
-          <span aria-hidden className="text-ink-faint">
-            {' → '}
-          </span>
-          <span className="sr-only"> to </span>
+          <span className="text-ink-faint"> to </span>
           {final.id}
           <span aria-hidden className="text-ink-faint">
             {' · '}
@@ -1052,32 +920,17 @@ function FixCard({ fix, delay, shown, reduce }) {
   return (
     <motion.li
       {...rise(reduce, shown, delay)}
-      className="@container relative flex min-w-0 flex-col overflow-hidden rounded-panel border border-line bg-surface p-5 sm:p-6"
-      style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)' }}
+      className="@container relative flex min-w-0 flex-col border-t border-line pt-6"
     >
-      <span aria-hidden className="absolute inset-x-0 top-0" style={{ height: 2, background: alpha(P.jade, 0.6) }} />
       <h4 className="font-display text-[1.375rem] font-semibold leading-tight tracking-[-0.01em] text-ink">{fix.title}</h4>
 
-      <div className="mt-6 flex flex-wrap items-end gap-x-3 gap-y-3">
+      <div className="mt-6 flex flex-wrap items-end gap-x-10 gap-y-4">
         <p>
           <span className={`${LABEL} block text-ink-subtle`}>Before</span>
           <span className="mt-2 block font-display text-[1.625rem] font-semibold leading-none tracking-tight text-ink-subtle line-through decoration-2 @xs:text-3xl @md:text-4xl">
             {fix.before}
           </span>
         </p>
-        <svg aria-hidden="true" width="28" height="12" viewBox="0 0 28 12" className="mb-2 shrink-0">
-          <motion.path
-            d="M1 6H25M20.5 1.5L25.5 6L20.5 10.5"
-            fill="none"
-            stroke={P.inkSubtle}
-            strokeWidth="1.25"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            initial={reduce ? false : { pathLength: 0 }}
-            animate={{ pathLength: reduce || shown ? 1 : 0 }}
-            transition={after(0.2)}
-          />
-        </svg>
         <motion.p
           initial={reduce ? false : { opacity: 0, x: -6 }}
           animate={reduce || shown ? { opacity: 1, x: 0 } : { opacity: 0, x: -6 }}
@@ -1105,7 +958,7 @@ function Fixes({ reduce }) {
       <motion.h3 {...rise(reduce, shown)} className={`${LABEL} text-ink-subtle`}>
         Found while building it
       </motion.h3>
-      <ul className="mt-6 grid gap-5 md:grid-cols-2">
+      <ul className="mt-6 grid gap-x-12 gap-y-10 md:grid-cols-2">
         {FIXES.map((f, i) => (
           <FixCard key={f.title} fix={f} delay={STAGGER_S + i * 0.1} shown={shown} reduce={reduce} />
         ))}

@@ -8,7 +8,7 @@ export const LINKS = [{ href: 'https://github.com/aahilafraz123/aircast-nasa-hac
 
 export const COPY = {
   outcome:
-    'One map that answers “is it safe to go outside right now, and when will it be better?”, NASA satellite data, ground stations and weather, fused in a 27-hour hackathon.',
+    'One map that answers “Is it safe to go outside right now, and when will it be better?” It combines NASA satellite data, ground stations and weather, and was built in a 27-hour hackathon.',
   status: 'Hackathon build · NASA Space Apps 2025 Global Nominee',
   before: [
     'Satellite readings, sparse ground stations and the weather all live in different places',
@@ -19,24 +19,24 @@ export const COPY = {
   after: [
     'NASA TEMPO NO₂, OpenAQ stations and OpenWeather on one dark map',
     'A six-step forecast where every step says why it moved',
-    'Five groups, children, seniors, athletes, adults, care facilities, each with its own safe window',
+    'Five groups (children, seniors, athletes, adults and care facilities), each with its own safe window',
     'The nearest satellite pixel, converted to an AQI and labelled with how old it is',
   ],
   built:
-    'Built by a two-person team (Team Relentless) in about 27 hours of commits, 4–5 Oct 2025. Allen wrote the AI brief and chat, the per-group safety engine, the forecast explanations, getting the satellite file onto Azure, and the deploy pipeline (19 of the 27 hackathon commits); Aahil Afraz wrote the OpenAQ and TEMPO readers, the forecast multipliers and most of the map UI.',
+    'Built by a two-person team (Team Relentless) in about 27 hours of commits, 4-5 Oct 2025. Allen wrote the AI brief and chat, the per-group safety engine, the forecast explanations, getting the satellite file onto Azure, and the deploy pipeline (19 of the 27 hackathon commits); Aahil Afraz wrote the OpenAQ and TEMPO readers, the forecast multipliers and most of the map UI.',
   next: [
-    'Fetch the latest TEMPO granule every hour from NASA Earthdata, today one pinned granule from 4 Oct 2025 is used, and the app says so.',
+    'Fetch the latest TEMPO granule every hour from NASA Earthdata. Today the app uses one pinned granule from 4 Oct 2025, and it says so.',
     'Cache the granule instead of downloading it on every request (twice per page load today).',
     'Store chat sessions in a database instead of process memory.',
     'Add the tests the deploy pipeline has a placeholder for.',
   ],
   headlines: {
-    problem: 'Three data sources, five kinds of people, and no one answering the simple question.',
-    how: 'From a satellite pixel to “go outside at 3 pm”, seven steps, one request each.',
-    inside: 'A forecast that explains itself, safety per person, and an AI that only speaks from live readings.',
-    decisions: 'Three problems that came from real data and a real deploy, not a tutorial.',
-    architecture: 'One Flask app, three data sources and a model, follow a page load through it.',
-    build: 'Twenty-seven hours of commits, then a nominee badge.',
+    problem: 'The data sits in three places, it means different things to five groups of people, and nothing combined it into a simple answer.',
+    how: 'Seven steps, one request each, turn a satellite pixel into advice like “go outside at 3 pm”.',
+    inside: 'A forecast that explains each step, safety advice for each group, and an AI that only uses the live readings.',
+    decisions: 'Three problems that came up with real data and a real deploy.',
+    architecture: 'One Flask app, three data sources and a language model. Follow a page load through it.',
+    build: 'Twenty-seven hours of commits, later named a Global Nominee.',
     next: 'What a production AirCast would add.',
   },
 };
@@ -46,20 +46,20 @@ export const FLOW = {
   figureCaption: 'From space to a street-level answer',
   steps: [
     { key: 'locate', label: 'Locate', title: 'Where are you?', body: 'The browser’s geolocation (or a geocoded search) sets the point every API call uses. Philadelphia is only the default.', facts: ['All 8 /api routes take lat and lon', 'Default 39.9526, −75.1652'] },
-    { key: 'ground', label: 'Ground stations', title: 'What the sensors on the ground say', body: 'OpenAQ v3 returns stations within 25 km; the first five are read and their PM2.5 is converted to an AQI with the EPA’s piecewise-linear breakpoints.', facts: ['radius=25000, up to 20 locations, 5 read', 'PM2.5 → AQI: 12.0 / 35.4 / 55.4 / 150.4 / 250.4 µg/m³ → 50 / 100 / 150 / 200 / 300'] },
-    { key: 'satellite', label: 'Satellite', title: 'What NASA TEMPO saw', body: 'The TEMPO L2 NO₂ granule is fetched from Azure Blob, opened in memory as NetCDF, and the pixel nearest to you is found with a vectorised distance and argmin.', facts: ['One granule, observed 2025-10-04 16:44:23 UTC', 'Nearest pixel: |Δlat| + |Δlon| → argmin → unravel_index', 'Column → ppb → AQI with a hand-tuned scale'] },
-    { key: 'weather', label: 'Weather', title: 'Wind, heat, rain and humidity', body: 'OpenWeather gives the current reading and the next eight 3-hour slots, the drivers the forecast multiplies by.', facts: ['/weather + /forecast?cnt=8, imperial units', 'Falls back to fixed readings if the key or request fails'] },
-    { key: 'forecast', label: 'Forecast', title: 'Six steps, each with a reason', body: 'Readable multiplier rules move the AQI step by step, strong wind lowers it, heat and rush hour raise it, and each step returns a sentence saying why.', facts: ['Wind >15 mph ×0.75 · >10 ×0.85 · >5 ×0.92', 'Temp >85°F ×1.20 · >75 ×1.10 · rain ×0.65 · humidity >80% ×1.05', 'Rush hour 7–9 / 16–19 ×1.15 · night ×0.95'] },
+    { key: 'ground', label: 'Ground stations', title: 'What the sensors on the ground say', body: 'OpenAQ v3 returns stations within 25 km; the first five are read and their PM2.5 is converted to an AQI with the EPA’s piecewise-linear breakpoints.', facts: ['radius=25000, up to 20 locations, 5 read', 'PM2.5 breakpoints 12.0 / 35.4 / 55.4 / 150.4 / 250.4 µg/m³ map to AQI 50 / 100 / 150 / 200 / 300'] },
+    { key: 'satellite', label: 'Satellite', title: 'What NASA TEMPO saw', body: 'The TEMPO L2 NO₂ granule is fetched from Azure Blob, opened in memory as NetCDF, and the pixel nearest to you is found with a vectorised distance and argmin.', facts: ['One granule, observed 2025-10-04 16:44:23 UTC', 'Nearest pixel: |Δlat| + |Δlon|, then argmin, then unravel_index', 'Column converted to ppb, then to AQI with a hand-tuned scale'] },
+    { key: 'weather', label: 'Weather', title: 'Wind, heat, rain and humidity', body: 'OpenWeather gives the current reading and the next eight 3-hour slots. These are the drivers the forecast rules multiply by.', facts: ['/weather + /forecast?cnt=8, imperial units', 'Falls back to fixed readings if the key or request fails'] },
+    { key: 'forecast', label: 'Forecast', title: 'Six steps, each with a reason', body: 'Readable multiplier rules move the AQI step by step. Strong wind lowers it, heat and rush hour raise it, and each step returns a sentence saying why.', facts: ['Wind >15 mph ×0.75 · >10 ×0.85 · >5 ×0.92', 'Temp >85°F ×1.20 · >75 ×1.10 · rain ×0.65 · humidity >80% ×1.05', 'Rush hour 7-9 / 16-19 ×1.15 · night ×0.95'] },
     { key: 'safety', label: 'Safety by group', title: 'One AQI, five different answers', body: 'Each step is judged against five groups’ thresholds; every group gets its status, a recommendation, and its best window in the next six steps.', facts: ['Facilities safe <45 · children and seniors <50 · athletes <75 · adults <100', 'Best = lowest AQI among that group’s safe steps'] },
-    { key: 'brief', label: 'AI brief', title: 'A plain-English answer, grounded in the readings', body: 'Every reading above is written into a structured context and GPT-4o-mini turns it into an A–F style brief under 180 words; a chat answers follow-ups from the same context.', facts: ['gpt-4o-mini · brief max_tokens 300 · chat 200', 'Any failure returns a friendly fallback with HTTP 200'] },
+    { key: 'brief', label: 'AI brief', title: 'A plain-English answer, grounded in the readings', body: 'Every reading above is written into a structured context and GPT-4o-mini turns it into a brief of under 180 words with an A-to-F grade. A chat answers follow-up questions from the same context.', facts: ['gpt-4o-mini · brief max_tokens 300 · chat 200', 'Any failure returns a friendly fallback with HTTP 200'] },
   ],
 };
 
 export const FEATURES = [
-  { key: 'forecast', label: 'Forecast', title: 'Explainable, not a black box', body: 'Nine multiplier rules across five drivers, each step tagged “improving due to strong winds dispersing pollution” or similar. Honest about its limits: it isn’t trained, adds ±5 noise, and its steps sit on 3-hour weather slots.', stat: { value: '9', label: 'rules across 5 drivers' } },
-  { key: 'safety', label: 'Safety', title: 'A guide for each kind of person', body: 'Children and seniors, athletes, adults and care facilities each have safe / caution / unsafe bands and their own recommendation, “Cancel outdoor practice, move indoors or reschedule”.', stat: { value: '5', label: 'groups × 3 statuses' } },
+  { key: 'forecast', label: 'Forecast', title: 'A forecast that explains itself', body: 'Nine multiplier rules across five drivers, each step tagged “improving due to strong winds dispersing pollution” or similar. Its limits are stated: it isn’t trained, it adds ±5 noise, and its steps follow 3-hour weather slots.', stat: { value: '9', label: 'rules across 5 drivers' } },
+  { key: 'safety', label: 'Safety', title: 'A guide for each kind of person', body: 'Children and seniors, athletes, adults and care facilities each have safe / caution / unsafe bands and their own recommendation, such as “Cancel outdoor practice, move indoors or reschedule”.', stat: { value: '5', label: 'groups × 3 statuses' } },
   { key: 'compare', label: 'Satellite vs ground', title: 'Two views of the same air', body: 'A card compares the satellite-derived AQI with the ground stations’ as a percent agreement, and says plainly that one is NO₂ from orbit and the other PM2.5 at street level.', stat: { value: '2', label: 'independent sources' } },
-  { key: 'fresh', label: 'Provenance', title: 'Honest about stale data', body: 'Every satellite response carries its observation time, age and a status ladder, Fresh, Recent, Moderate, Cached, and the UI shows a notice that NASA’s data updates were paused.', stat: { value: '4', label: 'freshness states' } },
+  { key: 'fresh', label: 'Provenance', title: 'Clear about stale data', body: 'Every satellite response carries its observation time, its age and a status (Fresh, Recent, Moderate or Cached), and the UI shows a notice that NASA’s data updates were paused.', stat: { value: '4', label: 'freshness states' } },
 ];
 
 export const DECISIONS = [
@@ -71,8 +71,8 @@ export const DECISIONS = [
     decision: 'Allen moved it to Azure Blob storage and opened it straight from memory: download over HTTPS, wrap the bytes, hand them to NetCDF, read the geolocation and product groups. The URL can be overridden with an environment variable.',
     tradeoff: 'No disk dependency on the server, but the granule is downloaded on every request (twice per page load), which is why Gunicorn runs with a 600-second timeout. Caching it is the obvious next step.',
     caption: 'Getting the granule to the cloud',
-    steps: ['Hard-coded C:\\Users\\…\\Downloads path → a relative backend/data path', 'Granule removed from git (too large)', 'Uploaded to Azure Blob: aircasttempo/tempo-data', 'Fetched over HTTPS and opened in memory with netCDF4', 'Nearest pixel → AQI → freshness envelope'],
-    readout: 'Commits d8079be → bef385e → c70f41c, all by Allen.',
+    steps: ['Hard-coded C:\\Users\\…\\Downloads path replaced with a relative backend/data path', 'Granule removed from git (too large)', 'Uploaded to Azure Blob: aircasttempo/tempo-data', 'Fetched over HTTPS and opened in memory with netCDF4', 'Find the nearest pixel, convert it to an AQI and attach its freshness'],
+    readout: 'Commits d8079be, bef385e and c70f41c, in that order, all by Allen.',
     code: {
       file: 'backend/api/tempo.py',
       lang: 'python',
@@ -91,12 +91,12 @@ no2 = dataset.groups['product'].variables['vertical_column_troposphere'][:]`,
   {
     id: 'grounded',
     kicker: 'AI',
-    title: 'An AI that only speaks from the live readings, and survives without a key',
+    title: 'An AI that only uses the live readings, and an app that runs without a key',
     problem: 'A generic chatbot would make up conditions. And during the deploy, a missing or invalid OpenAI key crashed the whole app on boot.',
-    decision: 'Every brief and chat call builds a structured context from all sources, location, AQI, pollutants, weather, the six forecast steps with their reasons, the satellite reading, and the system prompt keeps the model to that. The client is created inside try/except, and every AI route returns HTTP 200 with fallback text when anything fails.',
+    decision: 'Every brief and chat call builds a structured context from all sources (location, AQI, pollutants, weather, the six forecast steps with their reasons and the satellite reading), and the system prompt keeps the model to that context. The client is created inside try/except, and every AI route returns HTTP 200 with fallback text when anything fails.',
     tradeoff: 'Each AI call repeats every upstream fetch, including a satellite download; chat history lives in process memory and replays the last four exchanges.',
     caption: 'What goes into one brief',
-    steps: ['OpenAQ stations → current AQI and pollutants', 'OpenWeather current + 8 forecast slots', 'Six forecast steps, each with its reason', 'TEMPO AQI for the nearest pixel', 'System prompt: A–F grade, timing advice, one health tip, under 180 words', 'gpt-4o-mini → brief, or a fallback with HTTP 200'],
+    steps: ['OpenAQ stations: current AQI and pollutants', 'OpenWeather current + 8 forecast slots', 'Six forecast steps, each with its reason', 'TEMPO AQI for the nearest pixel', 'System prompt: A-to-F grade, timing advice, one health tip, under 180 words', 'gpt-4o-mini writes the brief, or the route returns a fallback with HTTP 200'],
     readout: 'Written by Allen in dd47cf2; made optional on boot in 81d3f30.',
     code: {
       file: 'backend/app.py',
@@ -151,8 +151,8 @@ export const TRACES = [
 
 /* ── the case study in one screen ─────────────────────────────────────────── */
 export const OVERVIEW = [
-  { label: 'What it is', text: 'An air-quality map that answers “is it safe to go outside, and when will it be better?”, fusing NASA’s TEMPO satellite, ground sensors and the weather, with a forecast that explains itself and advice for children, seniors, athletes, adults and care facilities.' },
+  { label: 'What it is', text: 'An air-quality map that answers “Is it safe to go outside, and when will it be better?” It combines NASA’s TEMPO satellite, ground sensors and the weather, with a forecast that explains each step and advice for children, seniors, athletes, adults and care facilities.' },
   { label: 'Why it exists', text: 'Built for NASA Space Apps 2025. The data exists but lives in three places, and a single AQI number means different things to a parent, a coach and a care home.' },
   { label: 'What Allen did', text: 'One of two on Team Relentless. Allen built the AI brief and chat, the per-group safety engine, the forecast explanations, getting the satellite data onto Azure, and the deploy; Aahil built the data readers and most of the map.' },
-  { label: 'Where it stands', text: 'A finished hackathon build, about 27 hours of commits, named a Global Nominee. It uses one pinned satellite file, and the app labels how old it is.' },
+  { label: 'Where it stands', text: 'A finished hackathon build from about 27 hours of commits, named a Global Nominee. It uses one pinned satellite file, and the app labels how old it is.' },
 ];

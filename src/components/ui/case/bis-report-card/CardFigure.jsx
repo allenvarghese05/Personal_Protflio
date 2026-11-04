@@ -27,7 +27,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { Glyph, at } from '@/components/ui/case/kit';
 import { LABEL } from '@/components/ui/case/shell';
 import { CARD_SAMPLE, CARD_STAGES } from '@/data/studies/bis-report-card';
@@ -106,7 +106,7 @@ function SubjectRow({ subject, filled, reduce }) {
         />
       </span>
       <span className="text-right font-mono text-micro tabular-nums text-ink-muted">
-        {filled ? `${subject.score} / ${subject.max}` : `, / ${subject.max}`}
+        {filled ? `${subject.score} / ${subject.max}` : `· / ${subject.max}`}
       </span>
     </li>
   );
@@ -151,7 +151,7 @@ function Sheet({ step, reduce, className = '' }) {
               {classFilled ? g : '·'}
             </motion.span>
           ))}
-          <span className="ml-auto font-mono text-micro text-ink-subtle">{classFilled ? `attendance ${CARD_SAMPLE.attendance}` : 'attendance,'}</span>
+          <span className="ml-auto font-mono text-micro text-ink-subtle">{classFilled ? `attendance ${CARD_SAMPLE.attendance}` : 'attendance ·'}</span>
         </div>
         <div aria-hidden="true" className="mt-2.5 flex flex-col gap-1.5">
           {[0.92, 0.64].map((w) => (

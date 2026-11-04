@@ -5,10 +5,9 @@
  *
  * The ApplicationStatus enum as one long metro line: the main statuses are
  * stops on a 1px rail with each stage's heading set inline between them; the
- * branch statuses hang off the stop they leave from on a short elbow — the
- * loop back, the rejections, the President's hold, the delay flag and the
- * reserved values (off the last stop, a short spur carries the line down to
- * them). A legend under the map counts each kind from the data. A status the
+ * branch statuses sit indented under the stop they leave from: the loop
+ * back, the rejections, the President's hold, the delay flag and the
+ * reserved values. A legend under the map counts each kind from the data. A status the
  * server never writes (server: false) is drawn
  * hollow and dashed, with a small mono tag saying why (on device, a flag,
  * legacy, reserved). Beside the line the approval stack lights whoever acts
@@ -42,7 +41,7 @@
  */
 import { Fragment, useEffect, useId, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { ACTORS, AUDIT, ROLES, STAGES, STATUSES } from '@/data/studies/iet';
 import ApprovalStack from '@/components/ui/case/ApprovalStack';
@@ -65,7 +64,7 @@ const HINT_START = 'Drag through the path, or press play.';
 const HINT_END = 'Drag back through the path, or replay it.';
 const LOG_COLUMNS = ['date', 'from', 'to', 'by', 'action', 'extra'];
 
-/* ── map geometry (px) — rails, dots and elbows are absolutely placed ───── */
+/* ── map geometry (px): rails and dots are absolutely placed ───────────── */
 const RAIL_X = 8; // the 1px rail's left edge
 const RAIL_CX = RAIL_X + 0.5;
 const ROW_PT = 8;
@@ -79,7 +78,6 @@ const DASHES = 12; // dashes + gaps around that ring
 const BRANCH_CX = 28.5;
 const MAIN_PL = 28; // label inset, main stops
 const BRANCH_PL = 42; // label inset, branch stops, indented beside their stop
-const ELBOW_RISE = 13; // the elbow leaves the rail this far above the dot
 const PULSE_SCALE = 2.8;
 
 /* ── scrubber geometry (px) ─────────────────────────────────────────────── */
@@ -132,33 +130,33 @@ const APP_REF =
   AUDIT.map((e) => e.extra?.match(/\bAPP-\d{4}-\d+\b/)?.[0]).find(Boolean) ?? null;
 
 /**
- * Branch kinds: `hue` draws the dot, `wire` the elbow, `ink` the annotation
+ * Branch kinds: `hue` draws the dot, `ink` the annotation
  * text (readable on the void). `one` / `many` name it in the legend.
  */
 const KIND = {
   loop: {
     one: 'loop', many: 'loops', glyph: '↺',
-    hue: P.inkMuted, wire: alpha(P.inkMuted, 0.5), ink: P.inkMuted,
+    hue: P.inkMuted, ink: P.inkMuted,
     note: (s) => (s.to ? `back to ${labelOf(s.to)}` : null),
   },
   reject: {
     one: 'rejection', many: 'rejections', glyph: '✕',
-    hue: P.alert, wire: alpha(P.alert, 0.5), ink: alpha(P.alert, 0.85),
-    note: () => 'terminal',
+    hue: P.alert, ink: alpha(P.alert, 0.85),
+    note: () => 'ends here',
   },
   hold: {
     one: 'hold', many: 'holds', glyph: '‖',
-    hue: P.lilac, wire: alpha(P.lilac, 0.5), ink: P.lilac,
+    hue: P.lilac, ink: P.lilac,
     note: () => 'resumes where it was',
   },
   flag: {
     one: 'flag', many: 'flags', glyph: '⚑',
-    hue: P.sand, wire: alpha(P.sand, 0.5), ink: P.sand,
+    hue: P.sand, ink: P.sand,
     note: () => 'past the deadline',
   },
   reserved: {
     one: 'reserved', many: 'reserved', glyph: '',
-    hue: P.inkFaint, wire: P.inkFaint, ink: P.inkSubtle,
+    hue: P.inkFaint, ink: P.inkSubtle,
     note: () => null, // the server tag says it
   },
 };
@@ -184,9 +182,6 @@ const OFF_SERVER = STATUSES.filter((s) => s.server === false).length;
  * The map, laid out once: stage groups → rows, one rail top to bottom. A
  * branch row follows the stop it leaves from; `idx` is the main-line index
  * its rail is measured against (the stop itself, or the stop it hangs off).
- * Past the last stop there is no line to ride, so a short spur (`spur`) runs
- * down from it to its branches, styled like the last branch's elbow; `last`
- * marks the branch where it ends.
  */
 const GROUPS = STAGES.map((stage) => {
   const mains = MAIN.filter((s) => s.stage === stage.key);
@@ -195,15 +190,9 @@ const GROUPS = STAGES.map((stage) => {
     ...mains.flatMap((s) => {
       const idx = MAIN_INDEX[s.id];
       const off = BRANCHES.filter((b) => b.from === s.id);
-      const end = off[off.length - 1];
-      const spur =
-        idx === MAIN.length - 1 && end ? { color: kindOf(end).wire, dashed: end.server === false } : null;
-      return [
-        { status: s, idx, spur },
-        ...off.map((b) => ({ status: b, idx, spur, last: b === end })),
-      ];
+      return [{ status: s, idx }, ...off.map((b) => ({ status: b, idx }))];
     }),
-    ...orphans.map((b) => ({ status: b, idx: null, spur: null })),
+    ...orphans.map((b) => ({ status: b, idx: null })),
   ];
   return { stage, rows, firstIdx: mains.length ? MAIN_INDEX[mains[0].id] : null };
 }).filter((g) => g.rows.length > 0);
@@ -244,7 +233,7 @@ function usePinnedTop(ref) {
 /* ── small pieces ───────────────────────────────────────────────────────── */
 
 function Rail({ color, top = 0, bottom, height, dashed = false }) {
-  // dashed: 2px on, 2px off — the same rhythm as a never-written elbow
+  // dashed: 2px on, 2px off
   const paint = dashed
     ? { backgroundImage: `linear-gradient(${color} 50%, transparent 50%)`, backgroundSize: '1px 4px' }
     : { background: color };
@@ -254,24 +243,6 @@ function Rail({ color, top = 0, bottom, height, dashed = false }) {
       className="pointer-events-none absolute w-px transition-colors duration-300"
       style={{ left: RAIL_X, top, bottom, height, ...paint }}
     />
-  );
-}
-
-/** The curve a branch takes off the rail, out to its dot (dashed if it never happens). */
-function Elbow({ color, dashed }) {
-  const w = BRANCH_CX - BRANCH_DOT / 2;
-  const h = DOT_CY + 1;
-  const d = `M${RAIL_CX} ${DOT_CY - ELBOW_RISE} Q${RAIL_CX} ${DOT_CY} ${RAIL_CX + ELBOW_RISE} ${DOT_CY} L${w} ${DOT_CY}`;
-  return (
-    <svg
-      aria-hidden
-      className="pointer-events-none absolute left-0 top-0 overflow-visible"
-      width={w}
-      height={h}
-      viewBox={`0 0 ${w} ${h}`}
-    >
-      <path d={d} fill="none" stroke={color} strokeWidth="1" strokeDasharray={dashed ? '2 2' : undefined} />
-    </svg>
   );
 }
 
@@ -313,7 +284,7 @@ function ServerTag({ tag, className = 'px-1' }) {
 
 /** One stop on the map — a main status or a branch. */
 function StopRow({ row, ctx }) {
-  const { status: s, idx, spur, last } = row;
+  const { status: s, idx } = row;
   const { step, stepId, focusId, pickedId, pulseKey, accent, onSelect } = ctx;
   const branch = !s.main;
   const kind = branch ? kindOf(s) : null;
@@ -411,13 +382,8 @@ function StopRow({ row, ctx }) {
       )}
 
       {/* decorations paint over the row (hover fill included) and never take a click */}
-      {branch && <Elbow color={kind.wire} dashed={Boolean(tag)} />}
       {railIn && <Rail color={railIn} height={DOT_CY} />}
       {railOut && <Rail color={railOut} top={branch ? 0 : DOT_CY} bottom={0} />}
-      {/* off the last stop: the spur, from the dot down to where the last elbow leaves */}
-      {spur && !branch && <Rail color={spur.color} dashed={spur.dashed} top={DOT_CY} bottom={0} />}
-      {spur && branch && !last && <Rail color={spur.color} dashed={spur.dashed} bottom={0} />}
-      {spur && last && <Rail color={spur.color} dashed={spur.dashed} height={DOT_CY - ELBOW_RISE} />}
       <Ring
         size={size}
         fill={fill}
@@ -500,7 +466,7 @@ function MapLegend({ accent }) {
   return (
     <div className="mt-6 border-t border-line pt-4">
       <p className="font-mono text-micro leading-5 text-ink-subtle">
-        <span className="whitespace-nowrap">{MAIN.length} on the line</span>
+        <span className="whitespace-nowrap">{MAIN.length} on the main path</span>
         {KIND_COUNTS.map(({ key, n }) => {
           const k = KIND[key];
           return (
@@ -521,7 +487,7 @@ function MapLegend({ accent }) {
           <>
             <span className="sr-only">; </span>
             <span aria-hidden className="text-ink-faint">
-              {', '}
+              {' · '}
             </span>
             <span className="whitespace-nowrap">
               <Ring
@@ -657,7 +623,7 @@ function Scrubber({ step, isPlaying, invite, showHint, accent, onScrub, onPlay, 
               height: KNOB,
               marginTop: KNOB_MT,
               background: accent,
-              boxShadow: `0 0 0 3px ${P.surface}`,
+              boxShadow: `0 0 0 3px ${P.void}`,
             }}
           />
           {invite && (
@@ -709,7 +675,7 @@ function DetailBody({ status, entry, accent }) {
 
   const i = MAIN_INDEX[status.id];
   const second = status.main
-    ? { label: 'Next status', value: MAIN[i + 1]?.label ?? 'None, end of the line' }
+    ? { label: 'Next status', value: MAIN[i + 1]?.label ?? 'None. This is the last status.' }
     : {
         label: 'Branches off',
         value: labelOf(status.from),
@@ -798,20 +764,13 @@ function DetailCard({ focusId, accent, reduce }) {
 function AuditLog({ step, accent, reduce }) {
   const rows = AUDIT.slice(0, step + 1);
   const count = rows.length;
-  const cell = 'whitespace-nowrap py-1 pr-6 align-top first:pl-4 last:pr-4';
-  const none = (
-    <>
-      <span className="sr-only">none</span>
-      <span aria-hidden className="text-ink-faint">
-       ,
-      </span>
-    </>
-  );
+  const cell = 'whitespace-nowrap py-1 pr-6 align-top first:pl-3 last:pr-3';
+  const none = <span className="text-ink-faint">none</span>;
 
   return (
     <figure className="min-w-0">
-      <div className="overflow-hidden rounded-panel border border-line bg-void">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line px-4 py-2.5 font-mono text-micro">
+      <div className="border-t border-line">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line px-3 py-2.5 font-mono text-micro">
           <span className="min-w-0 text-ink-muted">
             {HISTORY_TABLE}
             {APP_REF && <span className="text-ink-subtle"> · {APP_REF}</span>}
@@ -861,9 +820,6 @@ function AuditLog({ step, accent, reduce }) {
                     </td>
                     <td className={cell}>{from ?? none}</td>
                     <td className={cell}>
-                      <span aria-hidden className="text-ink-faint">
-                        →{' '}
-                      </span>
                       <span style={{ color: current ? accent : P.inkMuted }}>{entry.to}</span>
                       {tag && (
                         <>
@@ -883,7 +839,7 @@ function AuditLog({ step, accent, reduce }) {
         </div>
       </div>
       <figcaption className="mt-2.5 text-label text-ink-subtle">
-        Illustrative entries, the real log is the {HISTORY_TABLE} table, plus an AuditLog row per action.
+        Illustrative entries. The real log is the {HISTORY_TABLE} table, with an AuditLog row for each action.
       </figcaption>
     </figure>
   );
@@ -957,7 +913,7 @@ export default function Lifecycle({ accent = P.accent }) {
   const actor = actorOf(focus);
   const tiers = actor.tiers ?? NO_TIERS;
   const pulseKey = reduce || !inView ? null : `${focus.id}-${step}`;
-  const stackCaption = tiers.length ? 'The lit tier acts next.' : `Next: ${actor.label}.`;
+  const stackCaption = tiers.length ? 'The highlighted level acts next.' : `Next: ${actor.label}.`;
 
   // spoken: a picked stop's note; each step while playing; never while
   // dragging (the slider announces its own value)
@@ -976,7 +932,7 @@ export default function Lifecycle({ accent = P.accent }) {
           className="flex min-w-0 flex-col gap-8 lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:gap-4 lg:self-start"
           style={pinnedTop == null ? undefined : { top: pinnedTop }}
         >
-          <div ref={panelRef} className="mc-panel min-w-0">
+          <div ref={panelRef} className="min-w-0 border-t border-line pt-5">
             <Scrubber
               step={step}
               isPlaying={isPlaying}

@@ -48,7 +48,7 @@
  */
 import { Fragment, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { PERF } from '@/data/studies/iet';
 
@@ -264,10 +264,10 @@ function Choices({ label, options, value, onChoose, accent, hint }) {
   );
 }
 
-/** The panel an interactive figure sits in: caption + controls, body, footer. */
+/** An interactive figure, open on the page: caption + controls, body, footer. */
 function PanelFrame({ caption, sub, controls, footer, live = false, children }) {
   return (
-    <div className="mc-panel flex min-w-0 flex-col">
+    <div className="flex min-w-0 flex-col border-t border-line pt-6">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-0 flex-col gap-1.5">
           <h3 className="mc-label">{caption}</h3>
@@ -360,10 +360,7 @@ function SplitRow({ conn, shown, reduce, delay }) {
         </p>
         <p className="mt-1 font-mono text-label tabular-nums">
           <span className="text-ink-subtle">{fmtMs(conn.before)}</span>
-          <span aria-hidden="true" className="text-ink-faint">
-            {' → '}
-          </span>
-          <span className="sr-only"> to </span>
+          <span className="text-ink-faint"> to </span>
           <span className="text-ink">{fmtMs(conn.after)}</span>
         </p>
       </div>
@@ -414,10 +411,7 @@ function Headline() {
       <motion.p {...rise(shown, reduce)} className="flex flex-wrap items-start gap-x-4 gap-y-6 sm:gap-x-6 lg:gap-x-8">
         <HeadFigure ms={HERO.before} when="before" conn={HERO_FROM} tone="text-ink-subtle" />
         <span className="flex min-w-0 items-start gap-x-4 sm:gap-x-6 lg:gap-x-8">
-          <span aria-hidden="true" className={`${HEAD_TYPE} font-normal text-ink-faint`}>
-            →
-          </span>
-          <span className="sr-only">, to </span>
+          <span className={`${HEAD_TYPE} font-normal text-ink-faint`}>to</span>
           <HeadFigure ms={HERO.after} when="after" conn={HERO_TO} tone="text-ink" />
         </span>
       </motion.p>
@@ -429,11 +423,11 @@ function Headline() {
       </motion.p>
 
       <motion.div {...rise(shown, reduce, 0.16)} className="@container mt-12 max-w-[64rem]">
-        <Eyebrow note="bars on one linear scale">Same connection, before → after</Eyebrow>
+        <Eyebrow note="bars on one linear scale">Same connection, before and after</Eyebrow>
         {CROSSES && (
           <p className="mt-3 max-w-[68ch] text-body text-ink-muted">
-            Part of that gain is the database connection: before was measured on Supabase’s {HERO_FROM.name}, after on
-            its {HERO_TO.name}. On the same connection, the rewrite alone made it{' '}
+            Part of that gain comes from a change of database connection. The before figure was measured on Supabase’s{' '}
+            {HERO_FROM.name}, the after figure on its {HERO_TO.name}. On the same connection, the rewrite alone made it{' '}
             {SAME.map((c) => factorOf(c.before, c.after)).join(' and ')} faster:
           </p>
         )}
@@ -566,12 +560,11 @@ function Lanes({ mode, on, drawing, runKey, reduce, accent }) {
                 style={{ left: `calc(${((lane.offset + lane.count) / SLOTS) * 100}% + 4px)` }}
               >
                 <motion.span
-                  className="flex items-center gap-1.5 whitespace-nowrap bg-surface pr-1 font-mono text-micro text-ink-muted"
+                  className="flex items-center whitespace-nowrap bg-void px-1 font-mono text-micro text-ink-muted"
                   initial={reduce ? false : { opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={reduce ? { duration: 0 } : { duration: 0.3, delay: end }}
                 >
-                  <span className="h-px w-3 bg-line-hi" />
                   {lane.parallel} at once
                 </motion.span>
               </span>
@@ -661,7 +654,7 @@ function WavePanel({ accent }) {
   return (
     <motion.div ref={ref} className="mt-20 min-w-0 sm:mt-24" {...rise(reduce || inView, reduce)}>
       <PanelFrame
-        caption="Waterfall → wave"
+        caption="Round trips, before and after"
         sub={HERO.label}
         controls={
           <Choices
@@ -678,7 +671,7 @@ function WavePanel({ accent }) {
       >
         <div className="@container">
           <p aria-hidden="true" className="mb-3 font-mono text-micro text-ink-subtle @3xl:pl-[16.5rem]">
-            one round trip after another →
+            left to right: one round trip after another
           </p>
           <div className="grid">
             {MODES.map((m) => (
@@ -833,7 +826,7 @@ function EndpointChart({ accent }) {
   return (
     <motion.div ref={ref} className="mt-16 min-w-0 sm:mt-20" {...rise(shown, reduce)}>
       <PanelFrame
-        caption="Every endpoint, before → after"
+        caption="Every endpoint, before and after"
         controls={
           <Choices label="Database connection" options={CONNECTIONS} value={pooler} onChoose={setPooler} accent={accent} />
         }
@@ -902,16 +895,11 @@ function Fixes({ accent }) {
 
 function Proof() {
   return (
-    <Block label="Proof · nothing changed but the time" className="mt-12 sm:mt-14">
-      <dl className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+    <Block label="Proof that only the speed changed" className="mt-12 sm:mt-14">
+      <dl className="mt-6 grid grid-cols-1 gap-x-12 md:grid-cols-2 lg:gap-x-16">
         {PERF.proof.map((p) => (
-          <div
-            key={p.label}
-            className="relative flex min-w-0 flex-col-reverse justify-end overflow-hidden rounded-panel border border-line bg-surface px-6 pb-7 pt-8 sm:px-8"
-            style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)' }}
-          >
-            <span aria-hidden="true" className="absolute inset-x-0 top-0 h-[2px]" style={{ background: alpha(P.jade, 0.6) }} />
-            <span className="absolute right-6 top-7 sm:right-8">
+          <div key={p.label} className="relative flex min-w-0 flex-col-reverse justify-end border-t border-line pb-8 pt-6">
+            <span className="absolute right-0 top-6">
               <Tick />
             </span>
             <dt className="mt-4 max-w-[38ch] text-body text-ink-muted">{p.label}</dt>

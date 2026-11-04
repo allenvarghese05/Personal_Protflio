@@ -63,25 +63,28 @@ const markovRareNever = markovRare ? markovRare[NOW.key].ok === 0 : false;
 /** The section headlines — the sentences are written here, the numbers aren't. */
 function headlines() {
   const measured = [
-    heuristicAlways ? 'The heuristic clears the gate on every seed' : 'The heuristic mostly clears the gate',
-    markovRareNever ? 'the Markov chain needed the floor lowered, and on rare pairs it still never does.' : 'the Markov chain needed the floor lowered.',
-  ].join('; ');
+    heuristicAlways ? 'The heuristic clears the gate on every seed.' : 'The heuristic clears the gate on most seeds.',
+    markovRareNever
+      ? 'The Markov chain needed the density floor lowered, and on rare pairs it still never clears the gate.'
+      : 'The Markov chain needed the density floor lowered.',
+  ].join(' ');
   return {
     problem: `Targeted drills sound obviously better. Testing that fairly means getting ${word(COPY.before.length)} things right that the easy way gets wrong.`,
-    why: `Two questions, ${word(ARMS.length)} methods, and every participant runs all ${word(ARMS.length)}, each on their own weak pairs.`,
-    code: 'The experiment’s fairness lives in four places in the code, here they are.',
-    attribution: `${GOLDEN.keys.length} keystrokes, ${GOLDEN.cases.length} edge cases, one rule for what counts as an error, and both languages must pass it.`,
+    why: `Two questions and ${word(ARMS.length)} methods. Every participant runs all ${word(ARMS.length)}, each on their own weak pairs.`,
+    code: 'Four places in the code keep the experiment fair. Here they are.',
+    attribution: `One rule decides what counts as an error. A session of ${GOLDEN.keys.length} keystrokes and ${GOLDEN.cases.length} edge cases pins it down, and both languages must pass it.`,
     assignment: `Rank the weak pairs with a prior, deal the top ${PAIR_COUNT} into ${word(ASSIGN.sets.length)} equally hard sets, shuffle which method gets which, then freeze it.`,
-    gate: `Every drill, from every method, passes the same ${word(GATE.rules.length)} checks, the generator never grades itself.`,
+    gate: `Every drill from every method passes the same ${word(GATE.rules.length)} checks. No generator grades its own drills.`,
     measured,
-    day: `${capWord(PLANNER.practiceDays)} practice days, ${word(ARMS.length)} blocks a day, the order rotating daily, and the browser is never told which method wrote which block.`,
+    day: `${capWord(PLANNER.practiceDays)} practice days with ${word(ARMS.length)} blocks a day. The order rotates daily, and the browser is never told which method wrote which block.`,
     decisions: `${capWord(DECISIONS.length)} hard problems: a picker that overshoots, workers that could collide, and randomness that has to replay exactly.`,
-    architecture: `A browser, an API and a separate worker over one SQLite file, ${word(LAYERS.length)} layers, all on one laptop.`,
-    data: `${capWord(TABLE_COUNT)} tables, keystrokes append-only, the weak-pair map frozen by a trigger, every generation attempt kept.`,
+    architecture: `A browser, an API and a separate worker share one SQLite file, in ${word(LAYERS.length)} layers that all run on one laptop.`,
+    data: `${capWord(TABLE_COUNT)} tables. Keystrokes are append-only, a trigger freezes the weak-pair map, and every generation attempt is kept.`,
     build: TASKS
-      ? `${TASKS} design-doc tasks in ${BUILD.days} days, briefed, planned, built and reviewed by coding agents, merged by Allen.`
+      ? `${TASKS} design-doc tasks in ${BUILD.days} days. Coding agents briefed, planned, built and reviewed each one, and Allen merged it.`
       : 'Design doc first, then one task at a time.',
-    next: 'The code is done and the pilot is run; the numbers are in, and they say what they say.',
+    results: RESULTS.headline,
+    next: 'The code is done, the pilot has run, and the results are reported as they came out.',
   };
 }
 
@@ -98,8 +101,8 @@ const SECTIONS = [
   { id: 'code', num: '09', label: 'Inside the code' },
   { id: 'architecture', num: '10', label: 'Architecture' },
   { id: 'data', num: '11', label: 'Data model' },
-  { id: 'build', num: '12', label: 'How it was built' },
-  { id: 'results', num: '13', label: 'The pilot' },
+  { id: 'results', num: '12', label: 'The pilot' },
+  { id: 'build', num: '13', label: 'How it was built' },
 ];
 const SECTION = Object.fromEntries(SECTIONS.map((x) => [x.id, x]));
 

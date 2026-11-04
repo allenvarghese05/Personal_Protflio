@@ -17,7 +17,7 @@
  */
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { PALETTE as P } from '@/lib/palette';
+import { P } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { TEMPLATE_CONSOLE as C } from '@/data/studies/bis-report-card';
 import { Choices, PanelFrame } from '@/components/ui/case/kit';
@@ -53,18 +53,13 @@ export default function TemplateConsole({ accent = P.accent }) {
         caption="Admin · Templates"
         controls={<Choices label="Layouts" options={C.layouts.map((l) => ({ key: l.key, label: l.label }))} value={key} onChoose={setKey} accent={accent} />}
         footer={
-          <ol className="flex flex-wrap items-center gap-x-2 gap-y-2 text-label text-ink-muted">
+          <ol className="flex flex-wrap items-center gap-x-6 gap-y-2 text-label text-ink-muted">
             {C.steps.map((s, i) => (
               <li key={s} className="flex items-center gap-2">
                 <span className="font-mono tabular-nums" style={{ color: accent }}>
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <span>{s}</span>
-                {i < C.steps.length - 1 && (
-                  <span aria-hidden className="px-1 text-ink-faint">
-                    →
-                  </span>
-                )}
               </li>
             ))}
           </ol>
@@ -73,14 +68,14 @@ export default function TemplateConsole({ accent = P.accent }) {
         <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
           <div className="mx-auto w-full max-w-[300px]">
             <div className="rounded-[6px] border border-line-hi bg-surface-2 p-4" style={{ aspectRatio: '1 / 1.414' }}>
-              <ol aria-label={`${layout.label}, blocks in print order`} className="flex h-full flex-col gap-1.5">
+              <ol aria-label={`${layout.label}, blocks in print order`} className="flex h-full flex-col">
                 {layout.blocks.map((b, i) => (
                   <motion.li
                     key={`${key}-${b}`}
                     initial={reduce ? false : { opacity: 0, x: -6 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={reduce ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT, delay: i * 0.05 }}
-                    className="flex min-h-0 flex-1 items-center gap-2 rounded-[3px] border border-line px-2 font-mono text-micro text-ink-muted"
+                    className="flex min-h-0 flex-1 items-center gap-2 border-t border-line px-1 font-mono text-micro text-ink-muted first:border-t-0"
                   >
                     <span className="tabular-nums text-ink-faint">{String(i + 1).padStart(2, '0')}</span>
                     <span className="truncate">{b}</span>
@@ -88,7 +83,7 @@ export default function TemplateConsole({ accent = P.accent }) {
                 ))}
               </ol>
             </div>
-            <p className="mt-3 text-center font-mono text-micro text-ink-subtle">a block list, not pixel positions, prints the same on screen and in Chromium</p>
+            <p className="mt-3 text-center font-mono text-micro text-ink-subtle">The layout is a list of blocks, not pixel positions, so it prints the same on screen and in Chromium.</p>
           </div>
           <div className="flex min-w-0 flex-col gap-6">
             <List title="What a template defines" items={C.definition} />

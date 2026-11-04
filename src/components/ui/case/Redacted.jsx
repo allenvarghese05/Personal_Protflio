@@ -1,7 +1,7 @@
 'use client';
 import { useId, useRef, useSyncExternalStore } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { COPY } from '@/data/studies/iet';
 
@@ -23,8 +23,8 @@ import { COPY } from '@/data/studies/iet';
  * no transitions. Under 768px the row becomes a snap-scrolling carousel.
  */
 
-const NOTE_LEAD = 'Private client system';
-const NOTE_REST = ', the interface is redacted; everything below shows how it works.';
+const NOTE_LEAD = 'This is a private client system.';
+const NOTE_REST = ' Its screens are not shown here. The sketches below stand in for them, and the sections after them explain how it works.';
 const REGION_LABEL = 'Redacted interface previews';
 const STAMP = 'Redacted';
 
@@ -443,7 +443,7 @@ function Tile({ item, index, shown, reduce }) {
       className="w-[78%] shrink-0 snap-start md:w-auto"
     >
       <figure className="group m-0">
-        <div className="relative aspect-[16/10] overflow-hidden rounded-panel border border-line bg-surface shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors duration-300 group-hover:border-line-hi motion-reduce:transition-none">
+        <div className="relative aspect-[16/10] overflow-hidden rounded-panel border border-line bg-surface shadow-[inset_0_1px_0_color-mix(in_srgb,var(--ink)_4%,transparent)] transition-colors duration-300 group-hover:border-line-hi motion-reduce:transition-none">
           {screen ? <Wireframe screen={screen} uid={uid} custom={custom} /> : null}
           <span className="absolute right-2 top-2 rounded-chip border border-line-hi bg-surface px-1.5 py-0.5 font-mono text-micro uppercase leading-none tracking-[0.16em] text-ink-subtle">
             {STAMP}

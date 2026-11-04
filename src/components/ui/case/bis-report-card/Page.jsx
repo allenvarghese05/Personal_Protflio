@@ -58,16 +58,16 @@ function headlines() {
   return {
     problem: `Every student needs a card each exam, ${word(ROLES.length)} staff roles share the work, and the format changes from Nursery to Class 12.`,
     review: `${capWord(REVIEW.states.length)} states, ${word(REVIEW.moves.length)} moves, and a mark can change only while the card is a draft.`,
-    templates: `One engine, ${word(TEMPLATES.length)} very different cards, and the school redesigns a format in its own console, not in code.`,
+    templates: `One engine runs ${word(TEMPLATES.length)} very different cards, and the school can redesign a format in its own console without changing any code.`,
     marks: `${capWord(MARK_PATHS.length)} ways to enter a mark, and one server function that judges every one.`,
-    grading: 'Absent isn’t zero, and a card never shows two different overall figures.',
-    ops: `No cloud: it runs on one server inside the school, on its own network, ${word(DOORS)} open door, and a backup that catches up after downtime and is restored in CI.`,
-    decisions: `${capWord(DECISIONS.length)} hard problems: a save racing an approval, a lab PC shared by every teacher, and roll numbers that must be unique, except when they mustn’t.`,
-    architecture: `A NestJS API behind one HTTPS door, in ${word(LAYERS.length)} layers, follow a request through it.`,
+    grading: 'An absent mark isn’t treated as zero, and a card never shows two different overall figures.',
+    ops: `No cloud. It runs on one server on the school’s own network, with only ${word(DOORS)} service open to the network and a nightly backup that catches up after downtime and is test-restored in CI.`,
+    decisions: `${capWord(DECISIONS.length)} hard problems: a save racing an approval, a lab PC shared by every teacher, and roll numbers that must be unique among active students but can be reused.`,
+    architecture: `A NestJS API behind a single HTTPS entry point, in ${word(LAYERS.length)} layers. Follow a request through it.`,
     data: `${MODEL_COUNT} models in ${word(DATA_MODEL.domains.length)} domains, plus two constraints Prisma can’t express, written by hand in SQL.`,
     build:
       MERGED && TESTS
-        ? `A spec in July; then, in October, the system and ${MERGED} merged pull requests, ${TESTS} tests green in CI.`
+        ? `A spec in July, then the system in October: ${MERGED} merged pull requests and ${TESTS} tests passing in CI.`
         : 'Sole developer, spec first.',
     next: 'The pilot is next, on the school’s own server, starting with the two Pre-Primary cards.',
   };
@@ -105,7 +105,7 @@ export default function Page({ project, study }) {
         status={COPY.status}
         links={links}
         figure={<CardFigure accent={accent} />}
-        caption="One card, four hands, the watermark lifts only on approval"
+        caption="One card passes through four people. The watermark is removed only on approval."
       />
 
       <div className={WRAP}>

@@ -20,7 +20,7 @@
  */
 import { useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import CodeBlock from '@/components/ui/case/CodeBlock';
 import { Choices } from '@/components/ui/case/kit';
@@ -33,7 +33,7 @@ const rise = (reduce, shown, i = 0) => ({
 
 /* ── Overview ──────────────────────────────────────────────────────────── */
 
-export function Overview({ items, accent, note = 'Everything below goes deeper, pick a section from the index, or scroll.' }) {
+export function Overview({ items, accent, note = 'Everything below goes deeper. Pick a section from the index, or scroll.' }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const inView = useInView(ref, { once: true, amount: 0.2 });
@@ -41,18 +41,17 @@ export function Overview({ items, accent, note = 'Everything below goes deeper, 
   return (
     <section ref={ref} aria-label="The case study in one screen" className="border-t border-line pt-8">
       <p className="mc-label">The case study in one screen</p>
-      <ol className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2">
+      <ol className="mt-6 grid grid-cols-1 gap-x-12 gap-y-8 md:grid-cols-2">
         {items.map((it, i) => (
           <motion.li
             key={it.label}
             {...rise(reduce, inView, i)}
-            className="relative flex min-w-0 flex-col overflow-hidden rounded-panel border border-line bg-surface p-5 sm:p-6"
-            style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)' }}
+            className="flex min-w-0 flex-col border-t border-line pt-5"
           >
             <p className="font-mono text-micro font-medium uppercase tracking-[0.18em] text-ink-subtle">
               <span style={{ color: accent }}>{String(i + 1).padStart(2, '0')}</span>
               <span aria-hidden className="text-ink-faint">
-                {', '}
+                {' · '}
               </span>
               {it.label}
             </p>
@@ -93,8 +92,7 @@ export function Story({ chapters, accent }) {
   const reduce = useReducedMotion();
   const inView = useInView(ref, { once: true, amount: 0.1 });
   return (
-    <ol ref={ref} className="relative flex flex-col">
-      <span aria-hidden className="absolute bottom-3 left-[7px] top-3 w-px bg-line-hi" />
+    <ol ref={ref} className="flex flex-col">
       {chapters.map((c, i) => {
         const turn = c.tone === 'turn';
         return (
@@ -133,7 +131,7 @@ export function CodeTour({ files, accent, caption = 'Inside the code' }) {
   if (!files?.length) return null;
   const f = files.find((x) => x.key === key) ?? files[0];
   return (
-    <div className="mc-panel flex min-w-0 flex-col">
+    <div className="flex min-w-0 flex-col border-t border-line pt-5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <span className="mc-label">{caption}</span>
         <Choices label="Files" options={files.map((x) => ({ key: x.key, label: x.label }))} value={f.key} onChoose={setKey} accent={accent} />

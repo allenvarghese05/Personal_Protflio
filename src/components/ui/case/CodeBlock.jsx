@@ -110,10 +110,10 @@ export default function CodeBlock({ code }) {
 
   return (
     <figure
-      className="min-w-0 overflow-hidden rounded-panel border border-line bg-void"
+      className="min-w-0 overflow-hidden rounded-panel bg-surface"
       data-lang={lang}
     >
-      <figcaption className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line bg-surface px-4 py-2.5">
+      <figcaption className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-4 py-2.5">
         <span className="min-w-0 font-mono text-label text-ink-muted [overflow-wrap:anywhere]">
           {file}
         </span>
@@ -138,7 +138,7 @@ export default function CodeBlock({ code }) {
         >
           <div
             aria-hidden="true"
-            className="sticky left-0 shrink-0 select-none border-r border-line bg-void py-4 pl-4 pr-3 text-right tabular-nums text-ink-faint"
+            className="sticky left-0 shrink-0 select-none border-r border-line bg-surface py-4 pl-4 pr-3 text-right tabular-nums text-ink-faint"
           >
             {lines.map((_, i) => (
               <div key={i}>{i + 1}</div>
@@ -162,11 +162,11 @@ export default function CodeBlock({ code }) {
         <span
           aria-hidden="true"
           className={`pointer-events-none absolute inset-y-0 right-0 w-10 transition-opacity duration-200 motion-reduce:transition-none ${more ? 'opacity-100' : 'opacity-0'}`}
-          style={{ background: 'linear-gradient(to left, var(--void), transparent)' }}
+          style={{ background: 'linear-gradient(to left, var(--surface), transparent)' }}
         />
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 hidden rounded-b-[calc(var(--radius-panel)_-_1px)] border-2 border-accent peer-focus-visible:block"
+          className="pointer-events-none absolute inset-0 hidden rounded-b-panel border-2 border-accent peer-focus-visible:block"
         />
       </div>
     </figure>

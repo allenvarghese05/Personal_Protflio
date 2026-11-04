@@ -16,7 +16,7 @@
  */
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { ARMS, WHY_ARMS } from '@/data/studies/typist-ml';
 import { Choices, PanelFrame } from '@/components/ui/case/kit';

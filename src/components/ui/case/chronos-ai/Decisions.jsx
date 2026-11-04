@@ -30,7 +30,7 @@
  * final state and nothing plays.
  */
 import { motion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { DECISIONS, MORNINGS, RULES } from '@/data/studies/chronos-ai';
 import { Choices, DecisionList, Glyph, LegendItem, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
 import { ceilingWithoutApp } from './score';
@@ -72,10 +72,10 @@ function ReweightVisual({ inView, reduce, accent }) {
       }
       footer={
         active ? (
-          <Readout runKey={runKey} delay={0.5} reduce={reduce} tone={off ? P.sand : P.jade} status={off ? `Ceiling ${ceiling} < ${CONFIRM}` : `Ceiling ${ceiling}`}>
+          <Readout runKey={runKey} delay={0.5} reduce={reduce} tone={off ? P.sand : P.jade} status={off ? `Ceiling ${ceiling}, under ${CONFIRM}` : `Ceiling ${ceiling}`}>
             <span className="text-body text-ink-muted">
               {off
-                ? `Without the app, unlocked and unplugged top out at ${ceiling}. The no-pedometer, no-app fixture scores ${noAppScores.join(', then ')}, and never confirms. Opening the app (+${RULES.reweight.foreground}) is what gets a denied day over the line.`
+                ? `Without the app, unlocked and unplugged top out at ${ceiling}. The no-pedometer, no-app fixture scores ${noAppScores.join(', then ')} and never confirms. Only opening the app (+${RULES.reweight.foreground}) can get a denied day over the line.`
                 : `With the pedometer, the five background rules can reach ${ceiling} without the app ever opening.`}
             </span>
           </Readout>
@@ -111,7 +111,7 @@ function ReweightVisual({ inView, reduce, accent }) {
               </span>
               <span className="text-right font-mono text-label tabular-nums">
                 {changed && <span className="mr-1.5 text-ink-subtle line-through">{r.cap}</span>}
-                <span className={skipped ? 'text-ink-subtle' : 'text-ink'}>{skipped ? '—' : cap}</span>
+                <span className={skipped ? 'text-ink-subtle' : 'text-ink'}>{skipped ? 0 : cap}</span>
               </span>
             </li>
           );
@@ -151,7 +151,7 @@ function ReweightVisual({ inView, reduce, accent }) {
 
       {/* what the validator caught */}
       <div className="mt-5 border-t border-line pt-4">
-        <p className="mc-label">The validator · reweights must sum ≤ 100</p>
+        <p className="mc-label">The validator · reweights must add up to 100 or less</p>
         <ul className="mt-3 flex flex-col gap-2 font-mono text-micro">
           <li className="flex items-center gap-2.5 text-ink-muted">
             <Glyph kind="cross" />
@@ -192,7 +192,7 @@ function VersionsVisual({ decision, inView, reduce, accent }) {
 
   return (
     <PanelFrame
-      caption="PUT /v1/config/wake → activate_new_version()"
+      caption="PUT /v1/config/wake calls activate_new_version()"
       controls={<Choices label="Apply rules" options={scenarios.map(({ key, label }) => ({ key, label }))} value={sc?.key ?? null} onChoose={choose} accent={accent} />}
       footer={
         sc ? (
@@ -335,10 +335,10 @@ function DstVisual({ decision, inView, reduce, accent }) {
           ))}
         </div>
 
-        <div aria-hidden className="relative mt-2 h-16 rounded-[4px] border border-line">
+        <div aria-hidden className="relative mt-2 h-16 border-b border-line">
           {/* which local date each instant belongs to */}
           <div className="absolute inset-y-0 left-0 border-r border-dashed" style={{ width: xPct(boundary), borderColor: P.lineHi, background: alpha(P.inkMuted, 0.05) }}>
-            <span className="absolute left-2 top-1.5 font-mono text-micro text-ink-subtle">→ Sat Oct 31</span>
+            <span className="absolute left-2 top-1.5 font-mono text-micro text-ink-subtle">Sat Oct 31</span>
           </div>
           <span className="absolute top-1.5 font-mono text-micro text-ink-subtle" style={{ left: `calc(${xPct(boundary)} + 0.5rem)` }}>
             Sun Nov 1
@@ -371,7 +371,7 @@ function DstVisual({ decision, inView, reduce, accent }) {
         <div className="h-4" />
 
         <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 font-mono text-micro text-ink-subtle">
-          <LegendItem label="clocks go back · 02:00 EDT → 01:00 EST">
+          <LegendItem label="clocks go back: 02:00 EDT becomes 01:00 EST">
             <rect x="6.5" y="1" width="1" height="12" fill={P.sand} />
           </LegendItem>
           <LegendItem label="03:00 · a new local day">
@@ -382,14 +382,14 @@ function DstVisual({ decision, inView, reduce, accent }) {
           </LegendItem>
         </div>
 
-        <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+        <ul className="mt-5 grid gap-x-8 gap-y-4 sm:grid-cols-2">
           {sc.windows.map((w) => {
             const on = ev?.day === w;
             return (
-              <li key={w.date} className="rounded-[6px] border px-3 py-2.5" style={{ borderColor: on ? alpha(accent, 0.45) : P.line }}>
+              <li key={w.date} className="border-t pt-2.5" style={{ borderColor: on ? alpha(accent, 0.6) : P.line }}>
                 <p className="text-label font-medium text-ink">{w.date}</p>
                 <p className="mt-0.5 font-mono text-micro text-ink-subtle">
-                  window {w.local} = {w.utc.join('–')} UTC
+                  window {w.local}, which is {w.utc.join('-')} UTC
                 </p>
               </li>
             );

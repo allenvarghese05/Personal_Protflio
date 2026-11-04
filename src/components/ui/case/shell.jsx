@@ -22,8 +22,8 @@ import { createContext, useContext, useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { useStore } from '@/lib/store';
 import { ENGINEERING_PROJECTS } from '@/data/projects';
-import { PALETTE as P, alpha } from '@/lib/palette';
-import { ACCENTS, DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
+import { KIND_ACCENT, P, alpha } from '@/components/ui/case/tokens';
+import { DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
 import NextProject from '@/components/ui/case/NextProject';
 
 /* ── constants ─────────────────────────────────────────────────────────── */
@@ -41,13 +41,12 @@ const FADE_S = 0.7;
 const HEAD_VIEW = { once: true, amount: 0.6 };
 
 const PAIR_VIEW = { once: true, amount: 0.3 };
-const PAIR_STEP_S = 0.1; // between before → after rows
-const PAIR_ARROW_S = 0.18; // the arrow draws after its "before"
-const PAIR_AFTER_S = 0.34; // and the "after" lands once it has
+const PAIR_STEP_S = 0.1; // between before/after rows
+const PAIR_AFTER_S = 0.24; // the "after" lands just after its "before"
 const PAIR_SHIFT_PX = 8;
-// before | arrow | after, on one grid so row i of each column lines up — no
-// gap at md, so the column heads sit on exactly the same tracks as the rows
-const PAIR_GRID = 'md:grid md:grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)] md:items-start md:gap-0';
+// before | after, on one grid so row i of each column lines up and the column
+// heads sit on exactly the same tracks as the rows
+const PAIR_GRID = 'md:grid md:grid-cols-2 md:items-start md:gap-x-16';
 
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 
@@ -60,7 +59,7 @@ export const capWord = (n) => {
   return w.charAt(0).toUpperCase() + w.slice(1);
 };
 /** The page accent for a project kind (signature → amber, …). */
-export const accentFor = (kind) => ACCENTS[kind] || ACCENTS.project;
+export const accentFor = (kind) => KIND_ACCENT[kind] || KIND_ACCENT.project;
 
 /** The project after `id` in the wall's order, wrapping; null if it's alone. */
 function nextAfter(id) {
@@ -263,7 +262,7 @@ export function SectionHead({ id, num, label, title, accent }) {
           <>
             <span style={{ color: accent }}>{num}</span>
             <span aria-hidden className="text-ink-faint">
-              {', '}
+              {' · '}
             </span>
           </>
         )}
@@ -290,7 +289,7 @@ export function Section({ scope, id, num, label, title, accent, children }) {
   );
 }
 
-/* ── the problem: before → after ───────────────────────────────────────── */
+/* ── the problem: before and after ───────────────────────────────────────── */
 
 /** Hollow = how it was; filled accent = how it is. Shape differs, not just hue. */
 function Marker({ filled = false, accent, className = 'mt-[9px]' }) {
@@ -300,28 +299,6 @@ function Marker({ filled = false, accent, className = 'mt-[9px]' }) {
       className={`h-2 w-2 shrink-0 rounded-full ${className}`}
       style={filled ? { background: accent } : { boxShadow: `inset 0 0 0 1.25px ${P.inkSubtle}` }}
     />
-  );
-}
-
-function PairArrow({ shown, reduce, delay }) {
-  const draw = {
-    initial: reduce ? false : { pathLength: 0, opacity: 0 },
-    animate: shown ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 },
-    transition: { duration: FADE_S * 0.6, ease: EASE_STD, delay },
-  };
-  return (
-    <svg width="44" height="10" viewBox="0 0 44 10" fill="none" aria-hidden className="block">
-      <motion.path d="M1 5H41" stroke={P.inkSubtle} strokeWidth="1.25" strokeLinecap="round" {...draw} />
-      <motion.path
-        d="M37 1.5L41 5L37 8.5"
-        stroke={P.inkSubtle}
-        strokeWidth="1.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        {...draw}
-        transition={{ ...draw.transition, delay: delay + FADE_S * 0.4 }}
-      />
-    </svg>
   );
 }
 
@@ -336,13 +313,11 @@ export function BeforeAfter({ before, after, accent, beforeLabel = 'Before', aft
   return (
     <div ref={ref}>
       {/* column heads on desktop; a one-line legend on mobile */}
-      <div aria-hidden className={`flex items-center gap-3 pb-4 ${PAIR_GRID}`}>
+      <div aria-hidden className={`flex flex-wrap items-center gap-x-6 gap-y-2 pb-4 ${PAIR_GRID}`}>
         <span className={`${LABEL} flex items-center gap-3 text-ink-subtle`}>
           <Marker className="" />
           {beforeLabel}
         </span>
-        <span className="text-ink-subtle md:hidden">→</span>
-        <span className="hidden md:block" />
         <span className={`${LABEL} flex items-center gap-3 text-ink`}>
           <Marker filled accent={accent} className="" />
           {afterLabel}
@@ -364,10 +339,6 @@ export function BeforeAfter({ before, after, accent, beforeLabel = 'Before', aft
                   {row.before}
                 </span>
               </motion.p>
-
-              <div className="hidden justify-center pt-[8px] md:flex">
-                <PairArrow shown={shown} reduce={reduce} delay={at + PAIR_ARROW_S} />
-              </div>
 
               <motion.p
                 {...reveal(shown, reduce, at + PAIR_AFTER_S, { x: -PAIR_SHIFT_PX })}
