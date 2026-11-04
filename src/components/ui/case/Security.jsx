@@ -587,7 +587,7 @@ function AuditCard({ item, order, variants, shown, reduce }) {
             <Marker filled tone={P.jade} />
           </span>
           <div className="min-w-0">
-            <dt className={`${LABEL} text-jade`}>Fixed</dt>
+            <dt className={`${LABEL} text-accent`}>Fixed</dt>
             <dd className="mt-1.5 text-sm leading-[1.6] text-ink">{item.fixed}</dd>
           </div>
         </motion.div>

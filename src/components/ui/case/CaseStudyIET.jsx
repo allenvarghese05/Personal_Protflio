@@ -104,7 +104,7 @@ export default function CaseStudyIET({ project, study }) {
   const sec = (id) => ({ scope: SCOPE, ...SECTION[id], title: title[id], accent });
 
   return (
-    <CaseArticle>
+    <CaseArticle project={project}>
       {/* the stack runs its own entrance (slabs settle bottom-up), then the
           token climbs: Pastor and Division Leader light together as the one
           applicant level, then HQ → President → Finance */}

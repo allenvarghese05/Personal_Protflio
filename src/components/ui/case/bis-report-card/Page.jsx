@@ -97,7 +97,7 @@ export default function Page({ project, study }) {
   const links = [project.repo && { href: project.repo, label: 'Repository' }, project.live && { href: project.live, label: 'Live site' }].filter(Boolean);
 
   return (
-    <CaseArticle>
+    <CaseArticle project={project}>
       <Hero
         project={project}
         accent={accent}

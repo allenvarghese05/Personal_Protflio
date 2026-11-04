@@ -23,7 +23,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { P, alpha } from '@/components/ui/case/tokens';
+import { HUES, P, alpha } from '@/components/ui/case/tokens';
 
 const W = 1000; // viewBox width
 const H = 620; // viewBox height
@@ -46,17 +46,17 @@ const CATEGORY_LABEL = {
 /* One colour per category, distinct within any one project. Amber stays for
    what is lit (the selected part's links), so no category uses it. */
 const MAP_COLOR = {
-  core: P.ink,
-  ui: P.slate,
-  infrastructure: P.inkSubtle,
-  workflow: P.sand,
-  auth: P.jade,
-  data: P.ice,
-  storage: P.lilac,
-  realtime: P.live,
-  audio: P.live,
-  ai: P.alert,
-  location: P.alert,
+  core: HUES.ink,
+  ui: HUES.slate,
+  infrastructure: HUES.inkSubtle,
+  workflow: HUES.sand,
+  auth: HUES.jade,
+  data: HUES.ice,
+  storage: HUES.lilac,
+  realtime: HUES.live,
+  audio: HUES.live,
+  ai: HUES.alert,
+  location: HUES.alert,
 };
 
 const radiusOf = (n) => RADIUS[n.importance] ?? 10;

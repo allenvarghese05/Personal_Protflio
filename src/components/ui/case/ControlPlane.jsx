@@ -176,7 +176,7 @@ function useShown(reduce) {
 /** The panel every interactive block sits in: caption + controls, body, readout. */
 function PanelFrame({ caption, controls, footer, live = false, children }) {
   return (
-    <div className="mc-panel flex min-w-0 flex-col">
+    <div className="case-tray flex min-w-0 flex-col rounded-[18px] p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         {caption}
         {controls}
@@ -564,7 +564,7 @@ function ControlRow({ entry, value, on, accent, labelId, linkProps, onSet, onFli
     <div
       {...linkProps}
       className="relative rounded-md border px-3.5 py-3 transition-colors duration-200 motion-reduce:transition-none"
-      style={{ borderColor: on ? alpha(accent, 0.5) : P.line, background: on ? alpha(accent, 0.05) : P.surface }}
+      style={{ borderColor: on ? alpha(accent, 0.5) : P.line, background: on ? alpha(accent, 0.05) : 'transparent' }}
     >
       {/* where the connector lands: the label's first line */}
       <span aria-hidden data-cp-to="" className="pointer-events-none absolute left-0 top-[22px] h-0 w-0" />
@@ -1002,7 +1002,7 @@ function BuildStrip({ reduce }) {
 
       <ol
         aria-label={`Build steps, ${first.id} to ${final.id}`}
-        className="mt-8 md:grid md:grid-cols-4 md:gap-y-10 @5xl:grid-cols-8"
+        className="mt-8 md:grid md:grid-cols-4 md:gap-x-8 md:gap-y-10"
       >
         {STEPS.map((s, i) => (
           <motion.li
@@ -1047,46 +1047,30 @@ function BuildStrip({ reduce }) {
 
 /* ── 5 · found while building it ───────────────────────────────────────── */
 
-function FixCard({ fix, delay, shown, reduce }) {
+function FixCard({ fix, delay, shown, reduce, accent }) {
   const after = (d, duration = 0.4) => (reduce ? { duration: 0 } : { delay: delay + d, duration, ease: EASE_OUT });
+  // an open block under a hairline: no fill, no coloured bar; the old number
+  // struck through in grey, the new one is the highlight, in the accent
   return (
-    <motion.li
-      {...rise(reduce, shown, delay)}
-      className="@container relative flex min-w-0 flex-col overflow-hidden rounded-panel border border-line bg-surface p-5 sm:p-6"
-      style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)' }}
-    >
-      <span aria-hidden className="absolute inset-x-0 top-0" style={{ height: 2, background: alpha(P.jade, 0.6) }} />
+    <motion.li {...rise(reduce, shown, delay)} className="@container relative flex min-w-0 flex-col border-t border-line pt-6">
       <h4 className="font-display text-[1.375rem] font-semibold leading-tight tracking-[-0.01em] text-ink">{fix.title}</h4>
 
-      <div className="mt-6 flex flex-wrap items-end gap-x-3 gap-y-3">
+      <div className="mt-6 flex flex-wrap items-end gap-x-10 gap-y-4">
         <p>
           <span className={`${LABEL} block text-ink-subtle`}>Before</span>
           <span className="mt-2 block font-display text-[1.625rem] font-semibold leading-none tracking-tight text-ink-subtle line-through decoration-2 @xs:text-3xl @md:text-4xl">
             {fix.before}
           </span>
         </p>
-        <svg aria-hidden="true" width="28" height="12" viewBox="0 0 28 12" className="mb-2 shrink-0">
-          <motion.path
-            d="M1 6H25M20.5 1.5L25.5 6L20.5 10.5"
-            fill="none"
-            stroke={P.inkSubtle}
-            strokeWidth="1.25"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            initial={reduce ? false : { pathLength: 0 }}
-            animate={{ pathLength: reduce || shown ? 1 : 0 }}
-            transition={after(0.2)}
-          />
-        </svg>
         <motion.p
-          initial={reduce ? false : { opacity: 0, x: -6 }}
-          animate={reduce || shown ? { opacity: 1, x: 0 } : { opacity: 0, x: -6 }}
-          transition={after(0.45)}
+          initial={reduce ? false : { opacity: 0, y: 6 }}
+          animate={reduce || shown ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
+          transition={after(0.3)}
         >
-          <span className={`${LABEL} block`} style={{ color: P.jade }}>
+          <span className={`${LABEL} block`} style={{ color: accent }}>
             After
           </span>
-          <span className="mt-2 block font-display text-[1.625rem] font-semibold leading-none tracking-tight @xs:text-3xl @md:text-4xl" style={{ color: P.jade }}>
+          <span className="mt-2 block font-display text-[1.625rem] font-semibold leading-none tracking-tight @xs:text-3xl @md:text-4xl" style={{ color: accent }}>
             {fix.after}
           </span>
         </motion.p>
@@ -1097,7 +1081,7 @@ function FixCard({ fix, delay, shown, reduce }) {
   );
 }
 
-function Fixes({ reduce }) {
+function Fixes({ reduce, accent }) {
   const [ref, shown] = useShown(reduce);
   if (!FIXES.length) return null;
   return (
@@ -1105,9 +1089,9 @@ function Fixes({ reduce }) {
       <motion.h3 {...rise(reduce, shown)} className={`${LABEL} text-ink-subtle`}>
         Found while building it
       </motion.h3>
-      <ul className="mt-6 grid gap-5 md:grid-cols-2">
+      <ul className="mt-6 grid gap-x-12 gap-y-10 md:grid-cols-2">
         {FIXES.map((f, i) => (
-          <FixCard key={f.title} fix={f} delay={STAGGER_S + i * 0.1} shown={shown} reduce={reduce} />
+          <FixCard key={f.title} fix={f} delay={STAGGER_S + i * 0.1} shown={shown} reduce={reduce} accent={accent} />
         ))}
       </ul>
     </div>
@@ -1124,7 +1108,7 @@ export default function ControlPlane({ accent = P.accent }) {
       <SchemaScreen accent={accent} reduce={reduce} />
       <History accent={accent} reduce={reduce} />
       <BuildStrip reduce={reduce} />
-      <Fixes reduce={reduce} />
+      <Fixes reduce={reduce} accent={accent} />
     </div>
   );
 }

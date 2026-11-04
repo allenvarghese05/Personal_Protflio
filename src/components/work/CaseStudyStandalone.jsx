@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { projectById } from '@/data/projects';
 import { caseStudyFor } from '@/data/caseStudies';
 import { CASE_PAGES } from '@/components/ui/case/pages';
-import { CaseNavContext } from '@/components/ui/case/shell';
+import { CaseNavContext, caseAccentStyle } from '@/components/ui/case/shell';
 import { useWorkTheme } from './theme';
 
 export default function CaseStudyStandalone({ id }) {
@@ -25,7 +25,7 @@ export default function CaseStudyStandalone({ id }) {
 
   return (
     <CaseNavContext.Provider value={(nextId) => router.push(`/projects/${nextId}`)}>
-      <div className="work-root mc-root fixed inset-0 flex flex-col bg-void">
+      <div className="work-root case-accent mc-root fixed inset-0 flex flex-col bg-void" style={caseAccentStyle(id)}>
         <nav
           aria-label="Case study"
           className="relative flex h-14 shrink-0 items-center justify-between border-b border-line bg-void px-4 sm:px-6"

@@ -25,6 +25,7 @@ import { ENGINEERING_PROJECTS } from '@/data/projects';
 import { KIND_ACCENT, P, alpha } from '@/components/ui/case/tokens';
 import { DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
 import { GITHUB_MARK } from '@/lib/brandMarks';
+import { SHOWCASE } from '@/data/showcase';
 import NextProject from '@/components/ui/case/NextProject';
 
 /* ── constants ─────────────────────────────────────────────────────────── */
@@ -100,14 +101,25 @@ const heroItem = {
 /* ── the page wrapper ──────────────────────────────────────────────────── */
 
 /** The page's outer frame, mirrors the generic brief's motion.article. */
-export function CaseArticle({ children }) {
+/**
+ * The project's accent as CSS variables, for .case-accent (globals.css), which
+ * turns them into --accent for the theme in force: the case study's one
+ * highlight colour, the same colour the project has on /projects.
+ */
+export function caseAccentStyle(projectId) {
+  const a = SHOWCASE[projectId]?.accent;
+  return a ? { '--case-accent-dark': a.dark, '--case-accent-light': a.light } : undefined;
+}
+
+export function CaseArticle({ project, children }) {
   return (
     <motion.article
       key="brief"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, transition: { duration: DUR.briefFade, ease: EASE_STD } }}
       exit={{ opacity: 0, transition: { duration: 0.2 } }}
-      className="case-article w-full overflow-x-clip"
+      className="case-article case-accent w-full overflow-x-clip"
+      style={caseAccentStyle(project?.id)}
     >
       {children}
     </motion.article>

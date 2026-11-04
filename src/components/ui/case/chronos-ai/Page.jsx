@@ -131,7 +131,7 @@ export default function Page({ project, study }) {
   ];
 
   return (
-    <CaseArticle>
+    <CaseArticle project={project}>
       <Hero
         project={project}
         accent={accent}

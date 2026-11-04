@@ -21,7 +21,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
 import SystemMap from '@/components/ui/case/SystemMap';
-import { P, alpha } from '@/components/ui/case/tokens';
+import { HUES, P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 
 /* ── tuning ───────────────────────────────────────────────────────────────── */
@@ -51,17 +51,17 @@ const NO_STEPS = [];
 // the app) is plumbing like core, so it shares slate. The key merges entries
 // that share a hue; the Outside column says the rest by position.
 const ARCH_COLOR = {
-  core: P.slate,
-  infrastructure: P.slate,
-  ui: P.slate,
-  auth: P.jade,
-  workflow: P.sand,
-  audio: P.sand,
-  location: P.lilac,
-  ai: P.lilac,
-  data: P.ice,
-  storage: P.ice,
-  realtime: P.inkMuted,
+  core: HUES.slate,
+  infrastructure: HUES.slate,
+  ui: HUES.slate,
+  auth: HUES.jade,
+  workflow: HUES.sand,
+  audio: HUES.sand,
+  location: HUES.lilac,
+  ai: HUES.lilac,
+  data: HUES.ice,
+  storage: HUES.ice,
+  realtime: HUES.inkMuted,
 };
 
 // in key order: categories that share a hue sit next to each other, so a
@@ -254,9 +254,9 @@ function pillStyle({ lit, dim, pending, focused, accent }) {
     };
   }
   if (focused) return { background: P.surface2, borderColor: P.lineHi, color: P.ink };
-  if (dim) return { background: P.surface, borderColor: P.line, color: P.inkSubtle };
-  if (pending) return { background: P.surface, borderColor: P.line, color: P.inkMuted };
-  return { background: P.surface, borderColor: P.line, color: P.ink };
+  if (dim) return { background: 'transparent', borderColor: P.line, color: P.inkSubtle };
+  if (pending) return { background: 'transparent', borderColor: P.line, color: P.inkMuted };
+  return { background: 'transparent', borderColor: P.line, color: P.ink };
 }
 
 function Dot({ color, dim = false }) {

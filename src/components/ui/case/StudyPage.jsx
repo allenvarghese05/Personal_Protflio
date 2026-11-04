@@ -253,7 +253,7 @@ export default function StudyPage({ project, data }) {
   const has = (id) => sections.some((x) => x.id === id);
 
   return (
-    <CaseArticle>
+    <CaseArticle project={project}>
       <Hero
         project={project}
         accent={accent}

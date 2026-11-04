@@ -8,6 +8,8 @@
  *   ground     the project's own colour (its product's brand, darkened), the
  *              field its picture sits on and the band in the index. Always
  *              dark, so white type on it reads in both themes.
+ *   accent     the case study's one accent, from the same hue: OKLCH L 0.76
+ *              on the dark page (8.6 to 9.8:1), L 0.5 on white (5.3 to 6.6:1)
  *   hue        the same colour lifted to middle lightness (OKLCH L 0.6): the
  *              soft glow behind the index on hover, readable as colour on
  *              both the white page and the dark one
@@ -79,6 +81,7 @@ export const SHOWCASE = {
     mark: 'C',
     ground: '#3d0f2e',
     hue: '#be5399',
+    accent: { dark: '#f188ca', light: '#a02e7c' },
     year: '2026',
     status: 'In production · client system',
     context: 'Client system · sole engineer · Jan 2026 to now',
@@ -113,6 +116,7 @@ export const SHOWCASE = {
     mark: 'A',
     ground: '#0a2766',
     hue: '#4b7bdf',
+    accent: { dark: '#7eafff', light: '#2c5bc2' },
     year: '2025',
     status: 'Global Nominee · Top 1,219 of 11,500+',
     prefix: 'NASA Space Apps 2025',
@@ -148,6 +152,7 @@ export const SHOWCASE = {
     mark: 'B',
     ground: '#4a1420',
     hue: '#cc4f69',
+    accent: { dark: '#ff859a', light: '#ad274c' },
     year: '2026',
     status: 'Built · 282 tests',
     context: 'Sole developer · Jul to Oct 2026',
@@ -182,6 +187,7 @@ export const SHOWCASE = {
     mark: 'L',
     ground: '#082e24',
     hue: '#009777',
+    accent: { dark: '#4bcaa6', light: '#007a59' },
     year: '2025–26',
     status: 'Beta · 150+ testers',
     context: 'Co-founder · Jun 2025 to now',
@@ -217,6 +223,7 @@ export const SHOWCASE = {
     mark: 'C',
     ground: '#33240f',
     hue: '#a5762e',
+    accent: { dark: '#dba65c', light: '#895700' },
     year: '2026',
     status: 'In progress',
     context: 'Solo · Oct 2026 to now',
@@ -248,6 +255,7 @@ export const SHOWCASE = {
     mark: 'T',
     ground: '#1b222e',
     hue: '#6981ab',
+    accent: { dark: '#97b2e1', light: '#4a638f' },
     year: '2026',
     status: 'Complete',
     context: 'Sole researcher and engineer · Sep 2026 to now',
@@ -281,6 +289,7 @@ export const SHOWCASE = {
     mark: 'A',
     ground: '#2a1712',
     hue: '#ac6e5d',
+    accent: { dark: '#e39d8a', light: '#904f3d' },
     year: '2026',
     status: 'In progress',
     context: 'Solo · Apr 2026 to now',
@@ -307,6 +316,7 @@ export const SHOWCASE = {
     mark: 'J',
     ground: '#13281c',
     hue: '#4c916a',
+    accent: { dark: '#7ac499', light: '#23744b' },
     year: '2025',
     status: 'Class project',
     context: 'Team of three · Drexel INFO310 · Aug 2025',
@@ -328,6 +338,7 @@ export const SHOWCASE = {
     mark: 'C',
     ground: '#18213a',
     hue: '#5f7ccc',
+    accent: { dark: '#8cadff', light: '#405cb2' },
     year: '2025',
     status: 'Personal project',
     context: 'Solo · Aug 2025',
@@ -349,6 +360,7 @@ export const SHOWCASE = {
     mark: 'S',
     ground: '#1f2a14',
     hue: '#6a8d45',
+    accent: { dark: '#99c072', light: '#4b701d' },
     year: '2025',
     status: 'Prototype',
     context: 'Solo · Jul 2025 · one evening',

@@ -162,7 +162,7 @@ function ReweightVisual({ inView, reduce, accent }) {
           <li className="flex items-center gap-2.5 text-ink-muted">
             <Glyph kind="tick" />
             <span>
-              wake_rules.yaml · {REWEIGHT_IDS.map((id) => RULES.reweight[id]).join(' + ')} = {REWEIGHT_SUM} <span className="text-jade">accepted</span>
+              wake_rules.yaml · {REWEIGHT_IDS.map((id) => RULES.reweight[id]).join(' + ')} = {REWEIGHT_SUM} <span className="text-accent">accepted</span>
             </span>
           </li>
         </ul>
@@ -363,7 +363,7 @@ function DstVisual({ decision, inView, reduce, accent }) {
         {/* the wall clock below */}
         <div aria-hidden className="relative mt-2 h-4 font-mono text-micro tabular-nums">
           {wall.map((w, i) => (
-            <span key={w.text} className={`absolute top-0 -translate-x-1/2 whitespace-nowrap ${i < 2 ? 'text-sand' : 'text-ink-subtle'} ${i === 1 ? 'translate-y-4' : ''}`} style={{ left: xPct(w.u) }}>
+            <span key={w.text} className={`absolute top-0 -translate-x-1/2 whitespace-nowrap ${i < 2 ? 'text-ink-muted' : 'text-ink-subtle'} ${i === 1 ? 'translate-y-4' : ''}`} style={{ left: xPct(w.u) }}>
               {w.text}
             </span>
           ))}

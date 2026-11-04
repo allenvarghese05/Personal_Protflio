@@ -129,7 +129,7 @@ export default function Page({ project, study }) {
   const links = project.repo ? [{ href: project.repo, label: 'Source · GitHub' }] : undefined;
 
   return (
-    <CaseArticle>
+    <CaseArticle project={project}>
       <Hero
         project={project}
         accent={accent}
@@ -161,7 +161,7 @@ export default function Page({ project, study }) {
             <ul className="mt-5 flex max-w-[72ch] flex-col gap-4">
               {LIMITS.map((t) => (
                 <li key={t} className="flex gap-4 text-body text-ink-muted">
-                  <span aria-hidden className="mt-[12px] h-[2px] w-3 shrink-0 rounded-full bg-sand" />
+                  <span aria-hidden className="mt-[12px] h-[2px] w-3 shrink-0 rounded-full bg-ink-subtle" />
                   <span>{t}</span>
                 </li>
               ))}

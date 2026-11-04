@@ -903,7 +903,7 @@ function Proof() {
               <Tick />
             </span>
             <dt className="mt-4 max-w-[38ch] text-body text-ink-muted">{p.label}</dt>
-            <dd className="pr-10 font-display text-[2.5rem] font-semibold leading-none tracking-[-0.02em] text-jade tabular-nums sm:text-6xl">
+            <dd className="pr-10 font-display text-[2.5rem] font-semibold leading-none tracking-[-0.02em] text-accent tabular-nums sm:text-6xl">
               {p.value}
             </dd>
           </div>

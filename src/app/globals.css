@@ -1110,14 +1110,25 @@ html[data-work-theme="light"] .work-root .case-article {
 .case-article .text-label {
   font-size: 0.8125rem;
 }
-/* the tray behind interactive figures (PanelFrame): a quiet fill, no border */
-.case-tray {
-  background: color-mix(in srgb, var(--surface) 80%, var(--void));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line) 55%, transparent);
+/* One accent per case study: the project's own colour (the one it has on
+   /projects), set as --case-accent-dark / --case-accent-light on the case
+   study (shell.jsx caseAccentStyle) and turned into --accent here for the
+   theme in force. Without a project it falls back to the site's amber. */
+.case-accent {
+  --accent: var(--case-accent-dark, #ff9a3c);
+  --accent-hi: color-mix(in srgb, var(--accent) 75%, #ffffff);
+  --accent-lo: color-mix(in srgb, var(--accent) 75%, #000000);
 }
-html[data-work-theme="light"] .work-root .case-tray {
-  background: var(--surface);
-  box-shadow: none;
+html[data-work-theme="light"] .work-root.case-accent,
+html[data-work-theme="light"] .work-root .case-accent {
+  --accent: var(--case-accent-light, #a85410);
+}
+
+/* the frame around interactive figures (PanelFrame): a thin outline, no
+   fill, so the figure reads as an instrument without a grey slab behind it */
+.case-tray {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 /* /projects index: the hover glow behind the list (FlowIndex). Faint on

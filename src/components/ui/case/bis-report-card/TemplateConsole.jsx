@@ -93,7 +93,7 @@ export default function TemplateConsole({ accent = P.accent }) {
       </PanelFrame>
 
       <p className="flex max-w-[72ch] gap-3 text-label text-ink-muted">
-        <span aria-hidden className="mt-[7px] h-[2px] w-3 shrink-0 rounded-full bg-sand" />
+        <span aria-hidden className="mt-[7px] h-[2px] w-3 shrink-0 rounded-full bg-ink-subtle" />
         <span>{C.guard}</span>
       </p>
     </div>

@@ -105,7 +105,7 @@ export function Story({ chapters, accent }) {
             <div className="min-w-0">
               <p className="font-mono text-label tabular-nums text-ink-subtle">
                 {c.when}
-                {turn && <span className="ml-3 rounded-chip border border-line px-1.5 py-0.5 text-micro uppercase tracking-[0.14em] text-sand">the turn</span>}
+                {turn && <span className="ml-3 rounded-chip border border-line px-1.5 py-0.5 text-micro uppercase tracking-[0.14em] text-accent">the turn</span>}
               </p>
               <h3 className="mt-2 font-display text-[1.375rem] font-semibold leading-tight tracking-[-0.01em] text-ink">{c.title}</h3>
               <p className="mt-3 max-w-[68ch] text-body text-ink-muted">{c.body}</p>
