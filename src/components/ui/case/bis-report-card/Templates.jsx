@@ -256,7 +256,7 @@ function Check({ accent }) {
       >
         <div className="@container min-w-0">
           <div className="grid grid-cols-1 gap-6 @[40rem]:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] @[40rem]:gap-8">
-            <Choices label="Try an edit" options={PROBE_OPTIONS} value={probe?.key ?? null} onChoose={choose} accent={accent} />
+            <Choices label="Try an edit" options={PROBE_OPTIONS} value={probe?.key ?? null} onChoose={choose} accent={accent} stack />
             <div className="min-w-0">
               {probe && (
                 <motion.div key={runKey} initial={reduce ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={at(reduce, 0, 0.3)}>

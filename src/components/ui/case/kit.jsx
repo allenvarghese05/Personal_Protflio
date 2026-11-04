@@ -83,9 +83,11 @@ export function useWidth(ref) {
 /* ── small pieces ──────────────────────────────────────────────────────── */
 
 /** Toggle buttons for a diagram (aria-pressed on the active one). */
-export function Choices({ label, options, value, onChoose, accent }) {
+export function Choices({ label, options, value, onChoose, accent, stack = false }) {
+  // `stack`: one choice per row, each the column's full width with its text
+  // left-aligned, for a narrow side column (wrapped buttons there go ragged)
   return (
-    <div role="group" aria-label={label} className="flex flex-wrap gap-2">
+    <div role="group" aria-label={label} className={stack ? 'flex flex-col gap-2' : 'flex flex-wrap gap-2'}>
       {options.map((o) => {
         const on = o.key === value;
         return (
@@ -95,6 +97,8 @@ export function Choices({ label, options, value, onChoose, accent }) {
             aria-pressed={on}
             onClick={() => onChoose(o.key)}
             className={`rounded-chip border px-3 py-2 font-mono text-micro tracking-[0.04em] transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+              stack ? 'w-full text-left leading-snug' : ''
+            } ${
               on ? '' : 'border-line text-ink-muted hover:border-line-hi hover:text-ink'
             }`}
             style={
