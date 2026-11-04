@@ -6,9 +6,12 @@
  * sized by importance and coloured by its category; links are soft curves in
  * the page's own ink, so they read on the dark page and on white.
  *
- *   hover / tab   a part lights with its links and neighbours; the rest dims,
- *                 each lit link shows its label and a dot runs along it in the
- *                 direction the data flows
+ *   hover / tab   a part lights with its links and neighbours; the rest dims.
+ *                 A dot runs along each lit link in the direction the data
+ *                 flows (one each way on a two-way link), all on one clock so
+ *                 they leave together and arrive together; each lit link's
+ *                 label sits wherever it fits without touching other text
+ *                 (see placeNodeLabels / placeLinkLabels: nothing overlaps)
  *   click / Enter keeps a part selected (Escape or clicking it again clears)
  *   legend        hover or tap a category to light every part in it
  *   panel         what the selected part does and everything it connects to;
@@ -18,7 +21,7 @@
  * 640px the map keeps its size and scrolls sideways instead of shrinking past
  * legibility. Reduced motion: no drawing in, no running dots.
  */
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { P, alpha } from '@/components/ui/case/tokens';
 
@@ -81,7 +84,84 @@ function linkGeometry(a, b) {
   // the curve's midpoint (t = 0.5 on a quadratic), where its label sits
   const mid = { x: 0.25 * start.x + 0.5 * c.x + 0.25 * end.x, y: 0.25 * start.y + 0.5 * c.y + 0.25 * end.y };
   const r1 = (n) => Math.round(n * 10) / 10;
-  return { d: `M${r1(start.x)} ${r1(start.y)} Q${r1(c.x)} ${r1(c.y)} ${r1(end.x)} ${r1(end.y)}`, mid };
+  return { d: `M${r1(start.x)} ${r1(start.y)} Q${r1(c.x)} ${r1(c.y)} ${r1(end.x)} ${r1(end.y)}`, mid, curve: [start, c, end] };
+}
+
+/* ── labels that never overlap ─────────────────────────────────────────────
+   Every label gets a box from an estimate of its text width (a little
+   generous, so real text fits inside), and a short list of places it may go.
+   It takes the first place whose box clears the map's edges, every part's
+   dot and every label already placed. A link label that fits nowhere is left
+   off the map (the panel lists every connection anyway). */
+const SANS_EM = 0.6; // average glyph width, as a share of the font size
+const MONO_EM = 0.64;
+const boxOf = (x, y, w, h, anchor) => {
+  const left = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x;
+  // a text box runs from about one font size above the baseline to a third
+  // below it (the font's ascent and descent), plus a small margin
+  return { l: left - 3, r: left + w + 3, t: y - h - 2, b: y + h * 0.35 + 2 };
+};
+const hits = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
+const inside = (a) => a.l >= 4 && a.r <= W - 4 && a.t >= 4 && a.b <= H - 4;
+const dotBox = (n) => ({ l: n.x - n.r - 4, r: n.x + n.r + 4, t: n.y - n.r - 4, b: n.y + n.r + 4 });
+
+/** Where each part's name goes: below its dot if it fits, else above, right or left. */
+function placeNodeLabels(nodes) {
+  const order = [...nodes].sort((a, b) => b.r - a.r); // the big parts choose first
+  const dots = nodes.map(dotBox);
+  const placed = new Map();
+  const taken = [];
+  for (const n of order) {
+    const big = n.importance === 'center' || n.importance === 'primary';
+    const size = big ? 14 : 12.5;
+    const w = n.label.length * size * SANS_EM;
+    const options = [
+      { x: n.x, y: n.y + n.r + 16, anchor: 'middle' },
+      { x: n.x, y: n.y - n.r - 8, anchor: 'middle' },
+      { x: n.x + n.r + 8, y: n.y + size * 0.35, anchor: 'start' },
+      { x: n.x - n.r - 8, y: n.y + size * 0.35, anchor: 'end' },
+    ];
+    let pick = null;
+    for (const o of options) {
+      const box = boxOf(o.x, o.y, w, size, o.anchor);
+      const clearOfDots = dots.every((d, i) => nodes[i].id === n.id || !hits(box, d));
+      if (inside(box) && clearOfDots && taken.every((t) => !hits(box, t))) {
+        pick = { ...o, size, box };
+        break;
+      }
+    }
+    // nowhere is clear (very dense graph): keep the default spot, still clear of other names
+    if (!pick) pick = { ...options[0], size, box: boxOf(options[0].x, options[0].y, w, size, 'middle') };
+    placed.set(n.id, pick);
+    taken.push(pick.box);
+  }
+  return placed;
+}
+
+/** A point on a quadratic curve at t (0 to 1). */
+const along = ([p0, c, p1], t) => ({
+  x: (1 - t) * (1 - t) * p0.x + 2 * (1 - t) * t * c.x + t * t * p1.x,
+  y: (1 - t) * (1 - t) * p0.y + 2 * (1 - t) * t * c.y + t * t * p1.y,
+});
+
+/** Where each lit link's label goes, clear of every name, dot and other link label. */
+function placeLinkLabels(lit, nodeLabels, nodes) {
+  const taken = [...nodeLabels.values()].map((p) => p.box).concat(nodes.map(dotBox));
+  const out = new Map();
+  for (const l of lit) {
+    if (!l.label) continue;
+    const w = l.label.length * 10.5 * MONO_EM;
+    for (const t of [0.5, 0.4, 0.6, 0.3, 0.7, 0.22, 0.78]) {
+      const p = along(l.curve, t);
+      const spot = [p.y - 7, p.y + 15].map((y) => ({ x: p.x, y, box: boxOf(p.x, y, w, 10.5, 'middle') })).find((o) => inside(o.box) && taken.every((b) => !hits(o.box, b)));
+      if (spot) {
+        out.set(l.key, spot);
+        taken.push(spot.box);
+        break;
+      }
+    }
+  }
+  return out;
 }
 
 export default function SystemMap({ nodes: rawNodes = [], edges: rawEdges = [], accent = P.accent }) {
@@ -93,7 +173,8 @@ export default function SystemMap({ nodes: rawNodes = [], edges: rawEdges = [], 
   const [pinned, setPinned] = useState(null);
   const [category, setCategory] = useState(null);
 
-  const { nodes, byId, links, categories } = useMemo(() => {
+  const svgRef = useRef(null);
+  const { nodes, byId, links, categories, nodeLabels } = useMemo(() => {
     // the data's positions, stretched to fill the map (they were drawn for a
     // smaller canvas, so they cluster); the layout's shape is kept
     const xs = rawNodes.map((n) => n.x ?? 50);
@@ -118,7 +199,7 @@ export default function SystemMap({ nodes: rawNodes = [], edges: rawEdges = [], 
       })
       .filter(Boolean);
     const cats = [...new Set(placed.map((n) => n.category))].filter(Boolean);
-    return { nodes: placed, byId: map, links: ls, categories: cats };
+    return { nodes: placed, byId: map, links: ls, categories: cats, nodeLabels: placeNodeLabels(placed) };
   }, [rawNodes, rawEdges]);
 
   const active = pinned ?? hover;
@@ -131,6 +212,17 @@ export default function SystemMap({ nodes: rawNodes = [], edges: rawEdges = [], 
     });
     return set;
   }, [active, links]);
+
+  const linkLabels = useMemo(
+    () => (active ? placeLinkLabels(links.filter((l) => l.a.id === active || l.b.id === active), nodeLabels, nodes) : new Map()),
+    [active, links, nodeLabels, nodes],
+  );
+
+  // every dot on the map runs on one clock: restart it whenever the selection
+  // changes, so the dots leave their parts together and arrive together
+  useEffect(() => {
+    if (active) svgRef.current?.setCurrentTime?.(0);
+  }, [active]);
 
   const isLitNode = (n) => (active ? neighbours.has(n.id) : category ? n.category === category : true);
   const isLitLink = (l) =>
@@ -155,6 +247,7 @@ export default function SystemMap({ nodes: rawNodes = [], edges: rawEdges = [], 
       <div className="min-w-0">
         <div className="-mx-1 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]">
           <svg
+            ref={svgRef}
             viewBox={`0 0 ${W} ${H}`}
             className="block h-auto w-full min-w-[720px] select-none"
             role="group"
@@ -195,33 +288,40 @@ export default function SystemMap({ nodes: rawNodes = [], edges: rawEdges = [], 
               })}
             </g>
 
-            {/* the flow along each lit link, and its label (labels only when a
-                part has a few links; a busy part lists them in the panel) */}
-            {active &&
-              links.filter(isLitLink).map((l, _i, lit) => (
-                <g key={`flow-${l.key}`} pointerEvents="none">
-                  {!reduce && (
-                    <circle r="3.5" fill={accent}>
-                      <animateMotion dur="1.6s" repeatCount="indefinite" path={l.d} keyPoints={l.twoWay ? '0;1;0' : '0;1'} keyTimes={l.twoWay ? '0;0.5;1' : '0;1'} calcMode="linear" />
-                    </circle>
-                  )}
-                  {l.label && lit.length <= 4 && (
-                    <text
-                      x={l.mid.x}
-                      y={l.mid.y - 7}
-                      textAnchor="middle"
-                      className="font-mono"
-                      fontSize="10.5"
-                      fill={P.inkMuted}
-                      stroke={P.void}
-                      strokeWidth="4"
-                      paintOrder="stroke"
-                    >
-                      {l.label}
-                    </text>
-                  )}
-                </g>
-              ))}
+            {/* the flow along each lit link: one dot per direction the data
+                moves (two for a two-way link), all on the same clock */}
+            {active && !reduce &&
+              links.filter(isLitLink).map((l) =>
+                (l.twoWay ? ['0;1', '1;0'] : ['0;1']).map((points) => (
+                  <circle key={`flow-${l.key}-${points}`} r="3.5" fill={accent} pointerEvents="none" opacity="0">
+                    <animateMotion dur="1.8s" repeatCount="indefinite" path={l.d} keyPoints={points} keyTimes="0;1" calcMode="linear" />
+                    <animate attributeName="opacity" dur="1.8s" repeatCount="indefinite" values="0;1;1;0" keyTimes="0;0.12;0.88;1" />
+                  </circle>
+                )),
+              )}
+
+            {/* the lit links' labels, wherever they fit without touching anything */}
+            {links.map((l) => {
+              const spot = linkLabels.get(l.key);
+              if (!spot) return null;
+              return (
+                <text
+                  key={`label-${l.key}`}
+                  x={spot.x}
+                  y={spot.y}
+                  textAnchor="middle"
+                  className="font-mono"
+                  fontSize="10.5"
+                  fill={P.inkMuted}
+                  stroke={P.void}
+                  strokeWidth="4"
+                  paintOrder="stroke"
+                  pointerEvents="none"
+                >
+                  {l.label}
+                </text>
+              );
+            })}
 
             {/* the parts */}
             {nodes.map((n, i) => {
@@ -235,7 +335,8 @@ export default function SystemMap({ nodes: rawNodes = [], edges: rawEdges = [], 
                   role="button"
                   aria-pressed={pinned === n.id}
                   aria-label={`${n.label}. ${CATEGORY_LABEL[n.category] ?? n.category}.`}
-                  className="cursor-pointer outline-none [&:focus-visible_.ring]:opacity-100"
+                  className="cursor-pointer [&:focus-visible_.ring]:opacity-100"
+                  style={{ outline: 'none' }}
                   onPointerEnter={() => setHover(n.id)}
                   onFocus={() => setHover(n.id)}
                   onBlur={() => setHover((cur) => (cur === n.id ? null : cur))}
@@ -263,10 +364,10 @@ export default function SystemMap({ nodes: rawNodes = [], edges: rawEdges = [], 
                     strokeWidth={big ? 2 : 1.5}
                   />
                   <text
-                    x={n.x}
-                    y={n.y + n.r + 16}
-                    textAnchor="middle"
-                    fontSize={big ? 14 : 12.5}
+                    x={nodeLabels.get(n.id).x}
+                    y={nodeLabels.get(n.id).y}
+                    textAnchor={nodeLabels.get(n.id).anchor}
+                    fontSize={nodeLabels.get(n.id).size}
                     fontWeight={big ? 600 : 500}
                     fill={big ? P.ink : P.inkMuted}
                     stroke={P.void}
