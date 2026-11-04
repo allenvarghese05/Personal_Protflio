@@ -24,6 +24,7 @@ import { useStore } from '@/lib/store';
 import { ENGINEERING_PROJECTS } from '@/data/projects';
 import { KIND_ACCENT, P, alpha } from '@/components/ui/case/tokens';
 import { DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
+import { GITHUB_MARK } from '@/lib/brandMarks';
 import NextProject from '@/components/ui/case/NextProject';
 
 /* ── constants ─────────────────────────────────────────────────────────── */
@@ -106,7 +107,7 @@ export function CaseArticle({ children }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, transition: { duration: DUR.briefFade, ease: EASE_STD } }}
       exit={{ opacity: 0, transition: { duration: 0.2 } }}
-      className="w-full overflow-x-clip"
+      className="case-article w-full overflow-x-clip"
     >
       {children}
     </motion.article>
@@ -157,17 +158,33 @@ export function Metrics({ metrics, accent }) {
   );
 }
 
-/** A small external link chip (repo, live site) for the hero. */
-function LinkChip({ href, children }) {
+/**
+ * The hero's links. The source is the one solid button (with the GitHub mark
+ * when it is a GitHub link): it is what a reviewer looks for. Anything else
+ * (a live site) is an outlined button beside it.
+ */
+function HeroLink({ href, label, primary }) {
+  const github = /github\.com/.test(href);
   return (
     <a
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex items-center gap-2 rounded-full border border-line px-3.5 py-2 font-mono text-micro font-medium uppercase tracking-[0.18em] text-ink-muted transition-colors hover:border-line-hi hover:text-ink"
+      className={
+        primary
+          ? 'inline-flex h-11 items-center gap-2.5 whitespace-nowrap rounded-full bg-ink pl-4 pr-5 text-sm font-medium text-void transition-[background-color,transform] duration-200 hover:bg-accent active:scale-[0.98]'
+          : 'inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-full px-5 text-sm font-medium text-ink ring-1 ring-inset ring-line-hi transition-[background-color,box-shadow,transform] duration-200 hover:bg-surface-2 hover:ring-ink-subtle active:scale-[0.98]'
+      }
     >
-      {children}
-      <span aria-hidden>↗</span>
+      {github && (
+        <svg aria-hidden viewBox="0 0 24 24" className="h-[18px] w-[18px] shrink-0" fill="currentColor">
+          <path d={GITHUB_MARK} />
+        </svg>
+      )}
+      {github ? 'View source' : label}
+      <span aria-hidden className={primary ? 'opacity-70' : 'text-ink-subtle'}>
+        ↗
+      </span>
     </a>
   );
 }
@@ -215,14 +232,19 @@ export function Hero({ project, accent, outcome, status, statusTone, links, figu
             ))}
           </motion.p>
 
-          {(status || links?.length) && (
-            <motion.div variants={heroItem} className="mt-5 flex flex-wrap items-center gap-3">
-              {status && <StatusPill tone={statusTone}>{status}</StatusPill>}
-              {links?.map((l) => (
-                <LinkChip key={l.href} href={l.href}>
-                  {l.label}
-                </LinkChip>
-              ))}
+          {status && (
+            <motion.div variants={heroItem} className="mt-5">
+              <StatusPill tone={statusTone}>{status}</StatusPill>
+            </motion.div>
+          )}
+          {links?.length > 0 && (
+            <motion.div variants={heroItem} className="mt-7 flex flex-wrap items-center gap-3">
+              {/* the source first, as the solid button; a live site beside it */}
+              {[...links]
+                .sort((x, y) => Number(/github\.com/.test(y.href)) - Number(/github\.com/.test(x.href)))
+                .map((l, i) => (
+                  <HeroLink key={l.href} href={l.href} label={l.label} primary={i === 0} />
+                ))}
             </motion.div>
           )}
 

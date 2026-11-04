@@ -1088,6 +1088,38 @@ html[data-work-theme="light"] .work-root ::selection {
   }
 }
 /* touch rows open their band when scrolled to the middle of the screen (see FlowIndex) */
+/* Case studies (the game's briefs and /projects/<id>): body text a size up
+   and the greys a step stronger, in both themes, so long reads stay crisp.
+   Dark on #07080c: muted 13.4:1, subtle 7.8:1. Light on white: muted
+   13.6:1, subtle 7.3:1. */
+.case-article {
+  --ink-muted: #d6d1c7;
+  --ink-subtle: #a8a398;
+}
+html[data-work-theme="light"] .work-root .case-article {
+  --ink-muted: #2e2e31;
+  --ink-subtle: #57575c;
+}
+.case-article .text-body {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+}
+.case-article .text-sm {
+  font-size: 0.9375rem;
+}
+.case-article .text-label {
+  font-size: 0.8125rem;
+}
+/* the tray behind interactive figures (PanelFrame): a quiet fill, no border */
+.case-tray {
+  background: color-mix(in srgb, var(--surface) 80%, var(--void));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line) 55%, transparent);
+}
+html[data-work-theme="light"] .work-root .case-tray {
+  background: var(--surface);
+  box-shadow: none;
+}
+
 /* /projects index: the hover glow behind the list (FlowIndex). Faint on
    white, a touch stronger on the dark page, where colour reads quieter. */
 .work-glow-field {

@@ -174,11 +174,12 @@ export default function Measured({ accent }) {
           </table>
         </div>
       </PanelFrame>
-      <p className="mt-3 max-w-[68ch] text-label text-ink-subtle">
-        Measured by running the repo’s generators and gate on seeds 0 to 49, one attempt each (the worker allows five). “Common” is the corpus’s four
-        most frequent tracked pairs, “rare” the four least frequent of the 150, and “3 pairs” the fallback set size. The heuristic’s first-window range,
-        0.223 to 0.281, matches the T2.4 plan, and the Markov median, 0.175, matches the T3.1 plan.
-      </p>
+      {/* how it was measured: three short notes, not one dense paragraph */}
+      <ul className="mt-5 grid max-w-[72ch] gap-1.5 text-label text-ink-subtle">
+        <li>The repo’s own generators and gate, on seeds 0 to 49, one attempt each (the real worker allows five).</li>
+        <li>“Common” is the four most frequent tracked pairs, “rare” the four least frequent of the 150, “3 pairs” the fallback set size.</li>
+        <li>The heuristic’s first-window range (0.223 to 0.281) and the Markov median (0.175) match the T2.4 and T3.1 plans.</li>
+      </ul>
     </div>
   );
 }

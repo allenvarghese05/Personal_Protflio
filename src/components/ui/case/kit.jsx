@@ -114,8 +114,10 @@ export function Choices({ label, options, value, onChoose, accent }) {
 /** The open frame every diagram sits in: a hairline, caption + controls, body,
  *  readout. No box: the rules and the caption do the grouping. */
 export function PanelFrame({ caption, controls, footer, children }) {
+  // the one kind of container the case studies keep: a soft, borderless tray
+  // around an interactive figure, so it reads as an instrument, not as text
   return (
-    <div className="flex min-w-0 flex-col border-t border-line pt-5">
+    <div className="case-tray flex min-w-0 flex-col rounded-[18px] px-5 pb-4 pt-5 sm:px-7 sm:pt-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <span className="mc-label">{caption}</span>
         {controls}
