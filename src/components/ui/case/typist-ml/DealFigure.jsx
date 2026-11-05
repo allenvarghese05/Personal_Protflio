@@ -21,7 +21,7 @@
  * under 11px — four columns from 360px up.
  */
 import { motion, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { ASSIGN } from '@/data/studies/typist-ml';
 import { armLabel } from '@/components/ui/case/typist-ml/parts';
@@ -48,7 +48,6 @@ const COLUMNS = ASSIGN.sets.map((label, s) => {
 });
 const ROWS = Array.from({ length: ASSIGN.perSet }, (_, r) => r);
 const DONE_S = LEAD_S + COUNT * STEP_S + AFTER_S;
-const tint = (rank) => alpha(P.ink, 0.03 + ((COUNT - rank) / (COUNT - 1)) * 0.11);
 const dealAt = (rank) => LEAD_S + (rank - 1) * STEP_S;
 
 export default function DealFigure({ accent }) {
@@ -56,7 +55,7 @@ export default function DealFigure({ accent }) {
   const sums = [...new Set(COLUMNS.map((c) => c.sum))];
 
   return (
-    <div className="rounded-panel border border-line bg-surface p-4 sm:p-6">
+    <div className="min-w-0">
       <p className="sr-only">
         {`Ranks 1 to ${COUNT} are dealt into sets ${ASSIGN.sets.join(', ')} in snake order. `}
         {COLUMNS.map((c) => `Set ${c.label}: ranks ${c.tiles.map((t) => t.rank).join(', ')}, total ${c.sum}, method ${armLabel(c.arm)}.`).join(' ')}
@@ -72,7 +71,7 @@ export default function DealFigure({ accent }) {
           {DEALT.map((d) => (
             <motion.li
               key={d.rank}
-              className="flex h-6 items-center justify-center rounded-chip border border-line font-mono text-micro tabular-nums text-ink-muted"
+              className="flex h-6 items-center justify-center font-mono text-micro tabular-nums text-ink-muted"
               initial={reduce ? false : { opacity: 1 }}
               animate={{ opacity: 0.28 }}
               transition={reduce ? { duration: 0 } : { delay: dealAt(d.rank), duration: 0.25 }}
@@ -83,8 +82,7 @@ export default function DealFigure({ accent }) {
         </ol>
 
         {/* the sets */}
-        <div className="mt-6 grid grid-cols-[1.25rem_repeat(4,minmax(0,1fr))] gap-x-2 gap-y-2 sm:gap-x-3">
-          <span />
+        <div className="mt-6 grid grid-cols-4 gap-x-2 gap-y-2 sm:gap-x-3">
           {COLUMNS.map((c) => (
             <span key={c.label} className="text-center font-mono text-micro font-medium uppercase tracking-[0.16em] text-ink-subtle">
               Set {c.label}
@@ -95,7 +93,6 @@ export default function DealFigure({ accent }) {
             <Row key={r} row={r} reduce={reduce} accent={accent} />
           ))}
 
-          <span />
           {COLUMNS.map((c) => (
             <motion.span
               key={`sum-${c.label}`}
@@ -108,11 +105,10 @@ export default function DealFigure({ accent }) {
             </motion.span>
           ))}
 
-          <span />
           {COLUMNS.map((c, i) => (
             <motion.span
               key={`arm-${c.label}`}
-              className="flex min-h-8 items-center justify-center rounded-chip border border-line-hi bg-surface-2 px-1 text-center font-mono text-micro leading-tight text-ink"
+              className="flex min-h-8 items-center justify-center px-1 text-center font-mono text-micro leading-tight text-ink"
               initial={reduce ? false : { opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={reduce ? { duration: 0 } : { delay: DONE_S + 0.25 + i * 0.08, duration: 0.4, ease: EASE_OUT }}
@@ -128,27 +124,24 @@ export default function DealFigure({ accent }) {
           animate={{ opacity: 1 }}
           transition={reduce ? { duration: 0 } : { delay: DONE_S + 0.6, duration: 0.4 }}
         >
-          {sums.length === 1 ? `Every set totals ${sums[0]}` : 'Set totals differ'} · methods by a seeded shuffle
+          Dealt {ASSIGN.sets.join(' ')}, then {[...ASSIGN.sets].reverse().join(' ')} · {sums.length === 1 ? `every set totals ${sums[0]}` : 'set totals differ'} · methods by a seeded shuffle
         </motion.p>
       </div>
     </div>
   );
 }
 
-/** One row of slots: its direction, then a tile per set. */
+/** One row of slots: a tile per set. */
 function Row({ row, reduce, accent }) {
-  const forward = row % 2 === 0;
   return (
     <>
-      <span className="flex items-center justify-center font-mono text-micro text-ink-subtle">{forward ? '→' : '←'}</span>
       {COLUMNS.map((c) => {
         const tile = c.tiles.find((t) => t.row === row);
         const at = dealAt(tile.rank);
         return (
-          <span key={c.label} className="relative h-9 rounded-md border border-dashed border-line">
+          <span key={c.label} className="relative h-9 border-b border-line">
             <motion.span
-              className="absolute -inset-px flex items-center justify-center rounded-md border font-mono text-label tabular-nums text-ink"
-              style={{ background: tint(tile.rank) }}
+              className="absolute inset-x-0 top-0 -bottom-px flex items-center justify-center border-b-2 font-mono text-label tabular-nums text-ink"
               initial={reduce ? false : { opacity: 0, y: -14, borderColor: accent }}
               animate={{ opacity: 1, y: 0, borderColor: reduce ? P.lineHi : [accent, accent, P.lineHi] }}
               transition={

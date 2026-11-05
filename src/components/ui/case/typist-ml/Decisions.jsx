@@ -32,7 +32,7 @@
  */
 import { Fragment, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { DECISIONS, GATE } from '@/data/studies/typist-ml';
 import { Choices, DecisionList, Glyph, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
 import { Scrubber, armLabel, fixed, usePlayer } from '@/components/ui/case/typist-ml/parts';
@@ -69,8 +69,8 @@ function GovernorVisual({ decision, inView, reduce, accent }) {
     .join(' ');
 
   const branch = over
-    ? `over the ${decision.midpoint.toFixed(2)} midpoint → a filler with no target pair: “${cur.word}”.`
-    : `at or under the ${decision.midpoint.toFixed(2)} midpoint → a word for the least-covered target pair: “${cur.word}”.`;
+    ? `over the ${decision.midpoint.toFixed(2)} midpoint, so the governor picked a filler with no target pair.`
+    : `at or under the ${decision.midpoint.toFixed(2)} midpoint, so the governor picked a word for the least-covered target pair.`;
 
   return (
     <PanelFrame
@@ -79,8 +79,8 @@ function GovernorVisual({ decision, inView, reduce, accent }) {
       footer={
         <Readout runKey={`g-${step}`} delay={0} reduce={reduce} tone={over ? P.inkSubtle : P.jade} status={over ? 'filler' : 'target word'}>
           <span className="text-body text-ink-muted">
-            Word {step + 1}: density so far {fixed(cur.before)}, {branch}
-            {step === last && ` The finished drill: ${fixed(decision.finalDensity)}, ${targets} of ${words.length} words picked for a target pair.`}
+            Word {step + 1} is “{cur.word}”. The density before it was {fixed(cur.before)}, {branch}
+            {step === last && ` The finished drill has a density of ${fixed(decision.finalDensity)}, and ${targets} of ${words.length} words were picked for a target pair.`}
           </span>
         </Readout>
       }
@@ -110,8 +110,8 @@ function GovernorVisual({ decision, inView, reduce, accent }) {
               style={{
                 left: xOf(x.i),
                 top: y(x.before),
-                ...(x.target ? { background: P.inkMuted } : { background: P.surface, boxShadow: `inset 0 0 0 1.25px ${P.inkMuted}` }),
-                ...(x.i === step ? { boxShadow: `0 0 0 2px ${accent}`, background: x.target ? accent : P.surface } : null),
+                ...(x.target ? { background: P.inkMuted } : { background: P.void, boxShadow: `inset 0 0 0 1.25px ${P.inkMuted}` }),
+                ...(x.i === step ? { boxShadow: `0 0 0 2px ${accent}`, background: x.target ? accent : P.void } : null),
               }}
             />
           ))}
@@ -148,7 +148,7 @@ function GovernorVisual({ decision, inView, reduce, accent }) {
       <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-micro text-ink-subtle">
         <span>● picked for a target pair</span>
         <span>○ filler</span>
-        <span>dashed = midpoint · shaded = window</span>
+        <span>dashed line: midpoint · shaded band: window</span>
       </p>
     </PanelFrame>
   );
@@ -168,8 +168,8 @@ function ClaimVisual({ decision, inView, reduce, accent }) {
 
   let readout;
   if (sc.jobs === 0) readout = { tone: P.inkSubtle, status: 'no row', text: `Nothing pending: no row comes back, the transaction rolls back, the worker rewrites its heartbeat and sleeps ${decision.pollSeconds} s.` };
-  else if (sc.callers > 1) readout = { tone: P.jade, status: '1 claimed', text: `${sc.callers} callers, one statement each: exactly one gets the id back and the other ${sc.callers - 1} get no row, the repo’s concurrency test asserts exactly that. A worker that gets no row polls again in ${decision.pollSeconds} s.` };
-  else readout = { tone: P.jade, status: 'oldest first', text: `The oldest pending job, by created_at, then id, is the one claimed; the other ${sc.jobs - 1} wait for the next poll.` };
+  else if (sc.callers > 1) readout = { tone: P.jade, status: '1 claimed', text: `${sc.callers} callers each send the statement. Exactly one gets the id back and the other ${sc.callers - 1} get no row, which is what the repo’s concurrency test checks. A worker that gets no row polls again in ${decision.pollSeconds} s.` };
+  else readout = { tone: P.jade, status: 'oldest first', text: `The oldest pending job (by created_at, then id) is claimed. The other ${sc.jobs - 1} wait for the next poll.` };
 
   return (
     <PanelFrame
@@ -190,12 +190,12 @@ function ClaimVisual({ decision, inView, reduce, accent }) {
           {/* callers */}
           <div className="min-w-0">
             <span className="mc-label">Callers</span>
-            <ol className="mt-3 flex flex-col gap-2">
+            <ol className="mt-3 flex flex-col">
               {range(sc.callers).map((c) => {
                 const won = c === winner;
                 const resolveAt = won ? C_RESOLVE : C_REST;
                 return (
-                  <li key={c} className="flex items-center gap-2.5 rounded-md border border-line bg-surface-2 px-2.5 py-2">
+                  <li key={c} className="flex items-center gap-2.5 border-t border-line py-2">
                     <span className="font-mono text-micro text-ink-subtle">worker {c + 1}</span>
                     <motion.span
                       className="min-w-0 flex-1 font-mono text-micro [overflow-wrap:anywhere]"
@@ -204,7 +204,7 @@ function ClaimVisual({ decision, inView, reduce, accent }) {
                       animate={{ opacity: active ? 1 : 0 }}
                       transition={at(reduce, resolveAt, 0.3)}
                     >
-                      {won ? '→ job 1 · running' : '→ no row'}
+                      {won ? 'gets job 1 · running' : 'gets no row'}
                     </motion.span>
                     <motion.span initial={reduce ? false : { opacity: 0, scale: 0.6 }} animate={{ opacity: active ? 1 : 0, scale: 1 }} transition={at(reduce, resolveAt, 0.3)}>
                       <Glyph kind={won ? 'tick' : 'undo'} />
@@ -218,12 +218,12 @@ function ClaimVisual({ decision, inView, reduce, accent }) {
           {/* the queue */}
           <div className="min-w-0">
             <span className="mc-label">generation_jobs</span>
-            <ol className="mt-3 flex flex-col gap-2">
-              {sc.jobs === 0 && <li className="rounded-md border border-dashed border-line px-2.5 py-2 font-mono text-micro text-ink-subtle">no pending rows</li>}
+            <ol className="mt-3 flex flex-col">
+              {sc.jobs === 0 && <li className="border-t border-line py-2 font-mono text-micro text-ink-subtle">no pending rows</li>}
               {range(sc.jobs).map((j) => {
                 const claimed = j === 0;
                 return (
-                  <li key={j} className="flex items-center justify-between gap-2 rounded-md border border-line px-2.5 py-2 font-mono text-micro">
+                  <li key={j} className="flex min-h-[2.5rem] items-center justify-between gap-2 border-t border-line py-2 font-mono text-micro">
                     <span className="text-ink-muted">
                       job {j + 1} <span className="text-ink-subtle">· created {j === 0 ? 'first' : j === 1 ? 'second' : 'third'}</span>
                     </span>
@@ -241,7 +241,7 @@ function ClaimVisual({ decision, inView, reduce, accent }) {
           </div>
         </div>
         <motion.p
-          className="mt-4 rounded-md border border-line bg-void px-3 py-2 font-mono text-micro leading-relaxed text-ink-muted [overflow-wrap:anywhere]"
+          className="mt-4 rounded-md bg-surface px-3 py-2 font-mono text-micro leading-relaxed text-ink-muted [overflow-wrap:anywhere]"
           initial={reduce ? false : { opacity: 0.4 }}
           animate={{ opacity: 1 }}
           transition={at(reduce, C_LEAD, 0.3)}
@@ -269,9 +269,9 @@ function LedgerVisual({ decision, inView, reduce, accent }) {
 
   const text = accepted
     ? n === 1
-      ? `Passed on the first attempt, one row in generation_attempts, and the drill is saved as ready.`
+      ? `Passed on the first attempt. One row goes into generation_attempts, and the drill is saved as ready.`
       : `Rejected ${n - 1}×, then passed on attempt ${n}. All ${n} attempts are rows in generation_attempts; the drill is saved as ready.`
-    : `Rejected all ${n} times, the job is marked failed, with the last reasons. Every attempt is kept, so the failure is visible, not hidden.`;
+    : `Rejected all ${n} times, so the job is marked failed with the last reasons. Every attempt is kept, so the failure stays visible.`;
 
   return (
     <PanelFrame
@@ -290,21 +290,20 @@ function LedgerVisual({ decision, inView, reduce, accent }) {
       <p className="font-mono text-micro leading-relaxed text-ink-subtle [overflow-wrap:anywhere]">
         sha256(&quot;{decision.seed}:<span title={decision.participant}>{short}</span>:{run.arm}:0:0:<span style={{ color: accent }}>attempt</span>&quot;)
       </p>
-      <ol key={runKey} className="mt-3 flex flex-col gap-2">
+      <ol key={runKey} className="mt-3 flex flex-col">
         {run.attempts.map((a, i) => {
           const ok = a.reasons.length === 0;
           return (
             <motion.li
               key={a.seed}
-              className="grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-md border bg-surface-2 px-2.5 py-2"
-              style={{ borderColor: ok ? alpha(P.jade, 0.45) : P.line }}
+              className="grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border-t border-line py-2"
               initial={reduce ? false : { opacity: 0, y: 6 }}
               animate={{ opacity: active ? 1 : 0, y: 0 }}
               transition={at(reduce, i * L_STEP, 0.35)}
             >
               <span className="font-mono text-micro tabular-nums text-ink-subtle">{i + 1}</span>
               <span className="min-w-0 font-mono text-micro text-ink-muted">
-                <span className="text-ink-subtle">{a.digest}…</span> → seed <span className="tabular-nums text-ink">{a.seed}</span>
+                <span className="text-ink-subtle">{a.digest}…</span> gives seed <span className="tabular-nums text-ink">{a.seed}</span>
                 <span className="block text-ink-subtle">
                   density <span style={{ color: a.density < GATE.window.min ? P.alert : P.ink }}>{fixed(a.density)}</span>
                   {!ok && ` · ${a.reasons.map((r) => REASON_SHORT[r] ?? r).join(' · ')}`}
@@ -316,18 +315,18 @@ function LedgerVisual({ decision, inView, reduce, accent }) {
         })}
         {!accepted && (
           <motion.li
-            className="rounded-md border px-2.5 py-2 font-mono text-micro"
+            className="border-t py-2 font-mono text-micro"
             style={{ borderColor: alpha(P.alert, 0.45), color: P.alert }}
             initial={reduce ? false : { opacity: 0 }}
             animate={{ opacity: active ? 1 : 0 }}
             transition={at(reduce, n * L_STEP, 0.35)}
           >
-            DrillGenerationExhaustedError → job status failed, retries + 1
+            DrillGenerationExhaustedError: job status set to failed, retries + 1
           </motion.li>
         )}
       </ol>
       <p className="mt-3 font-mono text-micro text-ink-subtle">
-        {armLabel(run.arm)} · targets {run.targets.join(' ')} · window {GATE.window.min.toFixed(2)}–{GATE.window.max.toFixed(2)} · example participant id
+        {armLabel(run.arm)} · targets {run.targets.join(' ')} · window {GATE.window.min.toFixed(2)} to {GATE.window.max.toFixed(2)} · example participant id
       </p>
     </PanelFrame>
   );

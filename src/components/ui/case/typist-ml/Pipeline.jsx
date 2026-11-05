@@ -17,7 +17,7 @@
  */
 import { useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { BUILD } from '@/data/studies/typist-ml';
 import { at } from '@/components/ui/case/kit';
 import { pad2 } from '@/components/ui/case/typist-ml/parts';
@@ -33,17 +33,17 @@ export default function Pipeline({ accent }) {
     <div ref={ref}>
       <h3 className="font-display text-[1.375rem] font-semibold leading-tight tracking-[-0.01em] text-ink">How every task was built</h3>
       <p className="mt-3 max-w-[68ch] text-body text-ink-muted">
-        Allen wrote the design doc and owns every decision; each task then goes through coding agents he set up, with fixed roles and models. The code is
-        agent-written to his specs, he reviews and merges every pull request.
+        Allen wrote the design doc and owns every decision. Each task then goes through coding agents he set up, each with a fixed role and model. The
+        agents write the code to his specs, and he reviews and merges every pull request.
       </p>
-      <ol className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <ol className="mt-6 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3 lg:grid-cols-6">
         {BUILD.pipeline.map((p, i) => {
           const human = i === last;
           return (
             <motion.li
               key={p.key}
-              className="flex min-w-0 flex-col gap-1 rounded-md border bg-surface px-3 py-3"
-              style={{ borderColor: human ? alpha(accent, 0.55) : P.line }}
+              className="flex min-w-0 flex-col gap-1 border-t pt-3"
+              style={{ borderColor: human ? alpha(accent, 0.75) : P.line }}
               initial={reduce ? false : { opacity: 0, y: 8 }}
               animate={shown ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
               transition={at(reduce, i * 0.06, 0.4)}
@@ -53,7 +53,7 @@ export default function Pipeline({ accent }) {
               </span>
               <span className="text-body text-ink">{p.label}</span>
               <span className="font-mono text-micro text-ink-muted">{p.who}</span>
-              <span className="font-mono text-micro text-ink-subtle">→ {p.out}</span>
+              <span className="font-mono text-micro text-ink-subtle">Output: {p.out}</span>
             </motion.li>
           );
         })}

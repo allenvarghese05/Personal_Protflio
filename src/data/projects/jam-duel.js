@@ -21,7 +21,7 @@ export const project = {
   flowEnd: 'BATTLES',
   tags: ['React', 'TypeScript', 'Express', 'PostgreSQL', 'GPT-4'],
   metrics: [
-    { value: '10', label: 'Votes per day, stacked 1–10 at a time' },
+    { value: '10', label: 'Votes per day, stacked 1 to 10 at a time' },
     { value: '30', label: 'API routes behind the app' },
     { value: '8', label: 'Postgres tables' },
     { value: '4 × 3', label: 'AI recommendation lanes × songs' },
@@ -30,7 +30,7 @@ export const project = {
   secondaryStack: ['OpenAI GPT-4', 'Spotify Web API', 'YouTube Data API', 'JWT + bcrypt', 'helmet', 'express-rate-limit', 'GitHub Pages'],
   keyDecisions: [
     { title: 'A vote is three writes, so it’s one transaction', body: 'The vote, the battle tally and the user’s budget are written between BEGIN and COMMIT, with a UNIQUE constraint as the last guard against double votes.' },
-    { title: 'Scarcity makes a vote mean something', body: 'Ten votes a day, spent 1–10 at a time, reset on the first login of a new day.' },
+    { title: 'Scarcity makes a vote mean something', body: 'Ten votes a day, spent 1 to 10 at a time, reset on the first login of a new day.' },
     { title: 'A model that answers in a renderable shape', body: 'GPT-4 is asked for JSON only: four named categories of three songs, each with a reason.' },
   ],
   timeline: [
@@ -82,7 +82,7 @@ export const caseStudy = {
     'A React + TypeScript app on an Express + Postgres API: head-to-head song battles with a daily vote budget, live results, embedded YouTube videos, and GPT-4 recommendations from your ten favourite songs.',
   how: [
     'A vote is validated, then written with the battle tally and the user’s budget in one transaction.',
-    'Ten votes a day, stacked 1–10 at a time.',
+    'Ten votes a day, stacked 1 to 10 at a time.',
     'GPT-4 returns four categories of three songs as JSON, each with a reason.',
   ],
   next: [],

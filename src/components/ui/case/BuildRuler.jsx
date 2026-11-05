@@ -45,7 +45,7 @@ import {
   useReducedMotion,
   useTransform,
 } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 
 /* ── constants ─────────────────────────────────────────────────────────── */

@@ -27,7 +27,7 @@
  */
 import { useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { ASSIGN } from '@/data/studies/typist-ml';
 import { Choices, Glyph, IN_VIEW, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
@@ -63,7 +63,7 @@ function Bar({ value, hollow, reduce, delay }) {
     <div className="relative h-2.5 min-w-0 flex-1 rounded-sm" style={{ background: alpha(P.lineHi, 0.35) }}>
       <motion.span
         className="absolute inset-y-0 left-0 rounded-sm"
-        style={hollow ? { background: P.surface, boxShadow: `inset 0 0 0 1px ${alpha(P.slate, 0.9)}` } : { background: P.inkMuted }}
+        style={hollow ? { background: P.void, boxShadow: `inset 0 0 0 1px ${alpha(P.slate, 0.9)}` } : { background: P.inkMuted }}
         initial={reduce ? false : { width: 0 }}
         animate={{ width: `${(value / SCALE) * 100}%` }}
         transition={at(reduce, delay, 0.7)}
@@ -102,8 +102,8 @@ function Shrink({ reduce }) {
       ))}
       <p className="text-label text-ink-muted">
         Only pairs with at least {ASSIGN.minObservations} attempts across the two baseline sessions are candidates (the design said{' '}
-        {ASSIGN.designMinObservations}; decision D28 lowered it so enough pairs qualify). Ties break on how slow the pair is, then alphabetically, no
-        randomness in the ranking.
+        {ASSIGN.designMinObservations}; decision D28 lowered it so enough pairs qualify). Ties break on how slow the pair is, then alphabetically.
+        There is no randomness in the ranking.
       </p>
     </div>
   );
@@ -114,7 +114,7 @@ function Deal({ reduce }) {
   const rows = Array.from({ length: ASSIGN.perSet }, (_, r) => r);
   return (
     <div>
-      <div className="grid grid-cols-[1.5rem_repeat(4,minmax(0,1fr))] gap-2">
+      <div className="grid grid-cols-[3.25rem_repeat(4,minmax(0,1fr))] gap-x-2 gap-y-1">
         <span />
         {COLUMNS.map((c) => (
           <span key={c.label} className="text-center font-mono text-micro font-medium uppercase tracking-[0.16em] text-ink-subtle">
@@ -132,8 +132,8 @@ function Deal({ reduce }) {
         ))}
       </div>
       <p className="mt-4 text-label text-ink-muted">
-        If fewer than {COUNT} pairs qualify it deals {ASSIGN.fallbackPerSet * SETS} ({ASSIGN.fallbackPerSet} per set); fewer than that, it refuses
-        rather than build a lopsided map.
+        If fewer than {COUNT} pairs qualify, it deals {ASSIGN.fallbackPerSet * SETS} ({ASSIGN.fallbackPerSet} per set). If even fewer qualify, it
+        refuses to build an uneven map.
       </p>
     </div>
   );
@@ -142,7 +142,7 @@ function Deal({ reduce }) {
 function DealRow({ row, reduce }) {
   return (
     <>
-      <span className="flex items-center justify-center font-mono text-micro text-ink-subtle">{row % 2 === 0 ? '→' : '←'}</span>
+      <span className="flex items-center font-mono text-micro text-ink-subtle">{row % 2 === 0 ? `${ASSIGN.sets[0]} to ${ASSIGN.sets[SETS - 1]}` : `${ASSIGN.sets[SETS - 1]} to ${ASSIGN.sets[0]}`}</span>
       {COLUMNS.map((c) => {
         const t = c.tiles.find((x) => x.row === row);
         // within a row, the deal goes left → right on even passes, right → left on odd
@@ -150,8 +150,7 @@ function DealRow({ row, reduce }) {
         return (
           <motion.span
             key={c.label}
-            className="flex h-9 items-center justify-center rounded-md border border-line-hi font-mono text-label tabular-nums text-ink"
-            style={{ background: alpha(P.ink, 0.03 + ((COUNT - t.rank) / (COUNT - 1)) * 0.11) }}
+            className="flex h-9 items-center justify-center border-b border-line font-mono text-label tabular-nums text-ink"
             initial={reduce ? false : { opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={at(reduce, order * 0.06, 0.35)}
@@ -176,14 +175,14 @@ function Shuffle({ who, onWho, reduce, accent }) {
         onChoose={onWho}
         accent={accent}
       />
-      <p className="mt-4 rounded-md border border-line bg-void px-3 py-2 font-mono text-micro leading-relaxed text-ink-muted [overflow-wrap:anywhere]">
+      <p className="mt-4 rounded-md bg-surface px-3 py-2 font-mono text-micro leading-relaxed text-ink-muted [overflow-wrap:anywhere]">
         <span className="text-lilac">random.Random</span>(&quot;{ASSIGN.seed}:{p.id}&quot;).shuffle(arms)
       </p>
-      <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <ul className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
         {COLUMNS.map((c, i) => (
           <motion.li
             key={`${p.id}-${c.label}`}
-            className="flex min-w-0 flex-col gap-1 rounded-md border border-line bg-surface-2 px-3 py-2.5"
+            className="flex min-w-0 flex-col gap-1 border-t border-line pt-2.5"
             initial={reduce ? false : { opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={at(reduce, i * 0.07, 0.35)}
@@ -203,7 +202,7 @@ function Shuffle({ who, onWho, reduce, accent }) {
 function Freeze({ tried, onTry, reduce }) {
   return (
     <div>
-      <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-line bg-void px-3 py-3 font-mono text-micro leading-[1.7] text-ink-muted [overflow-wrap:anywhere]">
+      <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-surface px-3 py-3 font-mono text-micro leading-[1.7] text-ink-muted [overflow-wrap:anywhere]">
         {ASSIGN.trigger.sql}
       </pre>
       <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -228,8 +227,8 @@ function Freeze({ tried, onTry, reduce }) {
         )}
       </div>
       <p className="mt-4 text-label text-ink-muted">
-        Every row is inserted once, with its freeze time, in one transaction. Since T3.5 the experiment’s {ASSIGN.configKeys} config keys, density
-        window, model, sampler settings, practice days, are frozen the same way: an UPDATE or DELETE aborts.
+        Every row is inserted once, with its freeze time, in one transaction. Since T3.5, the experiment’s {ASSIGN.configKeys} config keys (such as
+        the density window, the model, the sampler settings and the number of practice days) are frozen the same way: any UPDATE or DELETE aborts.
       </p>
     </div>
   );
@@ -255,19 +254,19 @@ export default function Assignment({ accent }) {
     readout = {
       tone: P.jade,
       status: 'ranked',
-      text: `${sparse.label} reads as ${pct(sparse.raw, 0)}. Shrunk toward a ${pct(sparse.p0, 0)} average with strength ${ASSIGN.strength}, it is ${pct(sparse.smooth)}, three tries can’t put a pair at the top.`,
+      text: `${sparse.label} reads as ${pct(sparse.raw, 0)}. Shrunk toward a ${pct(sparse.p0, 0)} average with strength ${ASSIGN.strength}, it becomes ${pct(sparse.smooth)}. Three tries are not enough to put a pair at the top.`,
     };
   } else if (stage === 'deal') {
     readout = {
       tone: sums.length === 1 ? P.jade : P.sand,
       status: sums.length === 1 ? `Σ ${sums[0]} each` : 'uneven',
-      text: `${COLUMNS.map((c) => `${c.label} gets ${c.tiles.map((t) => t.rank).join(', ')}`).join('; ')}, every set is equally hard.`,
+      text: `${COLUMNS.map((c) => `Set ${c.label} gets ranks ${c.tiles.map((t) => t.rank).join(', ')}`).join('; ')}. Every set is equally hard.`,
     };
   } else if (stage === 'shuffle') {
     readout = {
       tone: P.jade,
       status: 'seeded',
-      text: `${person.label}: ${COLUMNS.map((c, i) => `${c.label} → ${armLabel(person.arms[i])}`).join(', ')}. The same id always gets this map; another id, another map.`,
+      text: `${person.label}: ${COLUMNS.map((c, i) => `set ${c.label} gets ${armLabel(person.arms[i])}`).join(', ')}. The same id always gets this map, and a different id gets a different one.`,
     };
   } else if (stage === 'freeze') {
     readout = tried

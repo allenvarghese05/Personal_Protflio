@@ -33,7 +33,7 @@
  */
 import { useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { Choices, Glyph, IN_VIEW, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
 import { LABEL } from '@/components/ui/case/shell';
 import { MARK_COLUMNS, MARK_PATHS } from '@/data/studies/bis-report-card';
@@ -58,7 +58,7 @@ function judge(max, request) {
 const TYPED = PATH.type.rows.map((r) => {
   const col = COL[r.col];
   const request = textToMarkRequest(r.input);
-  if (request.error) return { ...r, col, ok: false, where: 'browser', says: `${request.error}, never sent` };
+  if (request.error) return { ...r, col, ok: false, where: 'browser', says: `${request.error} (never sent)` };
   return { ...r, col, ...judge(col.max, request) };
 });
 
@@ -99,11 +99,11 @@ const UPLOAD = (() => {
 /* ── the path strip ────────────────────────────────────────────────────── */
 const STATIONS = [
   { key: 'source', label: 'source' },
-  { key: 'browser', label: 'browser · text → request' },
+  { key: 'browser', label: 'browser turns text into a request' },
   { key: 'match', label: 'match the Student ID' },
   { key: 'validate', label: 'normaliseMark()' },
-  { key: 'lock', label: 'section lock · draft?' },
-  { key: 'store', label: 'MarksEntry' },
+  { key: 'lock', label: 'section lock: still a draft?' },
+  { key: 'store', label: 'saved as a MarksEntry' },
 ];
 const USES = {
   type: ['source', 'browser', 'validate', 'lock', 'store'],
@@ -115,30 +115,22 @@ const SOURCE_LABEL = { type: 'a cell', paste: 'the clipboard', upload: 'an .xlsx
 function PathStrip({ pathKey }) {
   const uses = USES[pathKey];
   return (
-    <ol aria-label="The path a mark travels" className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
+    <ol aria-label="The path a mark travels" className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
       {STATIONS.map((s, i) => {
         const used = uses.includes(s.key);
         const door = s.key === 'validate';
         return (
-          <li key={s.key} className="flex items-center gap-1.5">
-            {i > 0 && (
-              <span aria-hidden="true" className="font-mono text-micro text-ink-faint">
-                →
-              </span>
-            )}
+          <li key={s.key} className="flex items-baseline gap-1.5 font-mono text-micro">
+            <span className="tabular-nums" style={{ color: used ? P.inkSubtle : P.inkFaint }}>
+              {String(i + 1).padStart(2, '0')}
+            </span>
             <span
-              className="inline-flex items-center rounded-chip border px-2 py-1.5 font-mono text-micro"
-              style={
-                !used
-                  ? { borderStyle: 'dashed', borderColor: P.line, color: P.inkFaint }
-                  : door
-                    ? { borderColor: P.inkMuted, color: P.ink, background: alpha(P.ink, 0.06) }
-                    : { borderColor: P.lineHi, color: P.inkMuted }
-              }
+              className={used ? '' : 'line-through'}
+              style={!used ? { color: P.inkFaint } : door ? { color: P.ink, fontWeight: 600 } : { color: P.inkMuted }}
             >
               {s.key === 'source' ? SOURCE_LABEL[pathKey] : s.label}
-              {!used && <span className="sr-only"> (not on this path)</span>}
             </span>
+            {!used && <span className="sr-only"> (not on this path)</span>}
           </li>
         );
       })}
@@ -233,8 +225,8 @@ function PasteBody({ reduce }) {
     <div className="grid grid-cols-1 gap-6 @[36rem]:grid-cols-[minmax(0,11rem)_minmax(0,1fr)]">
       <div className="min-w-0">
         <p className={`${LABEL} text-ink-subtle`}>The clipboard</p>
-        <pre className="mt-3 overflow-x-auto rounded-md border border-line bg-void p-3 font-mono text-label leading-6 text-ink">
-          {p.matrix.map((line) => line.map((v) => v || '·').join('  ⇥  ')).join('\n')}
+        <pre className="mt-3 overflow-x-auto rounded-md bg-surface-2 p-3 font-mono text-label leading-6 text-ink">
+          {p.matrix.map((line) => line.map((v) => (v || '·').padEnd(6)).join('')).join('\n')}
         </pre>
         <p className="mt-2 font-mono text-micro text-ink-subtle">pasted at roll {p.origin + 1}</p>
       </div>
@@ -347,11 +339,12 @@ export default function MarksEntry({ accent = P.accent }) {
   if (key === 'type') {
     const saved = TYPED.filter((r) => r.ok).length;
     const browser = TYPED.filter((r) => r.where === 'browser').length;
-    readout = `${saved} saved, ${TYPED.length - saved} refused, ${browser} in the browser, never sent, the rest by the server’s validator.`;
+    const refused = TYPED.length - saved;
+    readout = `${saved} saved and ${refused} refused. ${browser} ${browser === 1 ? 'was' : 'were'} caught in the browser and never sent; the server’s validator refused the other ${refused - browser}.`;
   } else if (key === 'paste') {
-    readout = `“${PASTE.toast}”, the grid’s own message. The gap left roll 4’s mark alone.`;
+    readout = `“${PASTE.toast}” is the grid’s own message. The empty cell left roll 4’s existing mark unchanged.`;
   } else {
-    readout = `${UPLOAD.applied} applied, ${UPLOAD.rejected} refused, each with its row and reason. Nothing is guessed from a roll number.`;
+    readout = `${UPLOAD.applied} applied and ${UPLOAD.rejected} refused, each with its row number and reason. A student is never matched by roll number.`;
   }
 
   return (

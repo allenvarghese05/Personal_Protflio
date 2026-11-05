@@ -15,10 +15,10 @@ export default function PilotResults({ accent }) {
         {/* the headline number, large */}
         <div className="sm:col-span-3">
           <div className="font-display text-[clamp(2rem,4.5vw,3.4rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-ink">
-            16.8% → 5.4%
+            16.8% to 5.4%
           </div>
           <p className="mt-2 max-w-[52ch] text-body text-ink-muted">
-            Error rate across the two sets, over 10 practice days. {RESULTS.sessions} sessions, {RESULTS.keystrokes} keystrokes.
+            Error rate across the two sets, over 10 practice days: {RESULTS.sessions} sessions and {RESULTS.keystrokes} keystrokes.
           </p>
         </div>
 
@@ -29,7 +29,7 @@ export default function PilotResults({ accent }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.4 }}
             transition={{ duration: 0.6, ease: EASE_STD, delay: 0.1 + i * 0.08 }}
-            className="rounded-panel border border-line bg-surface p-5"
+            className="border-t border-line pt-5"
           >
             <div className="flex items-baseline justify-between gap-3">
               <span className="mc-label" style={{ color: 'var(--ink)' }}>{set.name}</span>
@@ -58,7 +58,7 @@ export default function PilotResults({ accent }) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.6, ease: EASE_STD, delay: 0.28 }}
-          className="rounded-panel border border-line bg-surface-2 p-5"
+          className="border-t border-line pt-5"
         >
           <span className="mc-label" style={{ color: 'var(--ink)' }}>The verdict</span>
           <p className="mt-3 text-[0.95rem] leading-relaxed text-ink">{RESULTS.verdict}</p>

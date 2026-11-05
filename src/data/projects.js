@@ -18,13 +18,14 @@ import { project as ChronosAi, caseStudy as ChronosAiStudy } from './projects/ch
 import { project as TypistMl, caseStudy as TypistMlStudy } from './projects/typist-ml';
 import { project as AutomixAi, caseStudy as AutomixAiStudy } from './projects/automix-ai';
 import { project as Aircast, caseStudy as AircastStudy } from './projects/aircast';
+import { project as Telltale, caseStudy as TelltaleStudy } from './projects/telltale';
 import { project as JamDuel, caseStudy as JamDuelStudy } from './projects/jam-duel';
 import { project as CollegeMatcher, caseStudy as CollegeMatcherStudy } from './projects/college-matcher';
 import { project as Streetspot, caseStudy as StreetspotStudy } from './projects/streetspot';
 
-export const ENGINEERING_PROJECTS = [Iet, BisReportCard, LearnflowAi, ChronosAi, TypistMl, AutomixAi, Aircast, JamDuel, CollegeMatcher, Streetspot];
+export const ENGINEERING_PROJECTS = [Iet, Telltale, BisReportCard, LearnflowAi, ChronosAi, TypistMl, AutomixAi, Aircast, JamDuel, CollegeMatcher, Streetspot];
 
 /** Case-study copy by project id (see src/data/caseStudies.js). */
-export const PROJECT_STUDIES = { [Iet.id]: IetStudy, [BisReportCard.id]: BisReportCardStudy, [LearnflowAi.id]: LearnflowAiStudy, [ChronosAi.id]: ChronosAiStudy, [TypistMl.id]: TypistMlStudy, [AutomixAi.id]: AutomixAiStudy, [Aircast.id]: AircastStudy, [JamDuel.id]: JamDuelStudy, [CollegeMatcher.id]: CollegeMatcherStudy, [Streetspot.id]: StreetspotStudy };
+export const PROJECT_STUDIES = { [Iet.id]: IetStudy, [BisReportCard.id]: BisReportCardStudy, [LearnflowAi.id]: LearnflowAiStudy, [ChronosAi.id]: ChronosAiStudy, [TypistMl.id]: TypistMlStudy, [AutomixAi.id]: AutomixAiStudy, [Aircast.id]: AircastStudy, [Telltale.id]: TelltaleStudy, [JamDuel.id]: JamDuelStudy, [CollegeMatcher.id]: CollegeMatcherStudy, [Streetspot.id]: StreetspotStudy };
 
 export const projectById = (id) => ENGINEERING_PROJECTS.find((p) => p.id === id);

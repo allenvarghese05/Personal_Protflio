@@ -19,7 +19,7 @@
  *   pct, fixed    number formatting.
  */
 import { useEffect, useId, useState } from 'react';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { ARMS } from '@/data/studies/typist-ml';
 
 /* ── data helpers ──────────────────────────────────────────────────────── */
@@ -157,7 +157,7 @@ export function Scrubber({ value, max, onChange, playing, onPlay, onPause, label
             height: KNOB,
             marginTop: 0.5 - KNOB / 2,
             background: accent,
-            boxShadow: `0 0 0 3px ${P.surface}`,
+            boxShadow: `0 0 0 3px ${P.void}`,
           }}
         />
       </div>
@@ -197,7 +197,7 @@ export function Meter({ value, min, max, scaleMax = 0.45, ghost, ghostLabel, sho
           <span
             aria-hidden="true"
             className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={inside ? { left: x(value), background: tone, boxShadow: `0 0 0 3px ${P.surface}` } : { left: x(value), background: P.surface, boxShadow: `inset 0 0 0 2px ${tone}, 0 0 0 3px ${P.surface}` }}
+            style={inside ? { left: x(value), background: tone, boxShadow: `0 0 0 3px ${P.void}` } : { left: x(value), background: P.void, boxShadow: `inset 0 0 0 2px ${tone}, 0 0 0 3px ${P.void}` }}
           />
         )}
       </div>

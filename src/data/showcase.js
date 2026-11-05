@@ -8,6 +8,8 @@
  *   ground     the project's own colour (its product's brand, darkened), the
  *              field its picture sits on and the band in the index. Always
  *              dark, so white type on it reads in both themes.
+ *   accent     the case study's one accent, from the same hue: OKLCH L 0.76
+ *              on the dark page (8.6 to 9.8:1), L 0.5 on white (5.3 to 6.6:1)
  *   hue        the same colour lifted to middle lightness (OKLCH L 0.6): the
  *              soft glow behind the index on hover, readable as colour on
  *              both the white page and the dark one
@@ -40,7 +42,7 @@ export const PROFILE = {
 
 /** Three tiers, three compositions. Order = the index's order. */
 export const LAYOUT = {
-  featured: ['aircast', 'iet', 'bis-report-card', 'learnflow-ai', 'typist-ml'],
+  featured: ['aircast', 'telltale', 'iet', 'bis-report-card', 'learnflow-ai', 'typist-ml'],
   progress: ['chronos-ai', 'automix-ai'],
   earlier: ['jam-duel', 'college-matcher', 'streetspot'],
 };
@@ -64,6 +66,7 @@ export const OPENING = [
 export const SHORT = {
   iet: 'Church Building',
   aircast: 'AirCast',
+  telltale: 'Telltale',
   'bis-report-card': 'BIS Report Card',
   'learnflow-ai': 'LearnFlow',
   'chronos-ai': 'Chronos',
@@ -79,6 +82,7 @@ export const SHOWCASE = {
     mark: 'C',
     ground: '#3d0f2e',
     hue: '#be5399',
+    accent: { dark: '#f188ca', light: '#a02e7c' },
     year: '2026',
     status: 'In production · client system',
     context: 'Client system · sole engineer · Jan 2026 to now',
@@ -109,10 +113,48 @@ export const SHOWCASE = {
     privateNote: 'Private client system, shown with test data',
   },
 
+  telltale: {
+    mark: 'T',
+    ground: '#2a1a55',
+    hue: '#826bd7',
+    accent: { dark: '#b19eff', light: '#664abb' },
+    year: '2026',
+    status: 'Meta hackathon · 0 wrong verdicts published',
+    prefix: 'Meta Global AI Hackathon 2026',
+    context: 'Solo · Oct to Nov 2026',
+    highlight: { text: 'Meta hackathon · solo', tone: 'built' },
+    pitch: 'Meta AI investigates a car crash from dashcam video and the car’s logs; plain Python checks every word before anyone reads it.',
+    band: ['Meta Global AI Hackathon', '151 live investigations, every one checked', '0 wrong verdicts got through'],
+    cover: {
+      type: 'shot',
+      src: '/work/telltale-site.webp',
+      alt: 'The Telltale replay site: Meta AI investigates the crash, plain code checks every word',
+      width: 1200,
+      height: 750,
+    },
+    stats: [
+      { value: '151', label: 'live AI investigations, each checked by code' },
+      { value: '0', label: 'wrong verdicts published (2 caught and withheld)' },
+      { value: '74%', label: 'danger onsets within 2 s of human labels, 400 real clips' },
+    ],
+    steps: [
+      { label: 'Watch', text: 'SAM 3.1 tracks every vehicle in real dashcam footage; plain code finds when the struck car became a danger.' },
+      { label: 'Witness', text: 'Muse Spark 1.3 describes the same clip: lighting, weather, brake lights.' },
+      { label: 'Evidence', text: 'The car’s CAN and ADAS logs go on one clock, in a store nobody can edit.' },
+      { label: 'Investigate', text: 'A Muse Wonder agent measures every interval with a tool and names which step failed.' },
+      { label: 'Check', text: 'Plain Python redoes every claim and the verdict. Anything it cannot prove is blocked; a disagreement is held for a person.' },
+      { label: 'Report', text: 'The report is written by code from verified facts, and replayed in the browser.' },
+    ],
+    links: [
+      { href: 'https://huggingface.co/spaces/Allen05254/telltale', label: 'Live replay' },
+      { href: 'https://github.com/allenvarghese05/telltale', label: 'Source' },
+    ],
+  },
   aircast: {
     mark: 'A',
     ground: '#0a2766',
     hue: '#4b7bdf',
+    accent: { dark: '#7eafff', light: '#2c5bc2' },
     year: '2025',
     status: 'Global Nominee · Top 1,219 of 11,500+',
     prefix: 'NASA Space Apps 2025',
@@ -148,6 +190,7 @@ export const SHOWCASE = {
     mark: 'B',
     ground: '#4a1420',
     hue: '#cc4f69',
+    accent: { dark: '#ff859a', light: '#ad274c' },
     year: '2026',
     status: 'Built · 282 tests',
     context: 'Sole developer · Jul to Oct 2026',
@@ -182,6 +225,7 @@ export const SHOWCASE = {
     mark: 'L',
     ground: '#082e24',
     hue: '#009777',
+    accent: { dark: '#4bcaa6', light: '#007a59' },
     year: '2025–26',
     status: 'Beta · 150+ testers',
     context: 'Co-founder · Jun 2025 to now',
@@ -217,6 +261,7 @@ export const SHOWCASE = {
     mark: 'C',
     ground: '#33240f',
     hue: '#a5762e',
+    accent: { dark: '#dba65c', light: '#895700' },
     year: '2026',
     status: 'In progress',
     context: 'Solo · Oct 2026 to now',
@@ -248,6 +293,7 @@ export const SHOWCASE = {
     mark: 'T',
     ground: '#1b222e',
     hue: '#6981ab',
+    accent: { dark: '#97b2e1', light: '#4a638f' },
     year: '2026',
     status: 'Complete',
     context: 'Sole researcher and engineer · Sep 2026 to now',
@@ -281,6 +327,7 @@ export const SHOWCASE = {
     mark: 'A',
     ground: '#2a1712',
     hue: '#ac6e5d',
+    accent: { dark: '#e39d8a', light: '#904f3d' },
     year: '2026',
     status: 'In progress',
     context: 'Solo · Apr 2026 to now',
@@ -307,6 +354,7 @@ export const SHOWCASE = {
     mark: 'J',
     ground: '#13281c',
     hue: '#4c916a',
+    accent: { dark: '#7ac499', light: '#23744b' },
     year: '2025',
     status: 'Class project',
     context: 'Team of three · Drexel INFO310 · Aug 2025',
@@ -328,6 +376,7 @@ export const SHOWCASE = {
     mark: 'C',
     ground: '#18213a',
     hue: '#5f7ccc',
+    accent: { dark: '#8cadff', light: '#405cb2' },
     year: '2025',
     status: 'Personal project',
     context: 'Solo · Aug 2025',
@@ -349,6 +398,7 @@ export const SHOWCASE = {
     mark: 'S',
     ground: '#1f2a14',
     hue: '#6a8d45',
+    accent: { dark: '#99c072', light: '#4b701d' },
     year: '2025',
     status: 'Prototype',
     context: 'Solo · Jul 2025 · one evening',

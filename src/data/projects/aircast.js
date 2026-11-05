@@ -11,7 +11,7 @@ export const project = {
   badge: 'NASA SPACE APPS 2025 · GLOBAL NOMINEE',
   label: 'AirCast',
   subtitle:
-    'Air quality from space to street, NASA TEMPO satellite data, ground stations and weather on one map, with an explainable forecast and safety advice per group',
+    'Air quality from space to street: NASA TEMPO satellite data, ground stations and weather on one map, with an explainable forecast and safety advice for each group',
   role: 'Full-stack · Backend · Cloud (2-person team)',
   company: 'Team Relentless, with Aahil Afraz',
   dateRange: 'Oct 2025 · NASA Space Apps',
@@ -48,7 +48,7 @@ export const project = {
       { id: 'chat', label: 'AI chat', description: 'A floating chat that asks follow-up questions about the current readings.', category: 'ui', importance: 'secondary', x: 26, y: 62 },
       { id: 'forecast', label: 'Forecast model', description: 'Nine multiplier rules over wind, temperature, rain, humidity and time of day; six steps, each with a reason string.', category: 'workflow', importance: 'primary', x: 50, y: 18 },
       { id: 'safety', label: 'Safety engine', description: 'Five groups with safe/caution thresholds, judged per forecast step, plus each group’s best window. Written by Allen.', category: 'workflow', importance: 'primary', x: 50, y: 72 },
-      { id: 'ai', label: 'AI brief', description: 'Builds a structured context from every source and asks GPT-4o-mini for an A–F brief under 180 words; falls back with HTTP 200.', category: 'ai', importance: 'primary', x: 50, y: 90 },
+      { id: 'ai', label: 'AI brief', description: 'Builds a structured context from every source and asks GPT-4o-mini for a brief of under 180 words with an A-to-F grade; falls back with HTTP 200.', category: 'ai', importance: 'primary', x: 50, y: 90 },
       { id: 'tempo', label: 'TEMPO reader', description: 'Opens the NO₂ granule in memory, finds the nearest pixel, converts the column to an AQI and labels its freshness.', category: 'data', importance: 'secondary', x: 72, y: 22 },
       { id: 'openaq', label: 'OpenAQ client', description: 'Stations within 25 km; PM2.5 converted to AQI with the EPA breakpoints; sample stations if the API fails.', category: 'data', importance: 'secondary', x: 72, y: 48 },
       { id: 'weather', label: 'Weather client', description: 'Current conditions and eight 3-hour forecast slots, with fallbacks for a missing key.', category: 'data', importance: 'secondary', x: 72, y: 72 },

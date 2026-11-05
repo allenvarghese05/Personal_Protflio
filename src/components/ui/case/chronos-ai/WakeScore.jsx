@@ -35,7 +35,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { MORNINGS, RULES } from '@/data/studies/chronos-ai';
 import { Choices, Glyph, IN_VIEW, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
 import { scoreMorning } from './score';
@@ -58,7 +58,7 @@ function verdict(ev) {
     case 'outside_window':
       return { status: 'Outside window · 0', tone: P.inkSubtle, glyph: 'idle' };
     case 'confirm':
-      return { status: `Confirmed · ${ev.reason === 'both' ? 'strong + two in a row' : ev.reason === 'strong' ? `strong (≥ ${STRONG})` : 'two in a row'}`, tone: P.jade, glyph: 'tick' };
+      return { status: `Confirmed · ${ev.reason === 'both' ? 'strong + two in a row' : ev.reason === 'strong' ? `strong (${STRONG} or more)` : 'two in a row'}`, tone: P.jade, glyph: 'tick' };
     case 'high':
       return { status: `High · ${ev.consecutiveHigh} of 2`, tone: P.sand, glyph: 'flag' };
     case 'ignored_dedupe':
@@ -92,7 +92,7 @@ function inputText(rule, b, tick) {
 function noteText(b) {
   if (b.note === 'skipped') return 'skipped, no pedometer permission';
   if (b.note === 'requires') return 'needs medium or high confidence';
-  if (b.bonus) return 'includes +10: unlocked last tick too';
+  if (b.bonus) return 'includes +10 because it was also unlocked on the last tick';
   if (b.note === 'reweighted') return 'reweighted, no pedometer';
   return null;
 }
@@ -156,7 +156,7 @@ function ScoreBar({ ev, runKey, reduce, accent }) {
           </span>
         ))}
 
-        <div key={runKey} className="relative h-11 overflow-hidden rounded-[4px] border border-line bg-surface-2">
+        <div key={runKey} className="relative h-11 overflow-hidden rounded-[4px] bg-surface-2">
           {ev.gate === 'closed' && (
             <span className="absolute inset-0 flex items-center justify-center font-mono text-micro uppercase tracking-[0.14em] text-ink-subtle">
               gate closed, outside the window
@@ -220,7 +220,7 @@ function ScoreBar({ ev, runKey, reduce, accent }) {
         <span>0</span>
         <span>
           score <span className="font-display text-xl font-semibold tabular-nums text-ink">{ev.score}</span>
-          {ev.raw !== ev.score && ev.gate === 'open' && <span className="ml-2">({ev.raw} → clamped)</span>}
+          {ev.raw !== ev.score && ev.gate === 'open' && <span className="ml-2">(raw {ev.raw}, clamped)</span>}
         </span>
         <span>100</span>
       </div>
@@ -247,7 +247,7 @@ function RuleRow({ rule, b, tick }) {
         <p className="mt-0.5 text-[13px] leading-snug text-ink-subtle">{note ?? rule.plain}</p>
       </div>
       <p className="row-start-2 font-mono text-micro text-ink-muted @min-[36rem]:row-start-auto @min-[36rem]:pt-0.5 @min-[36rem]:text-right">
-        {b ? inputText(rule, b, tick) : ', '}
+        {b ? inputText(rule, b, tick) : ''}
       </p>
       <div className="row-span-2 flex flex-col items-end gap-1.5 @min-[36rem]:row-span-1">
         <span className="font-mono text-label tabular-nums">
@@ -272,7 +272,7 @@ function PenaltyRow({ penalty, fired }) {
         </p>
         <p className="mt-0.5 text-[13px] leading-snug text-ink-subtle">{penalty.plain}</p>
       </div>
-      <span className={`font-mono text-label tabular-nums ${fired ? 'text-alert' : 'text-ink-subtle'}`}>{fired ? penalty.points : ', '}</span>
+      <span className={`font-mono text-label tabular-nums ${fired ? 'text-alert' : 'text-ink-subtle'}`}>{fired ? penalty.points : 0}</span>
     </li>
   );
 }
@@ -344,7 +344,8 @@ export default function WakeScore({ accent = P.ice }) {
         footer={
           <Readout runKey={tickKey} delay={0.35} reduce={reduce} tone={v.tone} status={v.status}>
             <span className="text-body text-ink-muted">
-              <span className="font-mono text-label text-ink">{tick.local}</span>, {tick.note}
+              <span className="mr-2 font-mono text-label text-ink">{tick.local}</span>
+              {tick.note}
             </span>
           </Readout>
         }

@@ -30,7 +30,7 @@ export const ACTORS = {
   president: { label: 'President', tiers: [3] },
   finance: { label: 'Finance', tiers: [4] },
   system: { label: 'The daily job', tiers: [] },
-  none: { label: 'No one, terminal', tiers: [] },
+  none: { label: 'No one (final status)', tiers: [] },
 };
 
 /* ── the lifecycle — the ApplicationStatus enum (21 values) ────────────────── */
@@ -56,27 +56,27 @@ export const STAGES = [
 ];
 
 export const STATUSES = [
-  { id: 'DRAFT', label: 'Draft', stage: 'apply', actor: 'applicant', main: true, server: false, note: 'Never touches the server: the 9-page form autosaves on the device every 30 s (localStorage) until it’s sent; files picked offline, and an application sent offline, wait in IndexedDB.' },
-  { id: 'SUBMITTED', label: 'Submitted', stage: 'apply', actor: 'hq', main: true, note: 'Created directly as Submitted (APP-YYYY-NNNNN), and the rules in force that day are frozen onto it.' },
+  { id: 'DRAFT', label: 'Draft', stage: 'apply', actor: 'applicant', main: true, server: false, note: 'Never reaches the server. The 9-page form autosaves on the device every 30 s (localStorage) until it is sent. Files picked offline, and applications sent offline, wait in IndexedDB.' },
+  { id: 'SUBMITTED', label: 'Submitted', stage: 'apply', actor: 'hq', main: true, note: 'Created directly as Submitted, with a number like APP-YYYY-NNNNN. The rules in force that day are saved with it.' },
   { id: 'UNDER_REVIEW', label: 'Under review', stage: 'review', actor: 'hq', main: true, note: 'HQ starts the review: approve, reject, or flag the exact fields that need changing.' },
-  { id: 'CHANGES_REQUESTED', label: 'Changes requested', stage: 'review', actor: 'applicant', main: false, from: 'UNDER_REVIEW', to: 'SUBMITTED', kind: 'loop', note: 'HQ picks fields from 67 across nine pages; the applicant fixes them and resubmits, judged by the original rules. No limit on rounds.' },
-  { id: 'REJECTED_BY_HQ', label: 'Rejected by HQ', stage: 'review', actor: 'none', main: false, from: 'UNDER_REVIEW', kind: 'reject', note: 'Terminal, with HQ’s reason on the record.' },
+  { id: 'CHANGES_REQUESTED', label: 'Changes requested', stage: 'review', actor: 'applicant', main: false, from: 'UNDER_REVIEW', to: 'SUBMITTED', kind: 'loop', note: 'HQ picks the fields to change, from 67 across nine pages. The applicant fixes them and resubmits, and the application is still judged by its original rules. There is no limit on rounds.' },
+  { id: 'REJECTED_BY_HQ', label: 'Rejected by HQ', stage: 'review', actor: 'none', main: false, from: 'UNDER_REVIEW', kind: 'reject', note: 'Final. HQ’s reason is kept on the record.' },
   { id: 'HQ_APPROVED', label: 'HQ approved', stage: 'approve', actor: 'president', main: true, note: 'Passed up to the President.' },
-  { id: 'REJECTED_BY_PRESIDENT', label: 'Rejected by President', stage: 'approve', actor: 'none', main: false, from: 'HQ_APPROVED', kind: 'reject', note: 'Terminal, with the President’s reason.' },
-  { id: 'PRESIDENT_APPROVED', label: 'President approved', stage: 'approve', actor: 'finance', main: true, note: 'The President approves the requested amount, or less with a reason, and that number caps every release that follows.' },
-  { id: 'ON_HOLD', label: 'On hold', stage: 'approve', actor: 'president', main: false, from: 'PRESIDENT_APPROVED', kind: 'hold', note: 'The President can pause a project from any of 15 statuses; Resume returns it to exactly where it was (heldFromStatus).' },
+  { id: 'REJECTED_BY_PRESIDENT', label: 'Rejected by President', stage: 'approve', actor: 'none', main: false, from: 'HQ_APPROVED', kind: 'reject', note: 'Final. The President’s reason is kept on the record.' },
+  { id: 'PRESIDENT_APPROVED', label: 'President approved', stage: 'approve', actor: 'finance', main: true, note: 'The President approves the requested amount, or a lower one with a reason. That amount caps every release that follows.' },
+  { id: 'ON_HOLD', label: 'On hold', stage: 'approve', actor: 'president', main: false, from: 'PRESIDENT_APPROVED', kind: 'hold', note: 'The President can pause a project from any of 15 statuses. Resume returns it to exactly where it was (heldFromStatus).' },
   { id: 'PHASE_1_IN_PROGRESS', label: 'Phase 1 · building', stage: 'phase1', actor: 'applicant', main: true, note: 'Finance releases the first tranche and a 4-month Phase 1 deadline starts (configurable). The applicant builds and uploads photos.' },
-  { id: 'DELAYED', label: 'Delayed', stage: 'phase1', actor: 'system', main: false, server: false, from: 'PHASE_1_IN_PROGRESS', kind: 'flag', note: 'In the enum, never set. Past the deadline the daily job raises an isDelayed flag instead, so the project keeps its real status; an extension clears it.' },
-  { id: 'FUNDS_RELEASED', label: 'Funds released', stage: 'phase1', actor: 'none', main: false, server: false, from: 'PHASE_1_IN_PROGRESS', kind: 'reserved', note: 'Legacy: how Phase 1 was marked before the engine split funding from building. Still read as Phase 1, never written.' },
-  { id: 'PHASE_1_REVIEW', label: 'Phase 1 review', stage: 'phase1', actor: 'hq', main: true, note: 'HQ reviews the photos. Approve, and Phase 2’s money is pending; return it, and the rejected set is kept as a PhaseReview.' },
-  { id: 'PHASE_2_FUNDS_PENDING', label: 'Phase 2 · funds pending', stage: 'phase2', actor: 'finance', main: true, note: 'Finance releases the next tranche, any amount up to approved minus released.' },
-  { id: 'PHASE_2_IN_PROGRESS', label: 'Phase 2 · building', stage: 'phase2', actor: 'applicant', main: true, note: 'Building again, with photo proof before it can be handed in.' },
+  { id: 'DELAYED', label: 'Delayed', stage: 'phase1', actor: 'system', main: false, server: false, from: 'PHASE_1_IN_PROGRESS', kind: 'flag', note: 'In the enum, but never set. When a project passes its deadline, the daily job sets an isDelayed flag instead, so the project keeps its real status. An extension clears the flag.' },
+  { id: 'FUNDS_RELEASED', label: 'Funds released', stage: 'phase1', actor: 'none', main: false, server: false, from: 'PHASE_1_IN_PROGRESS', kind: 'reserved', note: 'Legacy. This is how Phase 1 was marked before the engine separated funding from building. It is still read as Phase 1, but never written.' },
+  { id: 'PHASE_1_REVIEW', label: 'Phase 1 review', stage: 'phase1', actor: 'hq', main: true, note: 'HQ reviews the photos. If HQ approves, Phase 2’s funds become pending. If HQ returns the phase, the rejected photos are kept as a PhaseReview.' },
+  { id: 'PHASE_2_FUNDS_PENDING', label: 'Phase 2 · funds pending', stage: 'phase2', actor: 'finance', main: true, note: 'Finance releases the next tranche: any amount up to the approved total minus what has already been released.' },
+  { id: 'PHASE_2_IN_PROGRESS', label: 'Phase 2 · building', stage: 'phase2', actor: 'applicant', main: true, note: 'Building continues. Photos are required before the phase can be submitted.' },
   { id: 'PHASE_2_REVIEW', label: 'Phase 2 review', stage: 'phase2', actor: 'hq', main: true, note: 'HQ approves the phase or sends it back.' },
-  { id: 'PHASE_3_FUNDS_PENDING', label: 'Phase 3 · funds pending', stage: 'phase3', actor: 'finance', main: true, note: 'The last release. The total can never pass the approved amount, not even with two clicks at once.' },
-  { id: 'PHASE_3_IN_PROGRESS', label: 'Phase 3 · building', stage: 'phase3', actor: 'applicant', main: true, note: 'The final stretch of building and photos.' },
+  { id: 'PHASE_3_FUNDS_PENDING', label: 'Phase 3 · funds pending', stage: 'phase3', actor: 'finance', main: true, note: 'The last release. The total can never go over the approved amount, even with two clicks at the same moment.' },
+  { id: 'PHASE_3_IN_PROGRESS', label: 'Phase 3 · building', stage: 'phase3', actor: 'applicant', main: true, note: 'The last round of building and photos.' },
   { id: 'PHASE_3_REVIEW', label: 'Phase 3 review', stage: 'phase3', actor: 'hq', main: true, note: 'Approving Phase 3 completes the project.' },
-  { id: 'COMPLETED', label: 'Completed', stage: 'after', actor: 'applicant', main: true, note: 'In the same transaction a church building becomes a registered church, and six bi-annual reports (three years) are scheduled.' },
-  { id: 'CLOSED', label: 'Closed', stage: 'after', actor: 'none', main: false, server: false, from: 'COMPLETED', kind: 'reserved', note: 'Reserved for archiving finished projects; no transition writes it yet.' },
+  { id: 'COMPLETED', label: 'Completed', stage: 'after', actor: 'applicant', main: true, note: 'In the same transaction, the building becomes a registered church and six bi-annual reports (three years) are scheduled.' },
+  { id: 'CLOSED', label: 'Closed', stage: 'after', actor: 'none', main: false, server: false, from: 'COMPLETED', kind: 'reserved', note: 'Reserved for archiving finished projects. No transition writes it yet.' },
 ];
 
 /** The audit trail the lifecycle replays — one line per transition on the
@@ -116,18 +116,18 @@ export const DECISIONS = [
     kicker: 'Money',
     title: 'Money moves in one transaction, or not at all',
     problem:
-      'Releasing a tranche touches five records, and two people can press at once: Finance double-clicks, or the President changes the approved amount mid-release. A half-applied release, or two releases racing past the cap, puts money out with no record that matches it.',
+      'Releasing a tranche writes five records, and two requests can arrive at once: Finance double-clicks, or the President changes the approved amount during a release. A release that is only half applied, or two releases that together pass the cap, would pay out money that no record matches.',
     decision:
-      'Every engine action is one Prisma transaction around a compare-and-set: update the row only WHERE its status is still the one this request read, and, for a release or an amount change, the approved amount is still the one that was checked. Zero rows means a concurrent request got there first, a 409, nothing written (if the first had already committed, the status check turns the second away with a 400). One row means the status, the FundRelease, the next ConstructionPhase, the history row and the audit row commit together.',
+      'Every engine action is one Prisma transaction around a compare-and-set. The row is updated only if its status is still the one this request read and, for a release or an amount change, the approved amount is still the one that was checked. If zero rows match, another request got there first: the response is a 409 and nothing is written. (If the first request had already committed, the status check rejects the second with a 400.) If one row matches, the status, the FundRelease, the next ConstructionPhase, the history row and the audit row commit together.',
     tradeoff:
-      'Optimistic, not locking: no row lock is taken, and the rare loser of a race gets “changed by someone else, refresh” (or a 400 once the status has moved on) instead of waiting. Integration tests race a double-click and a release against a top-up; released never exceeds approved.',
+      'This is optimistic concurrency, so no row lock is taken. The rare request that loses a race is told the application was changed by someone else and to refresh (or gets a 400 once the status has moved on), instead of waiting. Integration tests race a double-click, and a release against a top-up. The released total never exceeds the approved amount.',
     // the writes one release makes, in order — the visual ticks these
     steps: ['Status moved (compare-and-set)', 'FundRelease written', 'ConstructionPhase opened', 'ApplicationStatusHistory row', 'AuditLog row'],
     // what each scenario does to the writes above
     scenarios: [
-      { key: 'commit', label: 'Release', outcome: 'commit', readout: 'One row matched, all five writes commit together.' },
-      { key: 'fail', label: 'Fail mid-way', outcome: 'rollback', failAt: 3, readout: 'The history write throws, every write rolls back. No money moved.' },
-      { key: 'race', label: 'Double-click', outcome: 'conflict', readout: 'The second click matches 0 rows, status already moved. 409, nothing written.' },
+      { key: 'commit', label: 'Release', outcome: 'commit', readout: 'One row matched, so all five writes commit together.' },
+      { key: 'fail', label: 'Fail mid-way', outcome: 'rollback', failAt: 3, readout: 'The history write fails, so every write rolls back. No money moves.' },
+      { key: 'race', label: 'Double-click', outcome: 'conflict', readout: 'The second click matches 0 rows because the status has already moved. It gets a 409 and nothing is written.' },
     ],
     code: {
       file: 'src/lib/workflow/engine.ts',
@@ -151,13 +151,13 @@ export const DECISIONS = [
   {
     id: 'snapshot',
     kicker: 'Rules',
-    title: 'A rule change never rewrites the past',
+    title: 'Rule changes only apply to new applications',
     problem:
-      'Super Admins can now change the rules themselves, required fields, documents, site-photo minimums. But an application submitted last month, or one sent back for changes, must not start failing rules that didn’t exist when the pastor filled it in.',
+      'Super Admins can now change the rules themselves: required fields, documents, the minimum number of site photos. But an application submitted last month, or one sent back for changes, must not start failing rules that did not exist when the pastor filled it in.',
     decision:
-      'On submit, the server freezes the application rules, the field policy and the document types onto the row (requirementsSnapshot). One function, applicationRequirements(snapshot, config), answers “what is this judged by?” for the edit form, the resubmission and HQ’s review screen alike.',
+      'On submit, the server saves a copy of the application rules, the field policy and the document types on the row (requirementsSnapshot). One function, applicationRequirements(snapshot, config), returns the rules an application is judged by. The edit form, the resubmission and HQ’s review screen all use it.',
     tradeoff:
-      'A little JSON per application, and old snapshots must stay readable as the schema grows (a snapshot from before the field policy existed falls back to the defaults). In exchange, tightening an application rule only ever affects new applications.',
+      'Each application stores a little extra JSON, and old snapshots must stay readable as the schema grows (a snapshot from before the field policy existed falls back to the defaults). In return, tightening a rule only affects new applications.',
     // the visual: one setting changes; an old application and a new one are judged
     scenario: {
       setting: 'Minimum construction site photos',
@@ -191,13 +191,13 @@ export function applicationRequirements(snapshot, config) {
   {
     id: 'rbac',
     kicker: 'Access',
-    title: 'Permissions live at the API, not the UI',
+    title: 'Permissions are checked at the API, not in the UI',
     problem:
-      'Six roles see six different dashboards, but hiding a button is not access control, and an id in a URL is an invitation. Anyone can call an API route directly, with any application id or file path.',
+      'Six roles see six different dashboards, but hiding a button is not access control. Anyone can call an API route directly, with any application id or file path.',
     decision:
-      'Every route opens the same way: requireUser() reads the session, parseBody() validates the JSON with zod, then one rule per entity, canAccessApplication, the divisions a leader leads, the uploader’s id at the front of every file path, decides whether this user may touch this row. The engine re-checks role and status before anything moves.',
+      'Every route starts the same way. requireUser() reads the session and parseBody() validates the JSON with zod. Then one rule per entity decides whether this user may touch this row: canAccessApplication, the divisions a leader leads, or the uploader’s id at the start of every file path. The engine checks role and status again before anything changes.',
     tradeoff:
-      'The same few lines at the top of every route, held by convention and review, so the UI is a convenience, never the boundary. A pastor asking for someone else’s application, or attaching their land deed, gets a 403, not a signed link.',
+      'The cost is the same few lines at the top of every route, kept in place by convention and code review. The UI is a convenience, never the security boundary. A pastor who asks for someone else’s application, or tries to attach their land deed, gets a 403 instead of a signed link.',
     path: [
       { key: 'ui', label: 'UI guard', note: 'hides what you can’t do' },
       { key: 'route', label: 'Edge proxy', note: 'Origin check · CSP nonce' },
@@ -230,7 +230,7 @@ export const CONTROL = {
   principle: 'Defaults live in code. Overrides live in the database. The screen is generated from the schema.',
   stats: [
     { value: '13', label: 'config sections' },
-    { value: '27', label: 'form fields: required · optional · hidden' },
+    { value: '27', label: 'form fields, each required, optional or hidden' },
     { value: '7', label: 'PRs · MC-0 to MC-7' },
     { value: '0', label: 'deploys to change a rule' },
   ],
@@ -252,24 +252,24 @@ export const CONTROL = {
     { field: 'Accept a web link instead of an upload', from: 'Off', to: 'On', who: 'superadmin', when: 'Oct 21 · 16:58', state: 'superseded' },
   ],
   steps: [
-    { id: 'MC-0', pr: '#27', title: 'Flag & guard', body: 'Feature flag, Super-Admin-only route group, a 404, not a 403, for everyone else.', kind: 'admin' },
+    { id: 'MC-0', pr: '#27', title: 'Flag & guard', body: 'A feature flag and a route group only Super Admins can open. Everyone else gets a 404, not a 403.', kind: 'admin' },
     { id: 'MC-1', pr: '#27', title: 'Generated editor', body: 'One editor for every section, drawn by introspecting the zod schema.', kind: 'admin' },
-    { id: 'MC-2', pr: '#28', title: 'History & undo', body: 'Per-field old → new; undo writes the old value back as a new change.', kind: 'admin' },
+    { id: 'MC-2', pr: '#28', title: 'History & undo', body: 'Each field’s old and new values are recorded. Undo writes the old value back as a new change.', kind: 'admin' },
     { id: 'MC-3', pr: '#28', title: 'People & places', body: 'Users, churches and divisions rebuilt on the design system.', kind: 'design' },
-    { id: 'MC-4', pr: '#30', title: 'Field policy', body: '27 form fields: required, optional or hidden, on the form, the server and HQ’s picker.', kind: 'admin' },
-    { id: 'MC-5', pr: '#31 · #33', title: 'Document types', body: 'Extra documents beside the built-in ones: upload, link or either; retired, never deleted.', kind: 'admin' },
-    { id: 'MC-6', pr: '#29', title: 'Design system', body: '~190 palette classes mapped to tokens; a guard test forbids raw colours.', kind: 'design' },
-    { id: 'MC-7', pr: '#32', title: 'On by default', body: 'Live for the Super Admin; the flag stays as a kill switch. One applicationRequirements().', kind: 'admin' },
+    { id: 'MC-4', pr: '#30', title: 'Field policy', body: 'Each of 27 form fields can be required, optional or hidden. The form, the server and HQ’s field picker all follow the setting.', kind: 'admin' },
+    { id: 'MC-5', pr: '#31 · #33', title: 'Document types', body: 'Admins add document types beside the built-in ones, as an upload, a link or either. Old types are retired, never deleted.', kind: 'admin' },
+    { id: 'MC-6', pr: '#29', title: 'Design system', body: '~190 palette classes mapped to design tokens. A guard test blocks raw colours.', kind: 'design' },
+    { id: 'MC-7', pr: '#32', title: 'On by default', body: 'Live for the Super Admin, with the flag kept as a kill switch. All requirement checks go through one applicationRequirements().', kind: 'admin' },
   ],
-  span: 'Oct 20 – 22, 2026',
+  span: 'Oct 20-22, 2026',
   // two bugs found while building it — the kind of detail worth telling
   fixes: [
     {
-      title: 'Two admins, one section, one lost save',
+      title: 'Two admins saved one section and one save was lost',
       before: '12 of 15',
       after: '0 of 10',
       unit: 'trials lost a save',
-      body: 'Read-merge-write in app code dropped one of two concurrent saves. The merge moved into Postgres, one UPDATE with jsonb ||, and a test now races ten pairs.',
+      body: 'The app read the settings, merged the change and wrote them back, so when two saves landed together one was lost. The merge moved into Postgres as one UPDATE with jsonb ||, and a test now races ten pairs of saves.',
     },
     {
       title: 'A save that took exactly 30 seconds to show',
@@ -283,7 +283,7 @@ export const CONTROL = {
 
 /* ── performance — docs/PERFORMANCE.md, commit 7005826 ─────────────────────── */
 export const PERF = {
-  setup: 'Dev measurements · warm routes, median of 3 runs (the transaction-pooler “before” column is a single run) · Philadelphia → Supabase in Sydney (ap-southeast-2) · Oct 3, 2026',
+  setup: 'Dev measurements · warm routes, median of 3 runs (the transaction-pooler “before” column is a single run) · from Philadelphia to Supabase in Sydney (ap-southeast-2) · Oct 3, 2026',
   // the endpoint the headline is about
   hero: {
     label: 'GET /api/analytics · all time · uncached',
@@ -298,9 +298,9 @@ export const PERF = {
   // where the time actually went
   causes: [
     { value: '3.6 ms', label: 'Postgres itself, running the login query (EXPLAIN ANALYZE)' },
-    { value: '240–400 ms', label: 'one TCP connect, Philadelphia → Sydney' },
-    { value: '~1,300 ms', label: 'one query through the transaction pooler, ~244 ms on the session pooler' },
-    { value: '~100', label: 'queries the all-time report awaited one after another' },
+    { value: '240-400 ms', label: 'one TCP connection, Philadelphia to Sydney' },
+    { value: '~1,300 ms', label: 'one query through the transaction pooler (~244 ms on the session pooler)' },
+    { value: '~100', label: 'queries the all-time report ran one after another' },
   ],
   equation: ['sequential round trips', '×', 'round-trip time', '=', 'what users feel'],
   // the old all-time report, as the waves of round trips it waited on
@@ -312,7 +312,7 @@ export const PERF = {
       { label: 'KPI queries, one after another', count: 16 },
       { label: 'per division, 3 deep', count: 3 },
       { label: 'one aggregate per month since 2020', count: 82 },
-      { label: 'the last three', count: 3 },
+      { label: 'three more at the end', count: 3 },
     ],
     after: [
       { label: 'auth lookup', count: 1 },
@@ -320,10 +320,10 @@ export const PERF = {
     ],
   },
   fixes: [
-    { title: 'One wave, not a hundred', body: 'Every independent query for a view goes into one Promise.all, the 16 KPI queries became one concurrent wave.' },
-    { title: 'groupBy, not loops', body: 'The month-by-month loop became one groupBy(year, month); per-division and per-church loops became groupBys folded in JS. The query count stopped growing with months, divisions and churches.' },
-    { title: 'JOINs and one signing call', body: 'Prisma relationJoins loads relations in the same query; ~9 sequential signed-URL calls became one createSignedUrls, application detail 2.6 s → 0.5 s.' },
-    { title: 'The right connection', body: 'The transaction pooler can’t cache prepared statements. The session pooler, with connection_limit=5 so a concurrent wave can’t exhaust its 15 clients.' },
+    { title: 'Independent queries run together', body: 'Every independent query for a view goes into one Promise.all. The 16 KPI queries now run at the same time.' },
+    { title: 'groupBy instead of loops', body: 'The month-by-month loop became one groupBy(year, month). The per-division and per-church loops became groupBys combined in JavaScript. The query count no longer grows with the number of months, divisions or churches.' },
+    { title: 'JOINs and one signing call', body: 'Prisma relationJoins loads related rows in the same query, and ~9 sequential signed-URL calls became one createSignedUrls call. Application detail went from 2.6 s to 0.5 s.' },
+    { title: 'The right connection', body: 'The transaction pooler can’t cache prepared statements, so the app uses the session pooler, with connection_limit=5 so a burst of parallel queries can’t use up its 15 clients.' },
   ],
   // before → after per endpoint, both connections (ms)
   rows: [
@@ -339,14 +339,14 @@ export const PERF = {
   ],
   // proof the rewrite changed nothing but the time
   proof: [
-    { value: '110 / 110', label: 'API responses byte-identical before → after, across 5 roles' },
-    { value: '252 / 252', label: 'analytics equivalence checks matched, old math → new, on 144 synthetic reports' },
+    { value: '110 / 110', label: 'API responses byte-identical before and after, across 5 roles' },
+    { value: '252 / 252', label: 'analytics checks where the old and new math matched, on 144 synthetic reports' },
   ],
   // what came after the rewrite (each measured on its own)
   later: [
-    { value: '260 → 5 ms', label: 'the session lookup, with a 30 s per-user cache' },
-    { value: '1 request', label: 'the dashboard: three browser hops became one server render (520–870 ms)' },
-    { value: '893 ms', label: 'analytics today, all time and uncached, 4 queries in one Promise.all + the division list, 60 s cache (241 ms cached)' },
+    { value: '260 ms to 5 ms', label: 'the session lookup, with a 30 s per-user cache' },
+    { value: '1 request', label: 'the dashboard: three browser round trips became one server render (520-870 ms)' },
+    { value: '893 ms', label: 'analytics today, all time and uncached: 4 queries in one Promise.all plus the division list (241 ms from the 60 s cache)' },
   ],
   // the guard that keeps it fast: scripts/tests/perf-budget.mjs, nightly in CI
   budget: [
@@ -365,44 +365,44 @@ export const SECURITY = {
     { key: 'headers', label: 'Headers', where: 'next.config.ts', items: ['HSTS, 1 year', 'X-Frame-Options DENY · nosniff', 'no-store on API and dashboard'] },
     { key: 'route', label: 'Route', where: 'requireUser · parseBody', items: ['Session JWT in an httpOnly cookie', 'Sign-in and password routes refuse anything but JSON', 'zod on every body'] },
     { key: 'row', label: 'Row', where: 'lib/auth/application-access.ts', items: ['canAccessApplication before any signed link', 'Leaders see only divisions they lead', 'File paths start with the uploader’s id'] },
-    { key: 'engine', label: 'Engine', where: 'lib/workflow/engine.ts', items: ['Status + amount compare-and-set', 'One transaction per action', 'An audit row for every action'] },
-    { key: 'db', label: 'Database', where: 'Postgres', items: ['Login lockout in one atomic statement', 'The last Super Admin, under a row lock', 'anon / authenticated roles: no grants at all'] },
-    { key: 'files', label: 'Files', where: 'private bucket', items: ['1-hour signed links only', 'Type from magic bytes, never the browser', '200 MB per user per day'] },
+    { key: 'engine', label: 'Engine', where: 'lib/workflow/engine.ts', items: ['Compare-and-set on status and amount', 'One transaction per action', 'An audit row for every action'] },
+    { key: 'db', label: 'Database', where: 'Postgres', items: ['Login lockout in one atomic statement', 'The last Super Admin checked under a row lock', 'No grants at all for the anon and authenticated roles'] },
+    { key: 'files', label: 'Files', where: 'private bucket', items: ['1-hour signed links only', 'File type read from magic bytes, never from the browser', '200 MB per user per day'] },
   ],
   // send a request down the layers — where each one is stopped (`at` is a layer key)
   probes: [
-    { key: 'ok', label: 'Your own application', at: null, result: '200, every layer passed; the file links are signed for an hour.' },
-    { key: 'csrf', label: 'Cross-site POST', at: 'edge', result: '403 · “Cross-site request refused”, the Origin doesn’t match the Host.' },
-    { key: 'idor', label: 'Someone else’s application', at: 'row', result: '403 · “Access denied”, checked before any link is signed.' },
-    { key: 'race', label: 'Two releases at once', at: 'engine', result: '409, the second update matched 0 rows. Nothing written.' },
-    { key: 'guess', label: 'Password guessing', at: 'db', result: '401, the same as every failure, and after 5 tries, a 15-minute pause.' },
-    { key: 'renamed', label: 'A .txt renamed .jpg', at: 'files', result: 'Refused, no JPEG, PNG or PDF signature in its first bytes.' },
+    { key: 'ok', label: 'Your own application', at: null, result: '200, every layer passed. File links are signed for one hour.' },
+    { key: 'csrf', label: 'Cross-site POST', at: 'edge', result: '403 · “Cross-site request refused”. The Origin doesn’t match the Host.' },
+    { key: 'idor', label: 'Someone else’s application', at: 'row', result: '403 · “Access denied”. This is checked before any link is signed.' },
+    { key: 'race', label: 'Two releases at once', at: 'engine', result: '409, the second update matched 0 rows. Nothing is written.' },
+    { key: 'guess', label: 'Password guessing', at: 'db', result: '401, the same as every other failure. After 5 tries the account pauses for 15 minutes.' },
+    { key: 'renamed', label: 'A .txt renamed .jpg', at: 'files', result: 'Refused, because its first bytes have no JPEG, PNG or PDF signature.' },
   ],
   // sign-in: every failure looks the same
   login: {
     title: 'Every failed sign-in looks the same',
     cases: [
       { key: 'unknown', label: 'Unknown email', note: 'still runs one statement and a dummy scrypt hash' },
-      { key: 'wrong', label: 'Wrong password', note: 'the attempt was reserved before the check' },
-      { key: 'locked', label: 'Paused account', note: '5 tries → 15 minutes, on the database clock' },
+      { key: 'wrong', label: 'Wrong password', note: 'the attempt is reserved before the password check' },
+      { key: 'locked', label: 'Paused account', note: 'paused 15 minutes after 5 tries, timed by the database clock' },
     ],
     response: '401 · “Invalid email or password.” · no Retry-After',
     facts: [
-      'Attempt reserved before the password is checked, one atomic UPDATE … RETURNING, so a parallel burst can’t slip past the limit.',
-      'scrypt with a per-user salt, compared in constant time.',
-      '30 attempts per IP per hour on top of the per-account lock.',
-      'A password change bumps sessionVersion, every other session signs out.',
+      'The attempt is reserved before the password is checked, in one atomic UPDATE … RETURNING, so a burst of parallel attempts can’t get past the limit.',
+      'Passwords use scrypt with a per-user salt, compared in constant time.',
+      'A limit of 30 attempts per IP per hour, on top of the per-account lock.',
+      'A password change bumps sessionVersion, which signs out every other session.',
     ],
   },
   // the audit tickets (CHU-27 … CHU-33, PRs #34–#40, merged Oct 23)
   audit: [
-    { id: 'CHU-27', sev: 'C1', pr: '#35', found: 'The production seed created the Super Admin with a password committed to the repo.', fixed: 'Email from the environment; a random 14-character password, shown once, changed at first sign-in.' },
-    { id: 'CHU-28', sev: 'C2', pr: '#36', found: 'A Super Admin could demote or deactivate their own account, or the last one standing.', fixed: 'Self-demotion refused; the last active Super Admin is checked under SELECT … FOR UPDATE, race-tested.' },
-    { id: 'CHU-29', sev: 'H1', pr: '#37', found: 'Demo and CI seeds create known-password accounts in whatever database .env points at.', fixed: 'A seed guard: writes only in CI or to a named --target; protected databases, matched by project ref, are always refused.' },
-    { id: 'CHU-30', sev: 'H2', pr: '#38', found: 'Emails matched case-sensitively, John.Doe@ and john.doe@ could be two accounts.', fixed: 'Stored lowercased, matched in any case, with the ILIKE wildcards _ % \\ escaped.' },
-    { id: 'CHU-31', sev: 'H3', pr: '#39', found: 'Schema changes applied with prisma db push, no migration history.', fixed: 'Baseline migration 0_init (18 tables); CI fails any PR whose schema drifts from its migrations.' },
-    { id: 'CHU-32', sev: 'H4', pr: '#34', found: 'The dependency audit failed on @prisma/client and would block every merge.', fixed: 'Allow-listed with a written reason and a review-by date; the real fix is the Prisma 7 upgrade.' },
-    { id: 'CHU-33', sev: 'H5', pr: '#40', found: 'Uploads trusted the type the browser claimed, any bytes labelled image/jpeg were stored.', fixed: 'The type comes from the file’s magic bytes alone; anything unrecognised is refused.' },
+    { id: 'CHU-27', sev: 'C1', pr: '#35', found: 'The production seed created the Super Admin with a password committed to the repo.', fixed: 'The email now comes from the environment. The password is a random 14-character one, shown once and changed at first sign-in.' },
+    { id: 'CHU-28', sev: 'C2', pr: '#36', found: 'A Super Admin could demote or deactivate their own account, or the last one standing.', fixed: 'Self-demotion is refused. The last active Super Admin is checked under SELECT … FOR UPDATE, and the check is race-tested.' },
+    { id: 'CHU-29', sev: 'H1', pr: '#37', found: 'Demo and CI seeds create known-password accounts in whatever database .env points at.', fixed: 'A seed guard allows writes only in CI or to a named --target. Protected databases, matched by project ref, are always refused.' },
+    { id: 'CHU-30', sev: 'H2', pr: '#38', found: 'Emails were matched case-sensitively, so John.Doe@ and john.doe@ could be two accounts.', fixed: 'Emails are stored in lowercase and matched in any case, with the ILIKE wildcards _ % \\ escaped.' },
+    { id: 'CHU-31', sev: 'H3', pr: '#39', found: 'Schema changes were applied with prisma db push, with no migration history.', fixed: 'A baseline migration, 0_init (18 tables). CI fails any PR whose schema drifts from its migrations.' },
+    { id: 'CHU-32', sev: 'H4', pr: '#34', found: 'The dependency audit failed on @prisma/client and would block every merge.', fixed: 'Allow-listed with a written reason and a review-by date. The real fix is the Prisma 7 upgrade.' },
+    { id: 'CHU-33', sev: 'H5', pr: '#40', found: 'Uploads trusted the type the browser claimed, so any bytes labelled image/jpeg were stored.', fixed: 'The type now comes only from the file’s magic bytes. Anything unrecognised is refused.' },
   ],
   // file signatures the upload route accepts (src/app/api/upload/route.ts)
   signatures: [
@@ -411,11 +411,11 @@ export const SECURITY = {
     { type: 'PDF', bytes: ['25', '50', '44', '46'], note: '“%PDF” within the first 1,024 bytes' },
   ],
   // what used to get through: text, labelled image/jpeg by the browser
-  refused: { name: 'notes.txt → photo.jpg', claimed: 'image/jpeg', bytes: ['68', '65', '6C', '6C'], note: '“hell…”, no signature, refused' },
+  refused: { name: 'notes.txt renamed photo.jpg', claimed: 'image/jpeg', bytes: ['68', '65', '6C', '6C'], note: '“hell…”: no signature, so it is refused' },
   // holes found and closed before the audit — object-level access, the big ones
   earlier: [
     { when: 'Oct 3', text: 'The public sign-up route accepted role=SUPER_ADMIN.' },
-    { when: 'Oct 3', text: 'The public anon key could read every table through Supabase’s Data API, User.passwordHash included.' },
+    { when: 'Oct 3', text: 'The public anon key could read every table through Supabase’s Data API, including User.passwordHash.' },
     { when: 'Oct 5', text: 'Any pastor could submit any project’s phase.' },
     { when: 'Oct 6', text: 'Any signed-in user could open any church, with its pastor’s phone and email.' },
   ],
@@ -456,22 +456,22 @@ export const PLATFORM = [
     key: 'analytics',
     label: 'Analytics',
     title: 'One dashboard, five scopes',
-    body: 'Organisation, division, church, pastor or project, one pure, unit-tested access rule per role and scope, four queries in one Promise.all, a 60-second cache, and an Excel export of exactly the view on screen.',
+    body: 'Five scopes: organisation, division, church, pastor or project. Each role and scope has one pure, unit-tested access rule. The dashboard runs four queries in one Promise.all, caches the result for 60 seconds, and exports exactly the view on screen to Excel.',
     scopes: ['Organisation', 'Division', 'Church', 'Pastor', 'Project'],
-    stat: { value: '4', label: 'queries in one Promise.all, however big the org' },
+    stat: { value: '4', label: 'queries in one Promise.all, whatever the size of the organisation' },
   },
   {
     key: 'notify',
     label: 'Notifications',
     title: '24 events, five audiences',
-    body: 'A pure recipient matrix routes every event, never to the person who acted. Written after the response so nobody waits, deduped per user, and the daily job’s reminders grouped into one per type per day.',
+    body: 'A pure recipient matrix decides who hears about each event, and never notifies the person who acted. Notifications are written after the response, so nobody waits. They are deduped per user, and the daily job groups its reminders into one per type per day.',
     stat: { value: '24 × 5', label: 'events × audiences, in-app' },
   },
   {
     key: 'offline',
     label: 'Offline',
     title: 'The form works without a signal',
-    body: 'A service worker caches the form; IndexedDB keeps the answers and the files, stamped with the owner’s id so a shared phone never uploads as someone else. Back online, files upload first, then one post with an offlineId, a retry can’t create a duplicate.',
+    body: 'A service worker caches the form. IndexedDB keeps the answers and files, tagged with the owner’s id, so a shared phone never uploads as someone else. When the signal returns, the files upload first, then the application is posted once with an offlineId, so a retry can’t create a duplicate.',
     flow: ['Fill in, offline', 'Queue in IndexedDB', 'Signal returns', 'Upload files', 'Post once (offlineId)'],
     stat: { value: '1', label: 'application, however many retries' },
   },
@@ -479,7 +479,7 @@ export const PLATFORM = [
     key: 'daily',
     label: 'Daily job',
     title: '00:30 IST, safe to run twice',
-    body: 'Supabase pg_cron calls one route, checked with a constant-time bearer comparison. Six idempotent steps, then one audit row.',
+    body: 'Supabase pg_cron calls one route, which checks a bearer secret in constant time. The job runs six idempotent steps, then writes one audit row.',
     steps: ['Monthly report templates', 'Due · overdue · revision overdue', 'The delayed-project flag', 'Division bans that expire', 'Notification retention (90 / 365 days)', 'Archive purge after 180 days', 'One audit row'],
     stat: { value: '6', label: 'idempotent steps' },
   },
@@ -530,7 +530,7 @@ export const DATA_MODEL = {
       { name: 'BiAnnualActivityReport', note: 'six over three years after completion' },
     ] },
     { key: 'security', label: 'Platform & audit', models: [
-      { name: 'AuditLog', note: 'who did what, old → new · kept indefinitely' },
+      { name: 'AuditLog', note: 'who did what, old and new values · kept indefinitely' },
       { name: 'SystemConfig', note: 'sparse overrides per config section' },
       { name: 'Notification', note: 'in-app · deduped per user' },
       { name: 'UploadLog', note: 'the per-user daily upload quota' },
@@ -589,19 +589,19 @@ export const BUILD = {
 export const COPY = {
   // one line that says what it is and what changed
   outcome:
-    'Paper to platform: church construction, from application and approval to phased funding and three years of reporting, for a national church network in India.',
+    'Software that replaced a paper process for a national church network in India. It runs church construction from application and approval to phased funding and three years of reporting.',
   status: 'In production · live since Oct 2026',
   before: [
     'Paper applications, carried from HQ to the President to Finance by hand',
-    'Whether a new site was at least 8 km from the nearest church, checked by eye, if at all',
+    'Whether a new site was at least 8 km from the nearest church was checked by eye, if at all',
     'Fund releases and site photos in separate ledgers',
     'No single view of where any project stood',
   ],
   after: [
-    'One 9-page form, saved as you go, offline too',
-    'A closer site needs a written justification, flagged on HQ’s review screen',
-    'Every release capped by the approved amount, its photos and reference on one record',
-    'Every status change recorded, by whom and when, by one engine',
+    'One 9-page form that saves as you go, even offline',
+    'A site closer than 8 km needs a written justification, flagged on HQ’s review screen',
+    'Every release is capped by the approved amount, with its photos and reference on one record',
+    'One engine records every status change, with who made it and when',
   ],
   redacted: [
     { key: 'queue', label: 'HQ review queue' },
@@ -610,17 +610,17 @@ export const COPY = {
   ],
   // what's next — the repo's own roadmap (README: Phase 14 and Deferred)
   next: [
-    'Live in production, hosted in Mumbai, next to the users and the database.',
-    'SMS sign-in and alerts, and push notifications to phones and desktops, the table for one-time sign-in codes is already in the schema.',
-    'A “use my location” GPS capture with an automatic nearest-church check, today the distance is entered and justified.',
-    'PDF export beside Excel, and the Prisma 7 upgrade.',
+    'Running in production, hosted in Mumbai, close to the users and the database.',
+    'SMS sign-in and alerts, and push notifications to phones and desktops. The table for one-time sign-in codes is already in the schema.',
+    'A “use my location” GPS capture with an automatic nearest-church check. Today the distance is typed in and justified.',
+    'PDF export alongside Excel, and the Prisma 7 upgrade.',
   ],
 };
 
 /* ── the case study in one screen ─────────────────────────────────────────── */
 export const OVERVIEW = [
   { label: 'What it is', text: 'The grant system for building churches across India: a pastor applies, HQ reviews, the President approves an amount, Finance releases it in three construction phases, and the finished church reports for three years.' },
-  { label: 'Why it exists', text: 'It all ran on paper, applications carried by hand, fund releases and site photos in separate ledgers, and no single view of where any project stood.' },
-  { label: 'What Allen did', text: 'Sole engineer: the workflow engine, race-safe money movement, a Super Admin console that changes the rules without a deploy, the analytics rewrite (146.7 s → 1.28 s), the security audit, and CI.' },
-  { label: 'Where it stands', text: 'Live since October 2026: staff at headquarters and across the divisions use it to run every church-building application. CI still checks every change.' },
+  { label: 'Why it exists', text: 'Everything ran on paper. Applications were carried by hand, fund releases and site photos sat in separate ledgers, and no one had a single view of where each project stood.' },
+  { label: 'What Allen did', text: 'Sole engineer: the workflow engine, race-safe money movement, a Super Admin console that changes the rules without a deploy, the analytics rewrite (from 146.7 s to 1.28 s), the security audit, and CI.' },
+  { label: 'Where it stands', text: 'Live since October 2026. Staff at headquarters and across the divisions use it for every church-building application, and CI checks every change.' },
 ];

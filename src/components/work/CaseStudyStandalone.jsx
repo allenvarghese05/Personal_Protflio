@@ -3,24 +3,29 @@
  * A case study on its own page (/projects/<id>), outside Mission Control. It
  * keeps Mission Control's frame (a fixed nav over a [data-mc-scroll] stage)
  * so the case-study sections behave exactly as they do in the game, and it
- * hands NextSection a navigate function so "Up next" changes the URL.
+ * hands NextSection a navigate function so "Up next" changes the URL. Its
+ * theme follows /projects (./theme.jsx); in the game the same pages stay dark.
  */
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { projectById } from '@/data/projects';
 import { caseStudyFor } from '@/data/caseStudies';
 import { CASE_PAGES } from '@/components/ui/case/pages';
-import { CaseNavContext } from '@/components/ui/case/shell';
+import { CaseNavContext, caseAccentStyle } from '@/components/ui/case/shell';
+import { useWorkTheme } from './theme';
 
 export default function CaseStudyStandalone({ id }) {
   const router = useRouter();
+  // the same theme as /projects: light when it's light (the résumé link or the
+  // toggle), dark otherwise; the case-study colours are CSS variables
+  useWorkTheme();
   const project = projectById(id);
   const Page = CASE_PAGES[id];
   if (!project || !Page) return null;
 
   return (
     <CaseNavContext.Provider value={(nextId) => router.push(`/projects/${nextId}`)}>
-      <div className="mc-root fixed inset-0 flex flex-col bg-void">
+      <div className="work-root case-accent mc-root fixed inset-0 flex flex-col bg-void" style={caseAccentStyle(id)}>
         <nav
           aria-label="Case study"
           className="relative flex h-14 shrink-0 items-center justify-between border-b border-line bg-void px-4 sm:px-6"
