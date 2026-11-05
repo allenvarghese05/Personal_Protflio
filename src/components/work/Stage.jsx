@@ -114,7 +114,7 @@ function Spectrum() {
         {BASE.map((h, i) => {
           const ring = i === RING ? phase.ring : Math.abs(i - RING) === 1 ? phase.ring * 0.25 : 0;
           const notched = phase.notch && Math.abs(i - RING) <= 1;
-          const value = Math.min(1, h * (notched ? 0.45 : 1) + ring);
+          const value = Math.round(Math.min(1, h * (notched ? 0.45 : 1) + ring) * 1e4) / 1e4;
           const hot = i === RING && phase.ring > 0.4;
           return (
             <span
@@ -122,7 +122,7 @@ function Spectrum() {
               className={`h-full flex-1 origin-bottom rounded-t-[2px] transition-[transform,background-color] duration-700 ${EASE}`}
               style={{
                 transform: `scaleY(${value})`,
-                background: hot ? (caught ? '#ff6b5c' : '#ff9a3c') : 'rgba(255,255,255,0.24)',
+                backgroundColor: hot ? (caught ? '#ff6b5c' : '#ff9a3c') : 'rgba(255,255,255,0.24)',
               }}
             />
           );

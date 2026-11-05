@@ -17,6 +17,7 @@ export const CASE_PAGES = {
   'typist-ml': page(() => import('./typist-ml/Page')),
   'automix-ai': page(() => import('./automix-ai/Page')),
   'aircast': page(() => import('./aircast/Page')),
+  'telltale': page(() => import('./telltale/Page')),
   'jam-duel': page(() => import('./jam-duel/Page')),
   'college-matcher': page(() => import('./college-matcher/Page')),
   'streetspot': page(() => import('./streetspot/Page')),

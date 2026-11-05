@@ -228,7 +228,7 @@ const renderVisual = (decision, props) => <DecisionSteps decision={decision} {..
 
 /* ── the page ──────────────────────────────────────────────────────────── */
 
-export default function StudyPage({ project, data }) {
+export default function StudyPage({ project, data, hero }) {
   const accent = accentFor(project.kind);
   const scope = project.id;
   const { COPY, FLOW, FEATURES, DECISIONS, LAYERS, TRACES, ROLES, DATA_MODEL, BUILD, LINKS, OVERVIEW, STORY, TOUR } = data;
@@ -264,7 +264,10 @@ export default function StudyPage({ project, data }) {
         statusTone={COPY.statusTone}
         links={LINKS}
         figure={
-          FLOW?.steps?.length ? (
+          // a project's own hero figure (its Page passes `hero`); the flow stack otherwise
+          hero ? (
+            hero
+          ) : FLOW?.steps?.length ? (
             <>
               {/* the isometric stack from 640px up; the plain numbered list on a phone */}
               <div className="hidden sm:block">

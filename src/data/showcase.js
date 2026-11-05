@@ -42,7 +42,7 @@ export const PROFILE = {
 
 /** Three tiers, three compositions. Order = the index's order. */
 export const LAYOUT = {
-  featured: ['aircast', 'iet', 'bis-report-card', 'learnflow-ai', 'typist-ml'],
+  featured: ['aircast', 'telltale', 'iet', 'bis-report-card', 'learnflow-ai', 'typist-ml'],
   progress: ['chronos-ai', 'automix-ai'],
   earlier: ['jam-duel', 'college-matcher', 'streetspot'],
 };
@@ -66,6 +66,7 @@ export const OPENING = [
 export const SHORT = {
   iet: 'Church Building',
   aircast: 'AirCast',
+  telltale: 'Telltale',
   'bis-report-card': 'BIS Report Card',
   'learnflow-ai': 'LearnFlow',
   'chronos-ai': 'Chronos',
@@ -112,6 +113,43 @@ export const SHOWCASE = {
     privateNote: 'Private client system, shown with test data',
   },
 
+  telltale: {
+    mark: 'T',
+    ground: '#2a1a55',
+    hue: '#826bd7',
+    accent: { dark: '#b19eff', light: '#664abb' },
+    year: '2026',
+    status: 'Meta hackathon · 0 wrong verdicts published',
+    prefix: 'Meta Global AI Hackathon 2026',
+    context: 'Solo · Oct to Nov 2026',
+    highlight: { text: 'Meta hackathon · solo', tone: 'built' },
+    pitch: 'Meta AI investigates a car crash from dashcam video and the car’s logs; plain Python checks every word before anyone reads it.',
+    band: ['Meta Global AI Hackathon', '151 live investigations, every one checked', '0 wrong verdicts got through'],
+    cover: {
+      type: 'shot',
+      src: '/work/telltale-site.webp',
+      alt: 'The Telltale replay site: Meta AI investigates the crash, plain code checks every word',
+      width: 1200,
+      height: 750,
+    },
+    stats: [
+      { value: '151', label: 'live AI investigations, each checked by code' },
+      { value: '0', label: 'wrong verdicts published (2 caught and withheld)' },
+      { value: '74%', label: 'danger onsets within 2 s of human labels, 400 real clips' },
+    ],
+    steps: [
+      { label: 'Watch', text: 'SAM 3.1 tracks every vehicle in real dashcam footage; plain code finds when the struck car became a danger.' },
+      { label: 'Witness', text: 'Muse Spark 1.3 describes the same clip: lighting, weather, brake lights.' },
+      { label: 'Evidence', text: 'The car’s CAN and ADAS logs go on one clock, in a store nobody can edit.' },
+      { label: 'Investigate', text: 'A Muse Wonder agent measures every interval with a tool and names which step failed.' },
+      { label: 'Check', text: 'Plain Python redoes every claim and the verdict. Anything it cannot prove is blocked; a disagreement is held for a person.' },
+      { label: 'Report', text: 'The report is written by code from verified facts, and replayed in the browser.' },
+    ],
+    links: [
+      { href: 'https://huggingface.co/spaces/Allen05254/telltale', label: 'Live replay' },
+      { href: 'https://github.com/allenvarghese05/telltale', label: 'Source' },
+    ],
+  },
   aircast: {
     mark: 'A',
     ground: '#0a2766',
