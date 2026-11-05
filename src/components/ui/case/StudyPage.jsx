@@ -6,7 +6,8 @@
  * told best by their flow rather than a bespoke simulation:
  *
  *   hero          badge → title → outcome → meta → status → metrics, with the
- *                 project's core flow as the figure (FlowFigure)
+ *                 project's core flow as the figure: FlowStack (an isometric
+ *                 stack the accent climbs) from 640px, FlowFigure on a phone
  *   index         jumps to each section
  *   01 problem    before → after, then one paragraph
  *   story         what happened and why, when the project changed course
@@ -32,6 +33,7 @@ import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { BeforeAfter, CaseArticle, Hero, NextSection, Section, SectionIndex, WRAP, accentFor } from '@/components/ui/case/shell';
+import FlowStack from '@/components/ui/case/FlowStack';
 import { Choices, DecisionList, Glyph, PanelFrame, Readout, at } from '@/components/ui/case/kit';
 import Architecture from '@/components/ui/case/Architecture';
 import DataModel from '@/components/ui/case/DataModel';
@@ -261,7 +263,19 @@ export default function StudyPage({ project, data }) {
         status={COPY.status}
         statusTone={COPY.statusTone}
         links={LINKS}
-        figure={FLOW?.steps?.length ? <FlowFigure steps={FLOW.steps} accent={accent} /> : null}
+        figure={
+          FLOW?.steps?.length ? (
+            <>
+              {/* the isometric stack from 640px up; the plain numbered list on a phone */}
+              <div className="hidden sm:block">
+                <FlowStack steps={FLOW.steps} accent={accent} />
+              </div>
+              <div className="sm:hidden">
+                <FlowFigure steps={FLOW.steps} accent={accent} />
+              </div>
+            </>
+          ) : null
+        }
         caption={FLOW?.figureCaption}
       />
 
