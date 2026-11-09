@@ -34,9 +34,8 @@ export const PROFILE = {
   name: identity.name,
   short: 'Software Engineering · Drexel University ’27',
   links: identity.links,
-  // The résumé button. A template until the PDF is ready: drop the file in
-  // public/ (e.g. public/resume.pdf) and set href to '/resume.pdf'.
-  resume: { href: null, label: 'Résumé' },
+  // The résumé button: set identity.resume in src/data/timeline.js
+  resume: { href: identity.resume, label: 'Résumé' },
   updated: 'November 2026',
 };
 
@@ -50,14 +49,14 @@ export const ALL_IDS = [...LAYOUT.featured, ...LAYOUT.progress, ...LAYOUT.earlie
 
 /**
  * The sentence under "Projects": the strongest proof, in words, before the
- * list. Each linked phrase jumps to its project. Starts after "Ten projects, ".
+ * list. Each linked phrase jumps to its project. Starts after "Eleven projects, " (the count is computed).
  */
 export const OPENING = [
   { text: 'including a ' },
   { text: 'NASA Space Apps 2025 Global Nominee', id: 'aircast' },
   { text: ', a grant system ' },
   { text: 'in production for a client', id: 'iet' },
-  { text: ', and a planner with ' },
+  { text: ', and a startup I co-founded with ' },
   { text: '150+ beta testers', id: 'learnflow-ai' },
   { text: '.' },
 ];
@@ -88,7 +87,7 @@ export const SHOWCASE = {
     context: 'Client system · sole engineer · Jan 2026 to now',
     highlight: { text: 'In production · sole engineer', tone: 'built' },
     pitch: 'The grant system for building churches across India: apply, review, approve, then fund construction in three phases.',
-    band: ['Client system, sole engineer', '146.7 s → 1.28 s analytics', '21 statuses, one engine'],
+    band: ['Client system, sole engineer', '31.4\xA0s → 1.28\xA0s analytics', '21 statuses, one engine'],
     cover: {
       type: 'shot',
       src: '/work/iet-applications.webp',
@@ -97,7 +96,7 @@ export const SHOWCASE = {
       height: 781,
     },
     stats: [
-      { value: '1.28 s', label: 'all-time analytics, down from 146.7 s' },
+      { value: '1.28 s', label: 'all-time analytics, down from 31.4\xA0s' },
       { value: '21', label: 'workflow statuses in one engine' },
       { value: '700+', label: 'automated checks in CI' },
     ],
@@ -120,11 +119,11 @@ export const SHOWCASE = {
     accent: { dark: '#b19eff', light: '#664abb' },
     year: '2026',
     status: 'Meta hackathon · 0 wrong verdicts published',
-    prefix: 'Meta Global AI Hackathon 2026',
+    prefix: 'Meta Global AI Developer Hackathon 2026',
     context: 'Solo · Oct to Nov 2026',
     highlight: { text: 'Meta hackathon · solo', tone: 'built' },
     pitch: 'Meta AI investigates a car crash from dashcam video and the car’s logs; plain Python checks every word before anyone reads it.',
-    band: ['Meta Global AI Hackathon', '151 live investigations, every one checked', '0 wrong verdicts got through'],
+    band: ['Meta Global AI Developer Hackathon', '151 live investigations, every one checked', '0 wrong verdicts got through'],
     cover: {
       type: 'shot',
       src: '/work/telltale-site.webp',
@@ -135,7 +134,7 @@ export const SHOWCASE = {
     stats: [
       { value: '151', label: 'live AI investigations, each checked by code' },
       { value: '0', label: 'wrong verdicts published (2 caught and withheld)' },
-      { value: '74%', label: 'danger onsets within 2 s of human labels, 400 real clips' },
+      { value: '74%', label: 'danger onsets within 2\xA0s of human labels, 400 real clips' },
     ],
     steps: [
       { label: 'Watch', text: 'SAM 3.1 tracks every vehicle in real dashcam footage; plain code finds when the struck car became a danger.' },
@@ -227,11 +226,11 @@ export const SHOWCASE = {
     hue: '#009777',
     accent: { dark: '#4bcaa6', light: '#007a59' },
     year: '2025–26',
-    status: 'Beta · 150+ testers',
+    status: 'Beta · 150+ testers on v1',
     context: 'Co-founder · Jun 2025 to now',
-    highlight: { text: 'Beta · 150+ testers', tone: 'built' },
+    highlight: { text: 'Beta · 150+ testers on v1', tone: 'built' },
     pitch: 'A student planner that sets itself up: paste a Canvas calendar link and your classes and deadlines appear.',
-    band: ['Co-founder', '150+ beta testers', 'One link sets up the semester'],
+    band: ['Co-founder', '150+ beta testers on v1', 'One link sets up the semester'],
     cover: {
       type: 'shot',
       src: '/work/learnflow-site.webp',
@@ -241,7 +240,7 @@ export const SHOWCASE = {
       caption: 'learnflow-ai.app',
     },
     stats: [
-      { value: '150+', label: 'beta testers' },
+      { value: '150+', label: 'beta testers on v1' },
       { value: '5,573', label: 'lines in the rebuild, from 64,066 in v1' },
       { value: '5', label: 'assignment types, sorted on import' },
     ],
@@ -298,7 +297,7 @@ export const SHOWCASE = {
     status: 'Complete',
     context: 'Sole researcher and engineer · Sep 2026 to now',
     highlight: { text: 'Complete · 14-session pilot run', tone: 'built' },
-    pitch: 'A typing coach built as a controlled experiment: four drill methods, one fairness gate, a frozen design.',
+    pitch: 'A typing coach built as a fair experiment: four ways to drill your weakest letter pairs, tested against plain practice.',
     band: ['A controlled experiment', 'Errors fell 16.8% to 5.4%', '25,022 keystrokes'],
     cover: {
       type: 'shot',
@@ -401,10 +400,10 @@ export const SHOWCASE = {
     accent: { dark: '#99c072', light: '#4b701d' },
     year: '2025',
     status: 'Prototype',
-    context: 'Solo · Jul 2025 · one evening',
+    context: 'Solo · Jul 2025',
     highlight: { text: 'Prototype', tone: 'side' },
     pitch: 'Crowdsourced street parking: report an open spot, see spots within 1 km, claim one, earn points.',
-    band: ['Crowdsourced parking', 'Spots within 1 km', 'Built in one evening'],
+    band: ['Crowdsourced parking', 'Spots within 1 km', 'Live updates between phones'],
     stats: [],
     steps: [
       { label: 'Locate', text: 'A GPS fix drops the pin where you’re standing.' },

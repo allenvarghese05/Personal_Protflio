@@ -30,7 +30,25 @@ export const useStore = create((set) => ({
   // and dims/blurs the world behind it (null = out in the world).
   enteredZone: null,
   setEnteredZone: (enteredZone) =>
-    set((s) => ({ enteredZone, selectedProject: enteredZone ? s.selectedProject : null })),
+    set((s) => ({
+      enteredZone,
+      selectedProject: enteredZone ? s.selectedProject : null,
+      // leaving Mission Control forgets where Back would have gone
+      returnTo: enteredZone ? s.returnTo : null,
+      wallReturn: enteredZone ? s.wallReturn : null,
+    })),
+
+  // A link in one room (About's case-study and Studio links) that opened
+  // another view: Back returns to { zone, scrollTop, key } instead of the
+  // wall. wallReturn is the same for a card picked on the wall.
+  returnTo: null,
+  wallReturn: null,
+  // The next view's arrival (see Fresh in MissionControl.jsx): the scroll it
+  // mounts at, whether it takes focus (it replaced the focused control), and
+  // which control to focus (its data-return-key) when coming Back.
+  restoreScroll: null,
+  focusOnEnter: false,
+  returnFocus: null,
 
   // The project brief open inside Mission Control (null = the project wall).
   // Set directly by walking up to a monolith, or by picking a card.

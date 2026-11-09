@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og';
-import { projectById } from '@/data/projects';
+import { ENGINEERING_PROJECTS, projectById } from '@/data/projects';
 import { LAYOUT, SHOWCASE } from '@/data/showcase';
 
 // The card a link to /projects unfurls into (LinkedIn, Slack, iMessage).
@@ -8,7 +8,8 @@ export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
 export default function Image() {
-  const featured = LAYOUT.featured.map((id) => ({ id, label: projectById(id).label, show: SHOWCASE[id] }));
+  // four pills fit the 1040px row; six ran off the card
+  const featured = LAYOUT.featured.slice(0, 4).map((id) => ({ id, label: projectById(id).label, show: SHOWCASE[id] }));
   return new ImageResponse(
     (
       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#07080c', color: '#f3eee4', padding: '72px 80px', fontFamily: 'sans-serif' }}>
@@ -18,7 +19,7 @@ export default function Image() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ fontSize: 132, fontWeight: 700, letterSpacing: '-0.05em', lineHeight: 0.9 }}>Projects</div>
-          <div style={{ fontSize: 32, color: '#b8b2a6' }}>Ten projects, each written up from its own code.</div>
+          <div style={{ fontSize: 32, color: '#b8b2a6' }}>{`${ENGINEERING_PROJECTS.length} projects, each with a full case study.`}</div>
         </div>
         <div style={{ display: 'flex', gap: 14 }}>
           {featured.map((f) => (

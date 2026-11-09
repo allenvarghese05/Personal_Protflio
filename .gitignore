@@ -50,3 +50,6 @@ next-env.d.ts
 
 # python bytecode
 __pycache__/
+
+# local tool state (Claude Code worktrees, launch configs): never ship
+/.claude/

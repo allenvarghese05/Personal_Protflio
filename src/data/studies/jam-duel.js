@@ -24,7 +24,7 @@ export const COPY = {
     'YouTube lookups cached for 24 hours in Postgres',
   ],
   built:
-    'Built for Drexel’s INFO310 with two classmates. Allen wrote the app, the initial full-stack commit, the YouTube player and integration, the GPT recommendations and the GitHub Pages build (15 of 24 commits); teammates added server dependencies and fixes. The React frontend is published on GitHub Pages; the API needs its own server and a Postgres database.',
+    'Built for Drexel’s INFO310 with two classmates. I wrote the app, the initial full-stack commit, the YouTube player and integration, the GPT recommendations and the GitHub Pages build (15 of 24 commits); teammates added server dependencies and fixes. The React frontend is published on GitHub Pages; the API needs its own server and a Postgres database.',
   next: [
     'Host the API and database so the published frontend works end to end.',
     'Maintain the voting streak. The column exists, but nothing updates it yet.',
@@ -176,6 +176,6 @@ export const DATA_MODEL = {
 export const OVERVIEW = [
   { label: 'What it is', text: 'Head-to-head song battles: spend ten votes a day on the matchups you care about, watch the split, and get GPT-4 recommendations built from your ten favourite songs.' },
   { label: 'Why it exists', text: 'A class project (Drexel INFO310) about making music discovery something you take part in. A stacked vote shows how much you prefer a song, which a like button can’t.' },
-  { label: 'What Allen did', text: 'In a team of three, Allen wrote the app: the full stack in the first commit, then the YouTube player and lookups, the recommendations and the published frontend. Teammates added server dependencies and fixes.' },
+  { label: 'What I did', text: 'In a team of three, I wrote the app: the full stack in the first commit, then the YouTube player and lookups, the recommendations and the published frontend. Teammates added server dependencies and fixes.' },
   { label: 'Where it stands', text: 'A finished class project. The frontend is published on GitHub Pages; the API and its Postgres database need their own server to run end to end.' },
 ];

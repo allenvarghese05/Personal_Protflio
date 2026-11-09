@@ -6,13 +6,26 @@
  * hands NextSection a navigate function so "Up next" changes the URL. Its
  * theme follows /projects (./theme.jsx); in the game the same pages stay dark.
  */
+import { useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { projectById } from '@/data/projects';
 import { caseStudyFor } from '@/data/caseStudies';
 import { CASE_PAGES } from '@/components/ui/case/pages';
 import { CaseNavContext, caseAccentStyle } from '@/components/ui/case/shell';
+import { useSmoothScroll } from '@/lib/smoothScroll';
 import { useWorkTheme } from './theme';
+
+/** The stage the case study scrolls in, gliding under a wheel. */
+function Stage({ children }) {
+  const ref = useRef(null);
+  useSmoothScroll(ref);
+  return (
+    <div ref={ref} data-mc-scroll className="relative flex-1 overflow-y-auto">
+      {children}
+    </div>
+  );
+}
 
 export default function CaseStudyStandalone({ id }) {
   const router = useRouter();
@@ -43,9 +56,9 @@ export default function CaseStudyStandalone({ id }) {
           </Link>
         </nav>
         {/* keyed by project, so moving to the next case study starts at the top */}
-        <div key={id} data-mc-scroll className="relative flex-1 overflow-y-auto">
+        <Stage key={id}>
           <Page project={project} study={caseStudyFor(id)} />
-        </div>
+        </Stage>
       </div>
     </CaseNavContext.Provider>
   );

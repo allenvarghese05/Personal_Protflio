@@ -12,15 +12,15 @@ export const project = {
   badge: 'PERSONAL SYSTEM · IN PROGRESS',
   label: 'Chronos AI',
   subtitle:
-    'A wake detector for one person. An iPhone reports motion and phone state, and a server on a MacBook scores whether he is really up. The engine is built; the news reel is planned.',
-  role: 'Product owner & architect · AI-agent pipeline',
+    'A wake detector for one person. An iPhone reports motion and phone state, and a server on a MacBook scores whether I’m really up. The engine is built; the news reel is planned.',
+  role: 'Solo engineer',
   company: 'Personal project',
   dateRange: 'Oct 2026 to now',
   // the repository is private (docs/01-decisions.md D20), so no public link
   repo: null,
   live: null,
   description:
-    'A single-user morning system. During a morning window, a FastAPI server on a MacBook sends the iPhone a silent push every five minutes. The phone is meant to answer with steps, motion and phone state, and the server scores them with an explainable, versioned rule set to decide whether its owner is really up. The scoring engine, scheduler, ingestion API, pairing and data model are built and covered by 636 tests. The phone side is partly built and has only run in the iOS Simulator. The planned “Morning Reel”, a one-minute news video made with local models, is not built yet. The code was written by an AI coding-agent pipeline that Allen designed. Allen answered every brief, approved every plan and merged every pull request.',
+    'A single-user morning system. During a morning window, a FastAPI server on a MacBook sends the iPhone a silent push every five minutes. The phone is meant to answer with steps, motion and phone state, and the server scores them with an explainable, versioned rule set to decide whether its owner is really up. The scoring engine, scheduler, ingestion API, pairing and data model are built and covered by 636 tests. The phone side is partly built and has only run in the iOS Simulator. The planned “Morning Reel”, a one-minute news video made with local models, is not built yet.',
   tags: ['Python 3.12', 'FastAPI', 'SQLite', 'Expo + Swift', 'iOS'],
   metrics: [
     { value: '636', label: 'API tests passing' },
@@ -46,21 +46,21 @@ export const project = {
   ],
   // the git history, chapter by chapter (start / end are the merge dates on main)
   timeline: [
-    { week: 'Oct 6', start: '2026-10-06', end: '2026-10-06', title: 'The plan', desc: '14 design docs and 30 decision records, the four-agent pipeline, the repo skeleton and the CI baseline.', done: true },
-    { week: 'Oct 7-13', start: '2026-10-07', end: '2026-10-13', title: 'Three scaffolds', desc: 'FastAPI with SQLite and a CLI; the Expo dev-client with a Swift module stub; Remotion with one cover scene and a smoke render.', done: true },
+    { week: 'Oct 6', start: '2026-10-06', end: '2026-10-06', title: 'The plan', desc: '14 design docs and 30 decision records, the repo skeleton and the CI baseline.', done: true },
+    { week: 'Oct 7–13', start: '2026-10-07', end: '2026-10-13', title: 'Three scaffolds', desc: 'FastAPI with SQLite and a CLI; the Expo dev-client with a Swift module stub; Remotion with one cover scene and a smoke render.', done: true },
     { week: 'Oct 18', start: '2026-10-18', end: '2026-10-18', title: 'Simulator & schema', desc: 'The dev-client running in the iOS Simulator; security-only Dependabot; eight tables and migration 0001.', done: true },
-    { week: 'Oct 18-19', start: '2026-10-18', end: '2026-10-19', title: 'The wake engine', desc: 'Pairing and auth; the window and DST; versioned rules; the scorer with 11 golden mornings and property tests.', done: true },
-    { week: 'Oct 20-21', start: '2026-10-20', end: '2026-10-21', title: 'Ingest & scheduler', desc: 'Telemetry and the day state machine; the scheduler and Expo push; mobile types generated from OpenAPI; laptop ops; replay and the nightly report.', done: true },
-    { week: 'Oct 26-28', start: '2026-10-26', end: '2026-10-28', title: 'The phone side', desc: 'The Swift sensor module with 40 XCTests; the pairing screen, Keychain storage and the generated API client.', done: true },
+    { week: 'Oct 18–19', start: '2026-10-18', end: '2026-10-19', title: 'The wake engine', desc: 'Pairing and auth; the window and DST; versioned rules; the scorer with 11 golden mornings and property tests.', done: true },
+    { week: 'Oct 20–21', start: '2026-10-20', end: '2026-10-21', title: 'Ingest & scheduler', desc: 'Telemetry and the day state machine; the scheduler and Expo push; mobile types generated from OpenAPI; laptop ops; replay and the nightly report.', done: true },
+    { week: 'Oct 26–28', start: '2026-10-26', end: '2026-10-28', title: 'The phone side', desc: 'The Swift sensor module with 40 XCTests; the pairing screen, Keychain storage and the generated API client.', done: true },
   ],
   architectureGraph: {
     nodes: [
-      { id: 'scoring', label: 'Wake scorer', description: 'evaluate(signals, rules, now, ctx) is a pure function: window gate, server-derived facts, six rules, two penalties, clamp to 0-100, the two-in-a-row streak, the decision. 11 golden mornings and 7 property tests pin it.', category: 'workflow', importance: 'center', x: 55, y: 52 },
+      { id: 'scoring', label: 'Wake scorer', description: 'evaluate(signals, rules, now, ctx) is a pure function: window gate, server-derived facts, six rules, two penalties, clamp to 0–100, the two-in-a-row streak, the decision. 11 golden mornings and 7 property tests pin it.', category: 'workflow', importance: 'center', x: 55, y: 52 },
       { id: 'api', label: 'FastAPI service', description: '11 paths and 13 operations under /v1, errors as RFC 9457 problem+json. Runs on the MacBook on the home network only, never in the cloud.', category: 'core', importance: 'primary', x: 30, y: 22 },
       { id: 'auth', label: 'Pairing & auth', description: 'An 8-character pairing code from a 32-symbol alphabet, stored as a SHA-256, valid 10 minutes, burned after 5 wrong tries, compared in constant time. Then a 256-bit bearer token, stored only as a hash. Rate limits: pairing 5 a minute, telemetry 30.', category: 'auth', importance: 'primary', x: 30, y: 42 },
       { id: 'ingest', label: 'Telemetry ingest', description: 'POST /v1/telemetry: a 64 KiB cap, a strict schema, a 300-second clock-skew check before any write, idempotent on (device, seq), then score, store and move the day in one commit. The phone doesn’t send yet (T2.3).', category: 'workflow', importance: 'primary', x: 30, y: 62 },
       { id: 'scheduler', label: 'Scheduler', description: 'A pure planner: plan(now, day) returns exactly one action (start monitoring, send tick n, fall back, or nothing). A 60-second loop with an injectable clock runs it. It checks push receipts every 15 minutes and writes the nightly report.', category: 'infrastructure', importance: 'primary', x: 30, y: 84 },
-      { id: 'window', label: 'Window & local day', description: 'Weekday 06:00-11:00, weekend 08:00-14:00, with a 03:00 day boundary. Spring-forward gaps are found to the second; fall-back folds take the first occurrence. Pure.', category: 'workflow', importance: 'secondary', x: 55, y: 14 },
+      { id: 'window', label: 'Window & local day', description: 'Weekday 06:00–11:00, weekend 08:00–14:00, with a 03:00 day boundary. Spring-forward gaps are found to the second; fall-back folds take the first occurrence. Pure.', category: 'workflow', importance: 'secondary', x: 55, y: 14 },
       { id: 'rules', label: 'Rules & versions', description: 'Six rules and two penalties in YAML, validated on load (caps, unique ids, reweights adding up to 100 or less); content-addressed by SHA-256, one active version in the database. GET / PUT /v1/config/wake.', category: 'workflow', importance: 'secondary', x: 55, y: 33 },
       { id: 'state', label: 'Day state machine', description: 'Idle, then monitoring, then confirmed or fallback. Every move is an audit row with its cause. A delivered state exists, but nothing sets it yet (T5.2).', category: 'workflow', importance: 'secondary', x: 55, y: 71 },
       { id: 'replay', label: 'Replay & report', description: 'chronos wake replay re-scores stored mornings under candidate rules and reports confirm time against the annotated real wake time; a nightly Markdown report draws the score as a sparkline.', category: 'data', importance: 'secondary', x: 55, y: 89 },

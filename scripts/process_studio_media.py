@@ -66,7 +66,8 @@ def gps_decimal(gps):
             return -dec if ref in ('S', 'W') else dec
         lat = dms(gps[2], gps[1])
         lon = dms(gps[4], gps[3])
-        return round(lat, 5), round(lon, 5)
+        # ~1 km: enough for the place label and the map link, never a doorstep
+        return round(lat, 2), round(lon, 2)
     except Exception:
         return None
 
@@ -135,7 +136,7 @@ def process_photos(src):
         for i, f in enumerate(files, 1):
             name = f'{i:02d}'
             mid = os.path.join(tmp, name + '.jpg')
-            # any format → 8-bit JPEG; sips carries the metadata (incl. GPS) across
+            # any format → 8-bit JPEG; sips carries the metadata across (GPS is read, then dropped)
             subprocess.run(['sips', '-s', 'format', 'jpeg', '-s', 'formatOptions', '92', '-Z', '3000',
                             os.path.join(src, f), '--out', mid], check=True,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -157,6 +158,10 @@ def process_photos(src):
             # bake the rotation in, then mark the stored metadata upright
             upright = ImageOps.exif_transpose(im).convert('RGB')
             exif[0x0112] = 1
+            # the served files carry no location: the rounded point above is
+            # all the site ever publishes
+            if 0x8825 in exif:
+                del exif[0x8825]
             full = upright.copy()
             full.thumbnail((2400, 2400), Image.LANCZOS)
             full.save(os.path.join(OUT_PHOTOS, name + '.jpg'), 'JPEG', quality=82, optimize=True,

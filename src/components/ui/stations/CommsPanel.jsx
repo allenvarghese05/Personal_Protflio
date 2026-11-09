@@ -6,7 +6,7 @@ import { StationHeader, StationSection, stagger, rise } from './shared';
 
 /**
  * Comms — the way to reach Allen: email (one-click copy), LinkedIn, GitHub,
- * the resume, and what he's looking for. The loudest, simplest room on the
+ * the résumé (once it's uploaded), and what Allen is looking for. The loudest, simplest room on the
  * planet, because it's the one recruiters need most.
  */
 function Channel({ label, value, href, onCopy, copied }) {
@@ -59,17 +59,9 @@ export default function CommsPanel() {
           <a href={`mailto:${CONTACT.email}`} className="hero-cta">
             Email me <span aria-hidden className="hero-cta__arrow">→</span>
           </a>
-          {CONTACT.resume ? (
+          {CONTACT.resume && (
             <a href={CONTACT.resume} target="_blank" rel="noreferrer" className="skip-btn" style={{ paddingRight: '1rem', height: '3.25rem' }}>
-              Download resume ↓
-            </a>
-          ) : (
-            <a
-              href={`mailto:${CONTACT.email}?subject=${encodeURIComponent('Resume request')}`}
-              className="skip-btn"
-              style={{ paddingRight: '1rem', height: '3.25rem' }}
-            >
-              Request my resume
+              Download résumé ↓
             </a>
           )}
         </div>

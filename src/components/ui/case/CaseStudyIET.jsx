@@ -15,7 +15,7 @@
  *   02 lifecycle  the 21 statuses, scrubbed step by step   <Lifecycle />
  *   03 decisions  the three hard problems                  <Decisions />
  *   04 control    The admin console ("Mission Control")    <ControlPlane />
- *   05 perf       146.7 s → 1.28 s, and the proof          <Performance />
+ *   05 perf       31.4 s → 1.28 s, and the proof          <Performance />
  *   06 security   the layers, then the audit               <Security />
  *   07 platform   analytics, notifications, offline, cron  <Platform />
  *   08 arch       five layers, real requests traced        <Architecture />

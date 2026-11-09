@@ -1,5 +1,10 @@
 'use client';
+import { useEffect, useRef } from 'react';
 import { identity } from '@/data/timeline';
+import { useStore } from '@/lib/store';
+
+// set when "About me" opens the room, so focus comes back to it on the way out
+let cameFromAbout = false;
 
 /**
  * Base-tier fallback — no WebGL / reduced-motion. Same editorial hero as the
@@ -7,6 +12,17 @@ import { identity } from '@/data/timeline';
  */
 export default function StaticHero() {
   const { links } = identity;
+  const about = useRef(null);
+  useEffect(() => {
+    if (!cameFromAbout) return;
+    cameFromAbout = false;
+    about.current?.focus();
+  }, []);
+  const openAbout = () => {
+    cameFromAbout = true;
+    useStore.setState({ focusOnEnter: true });
+    useStore.getState().setEnteredZone('observatory');
+  };
   return (
     <main
       className="relative flex min-h-screen flex-col justify-between p-6 sm:p-10"
@@ -25,7 +41,7 @@ export default function StaticHero() {
 
       <div className="max-w-3xl">
         <p className="mb-6 font-mono text-micro uppercase tracking-[0.22em] text-ink-muted">
-          Software Engineer — Drexel University ’27
+          {identity.credential}
         </p>
         <h1 className="font-display text-[clamp(3.25rem,9vw,8.5rem)] font-semibold leading-[0.92] tracking-[-0.045em] text-ink">
           Allen Shaji
@@ -34,6 +50,18 @@ export default function StaticHero() {
         </h1>
         <p className="mt-7 max-w-md text-body text-ink-muted">{identity.tagline}</p>
         <p className="mt-6 font-mono text-micro uppercase tracking-[0.2em] text-accent">{identity.badge}</p>
+        {/* the work, without the 3D journey, and the About room as a page */}
+        <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-4">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full load, like the hero's */}
+          <a href="/projects" className="hero-cta group inline-flex">
+            See the projects
+            <span aria-hidden className="hero-cta__arrow">→</span>
+          </a>
+          {/* the About room, as a plain page (no 3D journey on this tier) */}
+          <button ref={about} type="button" onClick={openAbout} className="hero-link text-[0.9375rem] font-medium text-ink-muted">
+            About me
+          </button>
+        </div>
       </div>
     </main>
   );

@@ -1,176 +1,296 @@
 'use client';
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Component, Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import { useReducedMotion } from 'framer-motion';
+import * as THREE from 'three';
 import HelmetScene from './HelmetScene';
 import MeetHeadline from './MeetHeadline';
+import { glideTo } from '@/lib/smoothScroll';
 
 /**
- * Meet Me — the opening of the About room. One stage stays pinned for the
- * whole section while the page scrolls past it:
+ * Meet Me: the top of the About room. My name on the left half of the
+ * page's grid, the helmet on the right, then the story's opening chapters
+ * (the children) running beside it.
  *
- *   1. the reveal runway — the visor swings up, the camera dollies in, the
- *      moon rises (scene clock: `progress`)
- *   2. one stage-height more — the helmet glides to the left third while the
- *      headline rises into place on the right (scene clock: `layoutProgress`)
- *   3. the hold — the finished frame stays pinned for a full extra screen of
- *      scroll, so nobody can scroll past without seeing it
+ * Wide screens (`split`): the helmet holds (sticky) beside the text for the
+ * whole section, the way pictures hold on /projects, and lets go when the
+ * last of those chapters ends. The one thing the scroll drives is the
+ * visor, over the first LIFT stage-heights, so by the time the lead is in
+ * view, so is my face. The first screen stops a little short, so the lead's
+ * first line shows under it: the only cue to scroll.
  *
- * Everything is scroll-driven (scrubbed): the picture follows the scroll,
- * forwards and back. Wheel scrolling is smoothed (a small inertial follow —
- * the Lenis idea), and the scene paces the picture so a fling can't skip it;
- * stop near either end and it finishes the last few percent itself.
+ * Narrow screens: my name, then the helmet, then the rest. The visor opens
+ * as the helmet rises up the screen (NARROW), so it's open, and my face in
+ * full view, before the helmet scrolls away. Nothing plays by itself, on
+ * any screen. Reduced motion: the visor is simply open.
  *
  * Scroll is read from the Mission Control stage (the room's own scroll
- * container), written to refs — no React renders per scroll.
+ * container) into refs: no React renders while scrolling.
  */
-const REVEAL_VH = 210; // scroll length of the reveal runway
-const HOLD_VH = 100; // the finished frame holds this long before the page moves on
-const STAGE_H = 'calc(100dvh - 3.5rem)'; // the stage: the viewport under the nav
-/** Smooth wheel scrolling: how much of the remaining distance each frame covers. */
-const SMOOTH = 0.11;
 
-export default function MeetMe() {
+/** Wide and tall enough for the name and the helmet side by side. Keep in
+ *  step with the `split` variant in globals.css. */
+const SPLIT = '(min-aspect-ratio: 23/20) and (min-width: 768px) and (min-height: 480px)';
+/** Wide: scroll, in stage heights, over which the visor lifts. */
+const LIFT = 0.6;
+/** Narrow: the visor starts lifting once the helmet's centre has risen past
+ *  `from` of the screen's height (at once, if it starts higher), and is open
+ *  after `run` more. */
+const NARROW = { from: 0.62, run: 0.3 };
+/** The figure's pose (radians; negative turns toward the name, on the
+ *  left): the head square to the lens, so the frontal portrait lines up with
+ *  it exactly; the shoulders a little round toward the name, so it isn't
+ *  stiff; the chin a touch up (the portrait was shot from a little below). */
+const POSE = { body: -0.12, head: 0, pitch: -0.03 };
+
+/** Whether this browser can draw the helmet at all (checked once; the test
+ *  context is released straight away, contexts are scarce on phones). */
+let webglOk;
+function canWebGL() {
+  if (webglOk === undefined) {
+    try {
+      const c = document.createElement('canvas');
+      const gl = c.getContext('webgl2') || c.getContext('webgl');
+      webglOk = !!gl;
+      gl?.getExtension('WEBGL_lose_context')?.loseContext();
+    } catch {
+      webglOk = false;
+    }
+  }
+  return webglOk;
+}
+
+/** If the helmet fails (the portrait doesn't load, the GPU refuses a
+ *  context), the room carries on as text: nothing here takes the page down. */
+class HelmetBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { failed: false };
+  }
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
+const subscribe = (cb) => {
+  const m = window.matchMedia(SPLIT);
+  m.addEventListener('change', cb);
+  return () => m.removeEventListener('change', cb);
+};
+const useSplit = () => useSyncExternalStore(subscribe, () => window.matchMedia(SPLIT).matches, () => true);
+
+/** Hands the canvas's invalidate() to the page, so a scroll can ask for a frame. */
+function Bridge({ apiRef }) {
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    apiRef.current = invalidate;
+    return () => {
+      apiRef.current = null;
+    };
+  }, [apiRef, invalidate]);
+  return null;
+}
+
+export default function MeetMe({ children }) {
   const section = useRef(null);
-  const runway = useRef(null);
-  const progress = useRef(0);
-  const layoutProgress = useRef(0);
-  const hint = useRef(null);
-  const label = useRef(null);
   const stage = useRef(null);
-  // the stage's place in the Mission Control root (for the dot grid)
-  const frame = useRef({ left: 0, top: 0, w: 1, h: 1, rootW: 1, rootH: 1 });
-  // the headline block — the scene drifts it with the camera (parallax)
-  const headline = useRef(null);
-  // (reserved for a story section after the hold; nothing sets it yet)
-  const storyIn = useRef(0);
-  const reduced = useReducedMotion();
-  const [shown, setShown] = useState(false);
-  // only render the helmet while its stage is on screen
-  const [visible, setVisible] = useState(true);
-  // shaders compiled: start drawing
-  const [ready, setReady] = useState(false);
-  const onReady = useCallback(() => setReady(true), []);
+  const box = useRef(null);
+  const slotEl = useRef(null);
+  const progress = useRef(0);
+  const slot = useRef(null);
+  const live = useRef(true);
+  const invalidate = useRef(null);
+  const reduced = !!useReducedMotion();
+  const split = useSplit();
+  const [webgl] = useState(canWebGL);
+  const [compiled, setCompiled] = useState(false);
+  const [measured, setMeasured] = useState(false);
+  const [settled, setSettled] = useState(false); // the room's slide-in has landed
+  const onReady = useCallback(() => setCompiled(true), []);
+  const ready = compiled && measured && settled;
 
   useEffect(() => {
-    const el = section.current;
+    const t = setTimeout(() => setSettled(true), 350);
+    return () => clearTimeout(t);
+  }, []);
+
+  // the helmet's slot, in canvas pixels. Both live in the stage, so this
+  // only changes on resize, never on scroll.
+  useEffect(() => {
+    const st = stage.current;
+    if (!st) return;
+    const measure = () => {
+      const b = box.current?.getBoundingClientRect();
+      const s = slotEl.current?.getBoundingClientRect();
+      if (!b?.width || !s?.width) return;
+      slot.current = { x: s.left - b.left, y: s.top - b.top, w: s.width, h: s.height };
+      // the falloff around the figure (see .meet-canvas): an oval on the
+      // helmet, so the shoulders fade into the room on every side
+      const r = Math.min(s.width, s.height) / 2;
+      const cy = s.top - b.top + s.height / 2;
+      const css = box.current.style;
+      css.setProperty('--meet-mx', `${s.left - b.left + s.width / 2}px`);
+      css.setProperty('--meet-my', `${cy + r * 0.3}px`);
+      css.setProperty('--meet-r', `${r * 2.3}px`);
+      // and below the shoulder line the suit dissolves
+      css.setProperty('--meet-fade-a', `${cy + r * 1.05}px`);
+      css.setProperty('--meet-fade-b', `${cy + r * 1.95}px`);
+      // split: the near shoulder dissolves before it reaches the text column,
+      // so the chapters never run over the suit
+      const near = s.left - b.left + s.width / 2 - r;
+      css.setProperty('--meet-side-a', split ? `${near - r * 0.75}px` : '0px');
+      css.setProperty('--meet-side-b', split ? `${near - r * 0.12}px` : '0px');
+      setMeasured(true);
+      invalidate.current?.();
+    };
+    const ro = new ResizeObserver(measure);
+    ro.observe(st);
+    measure();
+    return () => ro.disconnect();
+  }, [split]);
+
+  // frames only while the stage is on screen
+  useEffect(() => {
+    const el = stage.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting));
+    const io = new IntersectionObserver((entries) => {
+      const e = entries[entries.length - 1];
+      live.current = e.isIntersecting;
+      if (e.isIntersecting) invalidate.current?.();
+    });
     io.observe(el);
     return () => io.disconnect();
   }, []);
 
+  // scroll lifts the visor, on every screen. Measured on resize; on
+  // scroll, one read. The scroll is already smoothed (see lib/smoothScroll),
+  // so the visor follows it as it is.
   useEffect(() => {
+    if (reduced) return;
     const el = section.current;
     const scroller = el?.closest('[data-mc-scroll]');
-    const root = el?.closest('.mc-root');
     if (!el || !scroller) return;
+    let start = 0;
+    let run = 1;
+    const onScroll = () => {
+      const p = Math.min(1, Math.max(0, (scroller.scrollTop - start) / run));
+      if (p === progress.current) return;
+      progress.current = p;
+      invalidate.current?.();
+    };
     const measure = () => {
-      const s = stage.current?.getBoundingClientRect();
-      const r = root?.getBoundingClientRect() ?? { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
-      if (s) Object.assign(frame.current, { left: s.left - r.left, top: s.top - r.top, w: s.width, h: s.height, rootW: r.width, rootH: r.height });
+      const sr = scroller.getBoundingClientRect();
+      const top = el.getBoundingClientRect().top - sr.top + scroller.scrollTop;
+      if (split) {
+        start = top;
+        run = Math.max(1, (stage.current?.offsetHeight || 1) * LIFT);
+      } else {
+        const s = slotEl.current?.getBoundingClientRect();
+        const h = scroller.clientHeight;
+        const centre = s ? s.top + s.height / 2 - sr.top + scroller.scrollTop : top;
+        start = Math.max(top, centre - h * NARROW.from);
+        run = Math.max(1, h * NARROW.run);
+      }
+      onScroll();
     };
-    const sectionTop = () => el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
-
-    let isShown = false;
-    const update = () => {
-      const s = scroller.scrollTop - sectionTop();
-      const run = runway.current?.offsetHeight || 1;
-      const h = stage.current?.offsetHeight || 1;
-      progress.current = reduced ? 1 : Math.min(1, Math.max(0, s / run));
-      const p2 = Math.min(1, Math.max(0, (s - run) / h));
-      layoutProgress.current = reduced ? 1 : p2;
-      measure();
-      if (hint.current) hint.current.style.opacity = reduced ? '0' : String(Math.max(0, 1 - progress.current * 6));
-      if (label.current) label.current.style.opacity = String(Math.max(0, 1 - p2 * 3));
-      // the headline resolves as the helmet settles (with hysteresis)
-      const next = reduced || (isShown ? p2 > 0.3 : p2 > 0.6);
-      if (next !== isShown) setShown((isShown = next));
-    };
-    update();
-    scroller.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
-
-    // ── smooth wheel scrolling ──────────────────────────────────────────
-    // Each wheel tick moves a target; the page glides toward it. Keyboard,
-    // scrollbar and touch scroll natively (and re-sync the target).
-    let target = scroller.scrollTop;
-    let cur = target;
-    let raf = 0;
-    const max = () => scroller.scrollHeight - scroller.clientHeight;
-    const tick = () => {
-      cur += (target - cur) * SMOOTH;
-      if (Math.abs(target - cur) < 0.5) cur = target;
-      scroller.scrollTop = cur;
-      raf = cur !== target ? requestAnimationFrame(tick) : 0;
-    };
-    const onWheel = (e) => {
-      if (reduced || e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // pinch-zoom, sideways
-      e.preventDefault();
-      const d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * scroller.clientHeight : e.deltaY;
-      if (!raf) cur = target = scroller.scrollTop;
-      target = Math.min(max(), Math.max(0, target + d));
-      if (!raf) raf = requestAnimationFrame(tick);
-    };
-    const resync = () => {
-      if (!raf) cur = target = scroller.scrollTop;
-    };
-    scroller.addEventListener('wheel', onWheel, { passive: false });
-    scroller.addEventListener('scroll', resync, { passive: true });
-
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    ro.observe(scroller);
+    measure();
+    scroller.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      cancelAnimationFrame(raf);
-      scroller.removeEventListener('scroll', update);
-      scroller.removeEventListener('scroll', resync);
-      scroller.removeEventListener('wheel', onWheel);
-      window.removeEventListener('resize', update);
+      ro.disconnect();
+      scroller.removeEventListener('scroll', onScroll);
     };
-  }, [reduced]);
+  }, [split, reduced]);
+
+  // the opener's jumps ("Most recently", "Next") go to their sections
+  const jump = useCallback(
+    (e) => {
+      const el = document.getElementById(e.currentTarget.hash.slice(1));
+      if (!el) return;
+      e.preventDefault();
+      glideTo(el, { reduce: reduced });
+      el.focus({ preventScroll: true });
+    },
+    [reduced]
+  );
 
   return (
-    <section ref={section} className="relative" aria-label="Meet Allen">
-      {/* the pinned stage — stays put for the whole section */}
-      <div ref={stage} className="meet-stage sticky top-0 w-full overflow-hidden" style={{ height: STAGE_H }}>
-        <Canvas
-          className="meet-canvas !absolute inset-0 transition-opacity duration-300"
-          style={{ opacity: ready ? 1 : 0 }}
-          dpr={[1, 1.5]}
-          shadows
-          frameloop={visible && ready ? 'always' : 'never'}
-          gl={{ antialias: false, alpha: false, powerPreference: 'high-performance' }}
-          camera={{ position: [0, -0.24, 6.4], fov: 30, near: 0.1, far: 50 }}
-        >
-          <Suspense fallback={null}>
-            <HelmetScene progress={progress} layoutProgress={layoutProgress} frame={frame} headline={headline} storyIn={storyIn} still={!!reduced} onReady={onReady} />
-          </Suspense>
-        </Canvas>
-
-        <div ref={label} className="pointer-events-none absolute inset-x-0 top-8 text-center">
-          <div className="mc-label">Meet me</div>
+    <section ref={section} aria-label="About" className="meet relative">
+      {/* narrow: my name first, over the helmet */}
+      {!split && (
+        <div className="mx-auto max-w-6xl px-6 pt-8 sm:px-12">
+          <MeetHeadline part="name" still={reduced} />
         </div>
+      )}
 
-        <div ref={hint} className="pointer-events-none absolute inset-x-0 bottom-10 flex flex-col items-center gap-3">
-          <span className="font-mono text-micro uppercase tracking-[0.22em] text-ink-muted">Scroll to open the visor</span>
-          <span className="meet-cue" aria-hidden />
+      {/* the stage: the helmet. Split, it holds beside the text for the whole
+          section; narrow, it's a block between my name and the rest. */}
+      <div ref={stage} className={`${webgl ? '' : 'hidden split:block'} relative h-[min(56svh,32rem)] split:sticky split:top-0 split:h-(--meet-stage)`}>
+        <div ref={box} aria-hidden className="meet-canvas pointer-events-none absolute inset-0 split:left-[22%]">
+          <div
+            className="absolute inset-0 transition-[opacity,transform] duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{ opacity: ready ? 1 : 0, transform: ready || reduced ? 'none' : 'translateY(16px)' }}
+          >
+            {webgl && (
+              <HelmetBoundary>
+                <Canvas
+                  dpr={[1, 1.5]}
+                  shadows="percentage"
+                  frameloop="demand"
+                  resize={{ scroll: false }}
+                  gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+                  camera={{ position: [0, 0, 6.4], fov: 30, near: 0.1, far: 50 }}
+                  onCreated={({ gl }) => {
+                    gl.toneMapping = THREE.NeutralToneMapping;
+                    gl.setClearColor(0x000000, 0);
+                  }}
+                >
+                  <Bridge apiRef={invalidate} />
+                  <Suspense fallback={null}>
+                    <HelmetScene progress={progress} slot={slot} live={live} still={reduced} pose={POSE} onReady={onReady} />
+                  </Suspense>
+                </Canvas>
+              </HelmetBoundary>
+            )}
+          </div>
+        </div>
+        {/* where the helmet sits: the right half of the About grid (split),
+            or centred between my name and the text (narrow) */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 mx-auto grid max-w-6xl grid-cols-1 grid-rows-1 px-6 sm:px-12 split:grid-cols-12 split:gap-x-12">
+          <div className="relative split:col-span-6 split:col-start-7">
+            {/* split: a box centred 45% down the stage and right of the
+                column's centre (it runs out into the margin, away from the
+                text), as tall as it is wide up to 64% of the stage, so on
+                tall screens the helmet keeps its size against the text */}
+            <div
+              ref={slotEl}
+              data-meet-slot
+              className="absolute inset-x-[10%] bottom-[27%] top-[5%] split:left-0 split:-right-[32%] split:bottom-auto split:top-[45%] split:aspect-square split:h-auto split:max-h-[min(64%,36rem)] split:-translate-y-1/2"
+            />
+          </div>
         </div>
       </div>
 
-      {/* the scrolling column, laid over the pinned stage */}
-      <div className="pointer-events-none relative z-10" style={{ marginTop: `calc(-1 * (${STAGE_H}))` }}>
-        {/* 1 · the reveal runway, then 2 · one stage-height for the glide */}
-        <div ref={runway} aria-hidden style={{ height: `${REVEAL_VH}vh` }} />
-        <div aria-hidden style={{ height: STAGE_H }} />
-
-        {/* the headline: centred on the resting helmet's height (wide), or
-            under it (narrow); it rises into place, then 3 · holds (sticky) */}
-        <div style={{ height: `calc(${STAGE_H} + ${HOLD_VH}vh)` }}>
-          <div
-            className="pointer-events-auto sticky top-0 flex items-end bg-[linear-gradient(to_top,var(--void)_38%,transparent_75%)] px-6 pb-[9vh] sm:px-12 wide:bg-none wide:ml-auto wide:w-1/2 wide:items-center wide:pb-[6vh] wide:pl-0 wide:pr-[7vw]"
-            style={{ height: STAGE_H }}
-          >
-            <div ref={headline} className="will-change-transform">
-              <MeetHeadline shown={shown || !!reduced} />
-            </div>
+      {/* the text: over the stage's left half (split), or under it (narrow) */}
+      <div className="relative z-10 mx-auto max-w-6xl px-6 pb-20 sm:px-12 split:-mt-(--meet-stage) split:pb-32">
+        <div className="split:grid split:grid-cols-12 split:gap-x-12">
+          <div className="split:col-span-6">
+            {split ? (
+              // the first screen, a little short of full: the lead peeks under it
+              <div className="flex min-h-[calc(var(--meet-stage)-4.5rem)] flex-col justify-center">
+                <MeetHeadline onJump={jump} still={reduced} />
+              </div>
+            ) : (
+              <MeetHeadline part="intro" onJump={jump} still={reduced} />
+            )}
+            {/* the chapters keep clear of the suit's near shoulder as they
+                scroll past the held helmet */}
+            <div className="pt-12 split:pr-10 split:pt-0">{children}</div>
           </div>
         </div>
       </div>

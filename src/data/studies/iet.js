@@ -7,13 +7,12 @@
  * src/lib/config/*, docs/PERFORMANCE.md, docs/SECURITY.md, docs/MISSION_CONTROL.md,
  * docs/CLIENT_DECISIONS.md and the git history. Where a number is a measurement,
  * the conditions it was measured under travel with it (PERF.setup).
- * Items marked TODO(allen) come from outside the repo and are worth a check.
  */
 
 /* ── who acts — the five people in the chain (the approval stack) ─────────── */
 // tier index → used by the stack and the lifecycle to light the right slab.
 // `pop` is the organisation's size, not something the code knows —
-// TODO(allen): confirm the head counts with the client.
+// Head counts confirmed by Allen (Nov 2026).
 export const ROLES = [
   { key: 'pastor', num: '01', role: 'Pastor', verb: 'applies · builds · reports', pop: '3,000+ pastors' },
   { key: 'division', num: '02', role: 'Division Leader', verb: 'applies for the divisions they lead', pop: '~150 leaders' },
@@ -231,7 +230,7 @@ export const CONTROL = {
   stats: [
     { value: '13', label: 'config sections' },
     { value: '27', label: 'form fields, each required, optional or hidden' },
-    { value: '7', label: 'PRs · MC-0 to MC-7' },
+    { value: '7', label: 'pull requests to build it' },
     { value: '0', label: 'deploys to change a rule' },
   ],
   // schema → screen: real lines from src/lib/config/schema.ts and the widget
@@ -261,7 +260,7 @@ export const CONTROL = {
     { id: 'MC-6', pr: '#29', title: 'Design system', body: '~190 palette classes mapped to design tokens. A guard test blocks raw colours.', kind: 'design' },
     { id: 'MC-7', pr: '#32', title: 'On by default', body: 'Live for the Super Admin, with the flag kept as a kill switch. All requirement checks go through one applicationRequirements().', kind: 'admin' },
   ],
-  span: 'Oct 20-22, 2026',
+  span: 'Oct 20–22, 2026',
   // two bugs found while building it — the kind of detail worth telling
   fixes: [
     {
@@ -287,7 +286,10 @@ export const PERF = {
   // the endpoint the headline is about
   hero: {
     label: 'GET /api/analytics · all time · uncached',
-    before: 146709, // transaction pooler, before
+    // the headline: both figures on the same connection (the session pooler),
+    // so the gain is the rewrite alone. The transaction pooler's 146.7 s →
+    // 2.85 s stays in the split below.
+    before: 31444, // session pooler, before
     after: 1278, // session pooler, after
     // the honest split: the same connection, before → after
     same: [
@@ -298,7 +300,7 @@ export const PERF = {
   // where the time actually went
   causes: [
     { value: '3.6 ms', label: 'Postgres itself, running the login query (EXPLAIN ANALYZE)' },
-    { value: '240-400 ms', label: 'one TCP connection, Philadelphia to Sydney' },
+    { value: '240–400 ms', label: 'one TCP connection, Philadelphia to Sydney' },
     { value: '~1,300 ms', label: 'one query through the transaction pooler (~244 ms on the session pooler)' },
     { value: '~100', label: 'queries the all-time report ran one after another' },
   ],
@@ -345,7 +347,7 @@ export const PERF = {
   // what came after the rewrite (each measured on its own)
   later: [
     { value: '260 ms to 5 ms', label: 'the session lookup, with a 30 s per-user cache' },
-    { value: '1 request', label: 'the dashboard: three browser round trips became one server render (520-870 ms)' },
+    { value: '1 request', label: 'the dashboard: three browser round trips became one server render (520–870 ms)' },
     { value: '893 ms', label: 'analytics today, all time and uncached: 4 queries in one Promise.all plus the division list (241 ms from the 60 s cache)' },
   ],
   // the guard that keeps it fast: scripts/tests/perf-budget.mjs, nightly in CI
@@ -621,6 +623,6 @@ export const COPY = {
 export const OVERVIEW = [
   { label: 'What it is', text: 'The grant system for building churches across India: a pastor applies, HQ reviews, the President approves an amount, Finance releases it in three construction phases, and the finished church reports for three years.' },
   { label: 'Why it exists', text: 'Everything ran on paper. Applications were carried by hand, fund releases and site photos sat in separate ledgers, and no one had a single view of where each project stood.' },
-  { label: 'What Allen did', text: 'Sole engineer: the workflow engine, race-safe money movement, a Super Admin console that changes the rules without a deploy, the analytics rewrite (from 146.7 s to 1.28 s), the security audit, and CI.' },
+  { label: 'What I did', text: 'Sole engineer: the workflow engine, race-safe money movement, a Super Admin console that changes the rules without a deploy, the analytics rewrite (from 31.4 s to 1.28 s on the same connection), the security audit, and CI.' },
   { label: 'Where it stands', text: 'Live since October 2026. Staff at headquarters and across the divisions use it for every church-building application, and CI checks every change.' },
 ];

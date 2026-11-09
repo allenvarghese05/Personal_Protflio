@@ -1,6 +1,6 @@
 'use client';
 import { PALETTE as P, alpha, CATEGORY_COLOR } from '@/lib/palette';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { GRAPH } from '@/lib/motion';
 
@@ -34,6 +34,12 @@ const CATEGORY_LABEL = {
 const radiusOf = (n) => n.r ?? RADIUS_BY_IMPORTANCE[n.importance] ?? 12;
 const descOf = (n) => n.description || n.desc || '';
 
+const ZOOM_BUTTONS = [
+  { k: '+', label: 'Zoom in', by: 1.3 },
+  { k: '−', label: 'Zoom out', by: 1 / 1.3 },
+  { k: '⊡', label: 'Reset view', by: null },
+];
+
 export default function ArchitectureGraph({ nodes, edges, categoryColors, accent = P.accent }) {
   const colorOf = (n) =>
     n.color || categoryColors?.[n.category] || COLOR_BY_CATEGORY[n.category] || P.slate;
@@ -42,7 +48,15 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
   const zoomApi = useRef(null);
   const focusApi = useRef(null);
   const [tip, setTip] = useState(null); // { x, y, label, desc, category, connected[] }
-  const [legendItems, setLegendItems] = useState([]);
+  // Legend: the categories present, derived from the nodes (no state needed)
+  const legendItems = useMemo(
+    () =>
+      [...new Set((nodes || []).map((n) => n.category).filter(Boolean))].map((c) => ({
+        color: categoryColors?.[c] || COLOR_BY_CATEGORY[c] || P.slate,
+        label: CATEGORY_LABEL[c] || c,
+      })),
+    [nodes, categoryColors],
+  );
   const [showHint, setShowHint] = useState(true);
   const [zoomPct, setZoomPct] = useState(100);
 
@@ -77,9 +91,6 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
     let width = wrap.clientWidth || 600;
     let height = wrap.clientHeight || 360;
 
-    // Legend — categories present.
-    const cats = [...new Set(simNodes.map((n) => n.category).filter(Boolean))];
-    setLegendItems(cats.map((c) => ({ color: categoryColors?.[c] || COLOR_BY_CATEGORY[c] || P.slate, label: CATEGORY_LABEL[c] || c })));
 
     /* ---- SVG scaffold ------------------------------------------------- */
     svg.selectAll('*').remove();
@@ -355,7 +366,17 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
       window.removeEventListener('keydown', onKey);
       svg.on('.zoom', null).on('click', null).on('dblclick', null);
     };
+    // the simulation rebuilds only when the graph itself changes; colours ride along
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, edges]);
+
+  // the zoom buttons: a factor, or null to reset (the ref is read on click only)
+  const zoom = useCallback((by) => {
+    const api = zoomApi.current;
+    if (!api) return;
+    if (by == null) api.reset();
+    else api.zoomBy(by);
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setShowHint(false), 3000);
@@ -424,14 +445,10 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
 
       {/* zoom controls */}
       <div className="absolute bottom-2 right-2 flex flex-col gap-1">
-        {[
-          { k: '+', label: 'Zoom in', fn: () => zoomApi.current?.zoomBy(1.3) },
-          { k: '−', label: 'Zoom out', fn: () => zoomApi.current?.zoomBy(1 / 1.3) },
-          { k: '⊡', label: 'Reset view', fn: () => zoomApi.current?.reset() },
-        ].map((b) => (
+        {ZOOM_BUTTONS.map((b) => (
           <button
             key={b.k}
-            onClick={b.fn}
+            onClick={() => zoom(b.by)}
             aria-label={b.label}
             className="mc-ghost-btn flex h-7 w-7 items-center justify-center rounded-chip border border-line bg-surface text-[13px] tracking-normal hover:bg-surface-2"
           >

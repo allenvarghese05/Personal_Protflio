@@ -496,7 +496,7 @@ export const DATA_MODEL = {
 /* ── 10 how it was built — the git history and CI ─────────────────────────── */
 export const BUILD = {
   totals: [
-    { value: '39', label: 'pull requests, reviewed and merged by Allen' },
+    { value: '39', label: 'pull requests, each reviewed before merge' },
     { value: '32', label: 'design-doc tasks shipped, T0.1 to T3.6' },
     { value: '42', label: 'page design doc, written first' },
     { value: '12', label: 'migrations, each tested up and down' },
@@ -513,15 +513,6 @@ export const BUILD = {
     { value: '126', label: 'Vitest tests' },
     { value: '18', label: 'golden-fixture edge cases' },
     { value: '89', label: 'keystrokes in the golden fixture' },
-  ],
-  // the pipeline every task runs through (CLAUDE.md, "How work gets done")
-  pipeline: [
-    { key: 'understand', label: 'Understand', who: 'analyst agent', out: 'brief' },
-    { key: 'blueprint', label: 'Blueprint', who: 'architect agent', out: 'plan' },
-    { key: 'build', label: 'Build', who: 'builder agent', out: 'code · tests · commits' },
-    { key: 'review', label: 'Review', who: 'reviewer agent', out: 'verdict' },
-    { key: 'ship', label: 'Ship', who: 'orchestrator', out: 'pull request' },
-    { key: 'merge', label: 'Merge', who: 'Allen', out: 'main' },
   ],
   days: 37, // Sep 24 → Oct 30, 2026
 };
@@ -566,7 +557,7 @@ export const COPY = {
 
 /* ── the pilot: what actually happened (README pilot table, audited by just check-readme) ── */
 export const RESULTS = {
-  note: 'One participant (Allen, the builder, unblinded). Within-person comparison, not a population claim.',
+  note: 'One participant (me, the builder, unblinded). Within-person comparison, not a population claim.',
   sessions: 14,
   keystrokes: '25,022',
   headline: 'Errors fell from 16.8% to 5.4% across the two sets over 10 practice days.',
@@ -588,8 +579,8 @@ export const RESULTS = {
 export const OVERVIEW = [
   { label: 'What it is', text: 'A typing coach built as a small controlled experiment. It finds the letter pairs you’re weakest at and practises them three different ways, with plain practice as a control. Then it measures which way helped.' },
   { label: 'Why it exists', text: 'Typing tutors assume targeted drills work, and newer ones assume an AI writes better drills. None of them tests this fairly. A fair test needs the same exposure for every method, the same rule for what counts as a mistake, and a plan written before the results.' },
-  { label: 'What Allen built', text: 'Solo: keystroke capture in the browser, a first-attempt error rule that TypeScript and Python must both pass, weak-pair ranking, four fair practice sets, three drill generators including an on-device language model, one fairness gate, a blinded daily schedule, and the analysis and dashboard.' },
-  { label: 'Where it stands', text: 'Complete. Milestones M0 to M4 are merged, the configuration is frozen, and the analysis plan was committed before any results. Allen ran the pilot on himself: 14 sessions and 25,022 keystrokes. The error rate fell from 16.8% to 5.4% across the two sets, and in this one-person run the targeted drills came out even with plain practice.' },
+  { label: 'What I built', text: 'Solo: keystroke capture in the browser, a first-attempt error rule that TypeScript and Python must both pass, weak-pair ranking, four fair practice sets, three drill generators including an on-device language model, one fairness gate, a blinded daily schedule, and the analysis and dashboard.' },
+  { label: 'Where it stands', text: 'Complete. Milestones M0 to M4 are merged, the configuration is frozen, and the analysis plan was committed before any results. I ran the pilot on myself: 14 sessions and 25,022 keystrokes. The error rate fell from 16.8% to 5.4% across the two sets, and in this one-person run the targeted drills came out even with plain practice.' },
 ];
 
 /* ── why four methods ─────────────────────────────────────────────────────── */

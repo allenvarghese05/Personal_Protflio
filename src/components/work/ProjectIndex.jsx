@@ -23,9 +23,12 @@ import Link from 'next/link';
 import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion';
 import { projectById } from '@/data/projects';
 import { ALL_IDS, LAYOUT, OPENING, PROFILE, SHORT, SHOWCASE } from '@/data/showcase';
+import { EDUCATION, EXPERIENCE } from '@/data/about';
 import FlowIndex from './FlowIndex';
+import OverflowShowcase from './OverflowShowcase';
 import TechText from './TechText';
 import { GITHUB_MARK, LINKEDIN_MARK } from '@/lib/brandMarks';
+import { glideTo, useSmoothScroll } from '@/lib/smoothScroll';
 import dynamic from 'next/dynamic';
 
 // WebGL, client only: loads after the page, never blocks the first paint
@@ -43,7 +46,7 @@ function NameField({ theme }) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[min(500px,75vh)] w-screen -translate-x-1/2"
+      className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[min(500px,75vh)] w-screen -translate-x-1/2 opacity-50"
       style={{
         maskImage: 'linear-gradient(to bottom, black 35%, transparent 92%), radial-gradient(75% 90% at 50% 40%, black 45%, transparent 100%)',
         maskComposite: 'intersect',
@@ -71,19 +74,16 @@ function NameField({ theme }) {
   );
 }
 import Stage from './Stage';
-import { Chip, HowItWorks, Mark, Stats, Steps, TONE } from './parts';
+import { ArrowDot, Chip, HowItWorks, Mark, PILL, PILL_LINE, PILL_SOLID, Stats, Steps, TONE } from './parts';
 import { ThemeToggle, useWorkTheme } from './theme';
 
 const EASE_OUT = [0.16, 1, 0.3, 1];
 const WRAP = 'mx-auto w-full max-w-[1240px] px-5 sm:px-8';
+const RECENT = EXPERIENCE.find((j) => j.featured);
 // projects whose mark is a real emblem rather than a letter
 const MARK_IMAGE = { aircast: '/work/aircast-nominee.webp', 'bis-report-card': '/work/bis-crest.webp' };
 const NUMBER_WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
 
-const PILL =
-  'group/btn inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-full text-sm font-medium transition-[background-color,box-shadow,color,transform] duration-200 active:scale-[0.98]';
-const PILL_SOLID = `${PILL} bg-ink pl-5 pr-1.5 text-void hover:bg-accent`;
-const PILL_LINE = `${PILL} px-5 text-ink ring-1 ring-inset ring-line-hi hover:bg-surface-2 hover:ring-ink-subtle`;
 const LINK_QUIET = 'inline-flex h-9 items-center rounded-full px-3 text-sm text-ink-muted transition-colors duration-200 hover:text-ink';
 
 /** Scroll to a project (smoothly unless motion is reduced) and note it in the URL. */
@@ -94,7 +94,7 @@ function useJump() {
       const el = document.getElementById(id);
       if (!el) return;
       e?.preventDefault();
-      el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      glideTo(el, { reduce });
       history.replaceState(null, '', `#${id}`);
     },
     [reduce],
@@ -167,35 +167,14 @@ function Rise({ children, className = '', delay = 0, as = 'div', ...rest }) {
   );
 }
 
-function ArrowDot() {
-  return (
-    <span
-      aria-hidden
-      className="flex h-8 w-8 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--void)_14%,transparent)] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/btn:translate-x-0.5 group-hover/btn:scale-105"
-    >
-      →
-    </span>
-  );
-}
-
 function ResumeButton({ compact = false }) {
   const { href, label } = PROFILE.resume;
-  if (href) {
-    return (
-      <a href={href} target="_blank" rel="noreferrer" className={compact ? `${LINK_QUIET} font-medium text-ink` : PILL_LINE}>
-        {label} <span aria-hidden className="ml-1 text-ink-subtle">↗</span>
-      </a>
-    );
-  }
-  // template until the PDF exists (PROFILE.resume in src/data/showcase.js)
+  // hidden until the PDF exists (identity.resume in src/data/timeline.js)
+  if (!href) return null;
   return (
-    <span
-      aria-disabled="true"
-      title="Résumé coming soon"
-      className={`inline-flex h-9 cursor-not-allowed items-center gap-1.5 whitespace-nowrap rounded-full border border-dashed border-line-hi px-3 text-sm text-ink-subtle ${compact ? '' : 'h-11 px-5'}`}
-    >
-      {label} <span className="text-label">soon</span>
-    </span>
+    <a href={href} target="_blank" rel="noreferrer" className={compact ? `${LINK_QUIET} font-medium text-ink` : PILL_LINE}>
+      {label} <span aria-hidden className="ml-1 text-ink-subtle">↗</span>
+    </a>
   );
 }
 
@@ -407,6 +386,85 @@ function EarlierRow({ id, i }) {
   );
 }
 
+/** Experience: the engineering roles as rows, the other jobs as one quiet list. */
+function ExperienceRow({ job, i }) {
+  const project = job.project && projectById(job.project);
+  return (
+    <Rise
+      as="article"
+      delay={i * 0.06}
+      className="grid grid-cols-1 gap-x-10 gap-y-3 border-t border-line py-7 lg:grid-cols-12"
+    >
+      <div className="flex flex-col gap-1.5 lg:col-span-4">
+        <h3 className="font-display text-[1.5rem] font-semibold leading-[1.1] tracking-[-0.025em] text-ink">{job.role}</h3>
+        <span className="text-sm text-ink-muted">
+          {job.org} <span className="text-ink-subtle">· {job.dates}</span>
+        </span>
+      </div>
+      <div className="flex flex-col gap-3 lg:col-span-6">
+        <p className="text-[0.975rem] leading-relaxed text-ink-muted">{job.line}</p>
+        {job.tags && (
+          <div className="flex flex-wrap gap-1.5">
+            {job.tags.map((t) => (
+              <span key={t} className="rounded-full px-2.5 py-0.5 text-label text-ink-subtle ring-1 ring-inset ring-line">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="lg:col-span-2 lg:flex lg:justify-end">
+        {project && (
+          <Link
+            href={`/projects/${project.id}`}
+            className="group/btn inline-flex items-center gap-2 text-sm font-medium text-ink"
+            aria-label={`Read the case study: ${project.label}`}
+          >
+            Case study
+            <span aria-hidden className="transition-transform duration-200 group-hover/btn:translate-x-1">
+              →
+            </span>
+          </Link>
+        )}
+      </div>
+    </Rise>
+  );
+}
+
+function Experience() {
+  const featured = EXPERIENCE.find((j) => j.featured);
+  const core = EXPERIENCE.filter((j) => j.kind !== 'other' && !j.featured);
+  const other = EXPERIENCE.filter((j) => j.kind === 'other');
+  return (
+    <section id="experience" aria-labelledby="experience-title" className="scroll-mt-24 pb-8 pt-16 sm:pt-20">
+      <TierHead
+        id="experience-title"
+        title="Experience"
+        line={`${EDUCATION.degree} · ${EDUCATION.school}, ${EDUCATION.dates.toLowerCase()} · ${EDUCATION.place}`}
+      />
+      {featured && (
+        <div className="mt-12">
+          <OverflowShowcase job={featured} />
+        </div>
+      )}
+      <div className="mt-20 border-b border-line">
+        {core.map((job, i) => (
+          <ExperienceRow key={job.org} job={job} i={i} />
+        ))}
+      </div>
+      {other.length > 0 && (
+        <Rise as="ul" className="mt-6 flex flex-col gap-2 text-sm text-ink-subtle">
+          {other.map((job) => (
+            <li key={job.org}>
+              <span className="text-ink-muted">{job.role}</span>, {job.org} · {job.dates}. {job.line}
+            </li>
+          ))}
+        </Rise>
+      )}
+    </section>
+  );
+}
+
 function TierHead({ id, title, line }) {
   return (
     <Rise className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -422,6 +480,8 @@ export default function ProjectIndex() {
   const [theme, toggleTheme] = useWorkTheme();
   const reduce = useReducedMotion();
   const jump = useJump();
+  // the page glides under a wheel (see lib/smoothScroll)
+  useSmoothScroll('window');
   const current = useCurrent();
   useKeys(current, jump);
   const { scrollYProgress } = useScroll();
@@ -432,7 +492,7 @@ export default function ProjectIndex() {
     <div className="work-root mc-root min-h-[100dvh]">
       <header data-noprint className="sticky top-0 z-30 bg-[color-mix(in_srgb,var(--void)_86%,transparent)] backdrop-blur-xl">
         <div className={`${WRAP} flex h-16 items-center justify-between gap-3`}>
-          <Link href="/projects" className="flex min-w-0 items-center gap-3 text-ink" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); }}>
+          <Link href="/projects" className="flex min-w-0 items-center gap-3 text-ink" onClick={(e) => { e.preventDefault(); glideTo(0, { wrapper: window, reduce }); }}>
             <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink text-[11px] font-bold text-void">
               AV
             </span>
@@ -530,6 +590,22 @@ export default function ProjectIndex() {
                 )}
               </p>
               <p className="mt-2 text-sm text-ink-subtle">Written up from the code · Updated {PROFILE.updated}</p>
+              {/* the job, on the first screen: Overflow isn't a name people know yet */}
+              {RECENT && (
+                <a
+                  href="#experience"
+                  onClick={(e) => jump(e, 'experience')}
+                  className="group mt-5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-ink-muted transition-colors hover:text-ink lg:justify-end"
+                >
+                  {/* the label on its own row, so the role line never squeezes it */}
+                  <span className="basis-full whitespace-nowrap font-mono text-micro uppercase tracking-[0.16em] text-accent">Most recently</span>
+                  <span>
+                    {RECENT.role}, <span className="font-medium text-ink">{RECENT.org}</span>
+                    {RECENT.returnOffer && <span className="text-ink-subtle"> · return offer received</span>}
+                  </span>
+                  <span aria-hidden className="transition-transform duration-200 group-hover:translate-y-0.5">↓</span>
+                </a>
+              )}
               <div className="mt-6">
                 <ContactButtons />
               </div>
@@ -539,11 +615,12 @@ export default function ProjectIndex() {
           <FlowIndex onJump={jump} />
         </section>
 
+        {/* ── experience: the jobs, before the work, for the recruiter skim ── */}
+        <Experience />
+
         {/* ── featured ── */}
-        <section aria-labelledby="featured-title">
-          <h2 id="featured-title" className="sr-only">
-            Featured projects
-          </h2>
+        <section aria-labelledby="featured-title" className="pt-16 sm:pt-20">
+          <TierHead id="featured-title" title="Featured projects" line={`${NUMBER_WORDS[LAYOUT.featured.length] || LAYOUT.featured.length} projects in depth, each written up from its own code.`} />
           {LAYOUT.featured.map((id, i) => (
             <Featured key={id} id={id} flip={i % 2 === 1} first={i === 0} />
           ))}
@@ -551,7 +628,7 @@ export default function ProjectIndex() {
 
         {/* ── in progress ── */}
         <section aria-labelledby="progress-title" className="py-20 sm:py-28">
-          <TierHead id="progress-title" title="In progress" line="Built now, still moving: an iOS wake detector, a typing experiment and a live audio engine." />
+          <TierHead id="progress-title" title="In progress" line="Built now, still moving: an iOS wake detector and a live audio engine." />
           <div className="mt-12 grid grid-cols-1 gap-x-8 gap-y-16 md:grid-cols-2 lg:grid-cols-3">
             {LAYOUT.progress.map((id, i) => (
               <ProgressCard key={id} id={id} i={i} />

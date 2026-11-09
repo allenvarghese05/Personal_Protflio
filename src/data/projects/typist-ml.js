@@ -11,14 +11,14 @@ export const project = {
   badge: 'RESEARCH BUILD · COMPLETE · PILOT RUN · SOLO',
   label: 'Typist-ML',
   subtitle:
-    'A typing coach built as a controlled experiment, with four drill methods, one fairness gate and a frozen design. Complete, with a 14-session pilot run.',
+    'A typing coach built as a fair experiment: four ways to drill your weakest letter pairs, tested against plain practice. Complete, with a 14-session pilot run.',
   role: 'Sole researcher & engineer',
   company: 'Independent research project',
   dateRange: 'Sep 2026 to now',
   location: 'Local-only · Apple Silicon',
   repo: 'https://github.com/allenvarghese05/typist-ml',
   description:
-    'A typing coach built as a within-person experiment. It records every keystroke, works out which letter pairs a participant is weakest at, deals the sixteen weakest into four equally hard sets, and gives each set one drill method: plain practice, a dictionary heuristic, a character-level Markov chain, or a 1B-parameter language model running on the laptop. Every drill passes one shared fairness gate. Milestones M0 to M4 are merged (capture, assignment, generators, the frozen config and plan, the analysis and the dashboard), so the code is complete. Allen ran the pilot on himself: 14 sessions and 25,022 keystrokes, and the error rate fell from 16.8% to 5.4% across the two sets. In this one-person run, the targeted drills came out even with plain practice, and the write-up says so plainly. Allen wrote the 42-page design doc and specified every task. The code is built through a coding-agent pipeline he designed, and he reviews and merges every pull request.',
+    'A typing coach built as a within-person experiment. It records every keystroke, works out which letter pairs a participant is weakest at, deals the sixteen weakest into four equally hard sets, and gives each set one drill method: plain practice, a dictionary heuristic, a character-level Markov chain, or a 1B-parameter language model running on the laptop. Every drill passes one shared fairness gate. Milestones M0 to M4 are merged (capture, assignment, generators, the frozen config and plan, the analysis and the dashboard), so the code is complete. I ran the pilot on myself: 14 sessions and 25,022 keystrokes, and the error rate fell from 16.8% to 5.4% across the two sets. In this one-person run, the targeted drills came out even with plain practice, and the write-up says so plainly. I wrote the 42-page design doc, specified every task, and reviewed and merged every pull request.',
   tags: ['Python · FastAPI', 'React 19 · TypeScript', 'SQLite', 'mlx-lm · Llama 3.2 1B', 'Experiment design'],
   metrics: [
     { value: '4', label: 'Drill methods behind one fairness gate' },
@@ -44,14 +44,14 @@ export const project = {
   ],
   // the git history, chapter by chapter (start / end are commit dates on main)
   timeline: [
-    { week: 'Sep 24-25', start: '2026-09-24', end: '2026-09-25', title: 'Design first', desc: 'The 42-page design doc (v1.0), the repo skeleton and the five-phase agent pipeline.', done: true },
-    { week: 'Sep 25-29', start: '2026-09-25', end: '2026-09-29', title: 'M0 · Setup', desc: 'Web and API scaffolds, CI with security scans, the on-device model smoke test, the analysis-plan skeleton.', done: true },
+    { week: 'Sep 24–25', start: '2026-09-24', end: '2026-09-25', title: 'Design first', desc: 'The 42-page design doc (v1.0) and the repo skeleton.', done: true },
+    { week: 'Sep 25–29', start: '2026-09-25', end: '2026-09-29', title: 'M0 · Setup', desc: 'Web and API scaffolds, CI with security scans, the on-device model smoke test, the analysis-plan skeleton.', done: true },
     { week: 'Sep 30 to Oct 13', start: '2026-09-30', end: '2026-10-13', title: 'Schema & fixture', desc: 'The first six tables, then the golden fixture: 89 keystrokes, 18 edge cases, signed off Oct 13.', done: true },
-    { week: 'Oct 14-20', start: '2026-10-14', end: '2026-10-20', title: 'Telemetry', desc: 'TextCursor, KeystrokeRecorder, the per-cell typing surface, and the upload buffer with an idempotent endpoint.', done: true },
-    { week: 'Oct 20-21', start: '2026-10-20', end: '2026-10-21', title: 'Attribution & stats', desc: 'Python attribution with property tests, the 20,000-word corpus and form A, session stats, the bigram matrix page.', done: true },
-    { week: 'Oct 21-28', start: '2026-10-21', end: '2026-10-28', title: 'M2 · The loop', desc: 'Assignment, the gate, control and heuristic, the worker, the planner, form B, the admin page, a scripted end-to-end test.', done: true },
-    { week: 'Oct 28-30', start: '2026-10-28', end: '2026-10-30', title: 'M3 · Markov, LLM, freeze', desc: 'The Markov chain, the MLX language-model generator, the bake-off harness, density calibration, the config freeze, the dated analysis plan.', done: true },
-    { week: 'Oct 30-31', start: '2026-10-30', end: '2026-10-31', title: 'M4 · Analysis & dashboard', desc: 'Outcomes with Jeffreys intervals and posterior effect samples, the dashboard pages, the results notebook and README figures. The code is complete.', done: true },
+    { week: 'Oct 14–20', start: '2026-10-14', end: '2026-10-20', title: 'Telemetry', desc: 'TextCursor, KeystrokeRecorder, the per-cell typing surface, and the upload buffer with an idempotent endpoint.', done: true },
+    { week: 'Oct 20–21', start: '2026-10-20', end: '2026-10-21', title: 'Attribution & stats', desc: 'Python attribution with property tests, the 20,000-word corpus and form A, session stats, the bigram matrix page.', done: true },
+    { week: 'Oct 21–28', start: '2026-10-21', end: '2026-10-28', title: 'M2 · The loop', desc: 'Assignment, the gate, control and heuristic, the worker, the planner, form B, the admin page, a scripted end-to-end test.', done: true },
+    { week: 'Oct 28–30', start: '2026-10-28', end: '2026-10-30', title: 'M3 · Markov, LLM, freeze', desc: 'The Markov chain, the MLX language-model generator, the bake-off harness, density calibration, the config freeze, the dated analysis plan.', done: true },
+    { week: 'Oct 30–31', start: '2026-10-30', end: '2026-10-31', title: 'M4 · Analysis & dashboard', desc: 'Outcomes with Jeffreys intervals and posterior effect samples, the dashboard pages, the results notebook and README figures. The code is complete.', done: true },
   ],
   architectureGraph: {
     nodes: [
@@ -120,12 +120,12 @@ export const caseStudy = {
   problem:
     'Drills aimed at your weakest letter pairs sound like they should help, but does targeted practice actually beat plain practice, and does a small language model write better drills than a dictionary or a Markov chain? Answering that honestly takes a fair test.',
   built:
-    'A local-only typing coach built as a within-person experiment. It records every keystroke, finds each participant’s weakest letter pairs, deals the sixteen weakest into four equally hard sets and gives each set one drill method: plain practice, a dictionary heuristic, a character-level Markov chain, or Llama 3.2 1B running on the laptop. Every drill passes the same gate. The design, the config and the analysis plan are frozen before the first practice session. Milestones M0 to M4 are merged, so the code is complete. Allen ran the pilot on himself: 14 sessions and 25,022 keystrokes. Errors fell from 16.8% to 5.4% across the two sets, and in this one-person run the targeted drills came out even with plain practice.',
+    'A local-only typing coach built as a within-person experiment. It records every keystroke, finds each participant’s weakest letter pairs, deals the sixteen weakest into four equally hard sets and gives each set one drill method: plain practice, a dictionary heuristic, a character-level Markov chain, or Llama 3.2 1B running on the laptop. Every drill passes the same gate. The design, the config and the analysis plan are frozen before the first practice session. Milestones M0 to M4 are merged, so the code is complete. I ran the pilot on myself: 14 sessions and 25,022 keystrokes. Errors fell from 16.8% to 5.4% across the two sets, and in this one-person run the targeted drills came out even with plain practice.',
   how: [
     'What counts as an error is set by one hand-signed fixture (89 keystrokes, 18 edge cases) that the TypeScript cursor and the Python attribution both have to pass.',
     'Weak pairs are ranked with an empirical-Bayes prior, snake-dealt into four sets that sum to the same rank, mapped to methods by a seeded shuffle, and frozen by a database trigger.',
     'One pure validator judges every drill from every method; a separate worker claims jobs atomically and logs every attempt with its own SHA-256-derived seed.',
-    'Allen wrote the design doc and specified each task. Analyst, architect, builder and reviewer coding agents do the work in a pipeline he designed, and he reviews and merges every pull request.',
+    'I wrote the 42-page design doc first, then built it one task at a time, each one a reviewed pull request with CI.',
   ],
   next: [
     'Record the on-device language-model bake-off on the M1 Pro. The harness is built, but no measured run is committed yet.',

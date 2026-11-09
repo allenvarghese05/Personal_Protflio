@@ -392,18 +392,6 @@ if roundtrip.replace(tzinfo=None) != local_fold0.replace(tzinfo=None):
   },
 ];
 
-/* ── how the code was written — AGENTS.md, .pi/agents/*.md ──────────────── */
-// A four-stage AI coding-agent pipeline, with the owner at every gate.
-export const PIPELINE = {
-  stages: [
-    { key: 'understand', agent: 'understander', model: 'Claude Haiku 4.5', writes: 'the task brief: facts, open questions, an approach', gate: 'Allen answers the questions' },
-    { key: 'implement', agent: 'implementer', model: 'Claude Sonnet 4.6', writes: 'the plan, then the code, tests and commits', gate: 'Allen signs off' },
-    { key: 'review', agent: 'reviewer', model: 'Claude Opus 4.6', writes: 'APPROVE or CHANGES NEEDED, and sends fixes back to the implementer', gate: 'Allen signs off' },
-    { key: 'push', agent: 'pusher', model: 'Claude Haiku 4.5', writes: 'the branch and the pull request', gate: 'Allen merges; no agent is allowed to' },
-  ],
-  record: 'a brief and a plan for each of the 22 merged tasks, in docs/plans/',
-};
-
 /* ── architecture — node ids are project.architectureGraph ids ──────────── */
 export const LAYERS = [
   { key: 'who', label: 'Phone · owner', nodes: ['iphone', 'sensors', 'owner-cli'] },
@@ -474,7 +462,7 @@ export const DATA_MODEL = {
 export const BUILD = {
   prs: { allen: 20, dependabot: 3 },
   totals: [
-    { value: '25', label: 'merged pull requests (22 by Allen, 3 Dependabot)' },
+    { value: '25', label: 'merged pull requests (22 mine, 3 Dependabot)' },
     { value: '34', label: 'architecture decision records' },
     { value: '9.7k', label: 'lines of API Python' },
     { value: '12.7k', label: 'lines of API tests' },
@@ -499,7 +487,7 @@ export const BUILD = {
 /* ── the page's own copy ─────────────────────────────────────────────────── */
 export const COPY = {
   outcome:
-    'A wake detector for one person. An iPhone’s steps, unlocks and charger state are scored on a MacBook to decide whether he is really up. The engine is built and tested; the morning reel it will trigger is planned.',
+    'A wake detector for one person. An iPhone’s steps, unlocks and charger state are scored on a MacBook to decide whether I’m really up. The engine is built and tested; the morning reel it will trigger is planned.',
   status: 'In progress · engine built, reel planned',
   figureCaption: 'One test morning, scored rule by rule',
   before: [
@@ -528,7 +516,7 @@ export const COPY = {
 export const OVERVIEW = [
   { label: 'What it is', text: 'A personal morning system. It uses the phone’s own signals (steps, walking, unlocking, the charger, opening the app) to work out when its one user is really up, so a one-minute morning briefing can arrive then instead of at a fixed alarm time.' },
   { label: 'Why it exists', text: 'An alarm knows the time, not whether you’re awake, and a 3 a.m. glance at the phone looks just like getting up. iOS gives apps no unlock event and no background loop, so the server has to run the morning and ask the phone.' },
-  { label: 'What Allen built', text: 'Solo: a FastAPI service on a MacBook with an explainable, versioned scoring engine, a scheduler that wakes the phone with silent pushes, telemetry ingest, and replay of past mornings under new rules. Also the iPhone side, from the sensor module to a durable telemetry outbox.' },
+  { label: 'What I built', text: 'Solo: a FastAPI service on a MacBook with an explainable, versioned scoring engine, a scheduler that wakes the phone with silent pushes, telemetry ingest, and replay of past mornings under new rules. Also the iPhone side, from the sensor module to a durable telemetry outbox.' },
   { label: 'Where it stands', text: 'In progress. The wake engine is built and tested. The phone side runs in the iOS Simulator and still needs its locked-iPhone test. The Morning Reel it triggers (news, script, voice, video) is designed but not built.' },
 ];
 

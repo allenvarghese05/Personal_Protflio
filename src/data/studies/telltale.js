@@ -30,7 +30,7 @@ export const COPY = {
     'Every rate is a fitted slope that counts only when it passes a significance test',
   ],
   built:
-    'Built solo by Allen for the Meta Global AI Developer Hackathon 2026 (indie track, 26 Oct to 4 Nov 2026), under the engineering rules in AGENTS.md. The work ran as four parallel tracks in separate git worktrees: video evidence, vehicle logs and physics, the agent and checker, and the replay site. The dashcam video is real (the Nexar Collision Dataset). The CAN and ADAS logs are synthetic, because real fleet logs are proprietary.',
+    'I built it solo for the Meta Global AI Developer Hackathon 2026 (indie track, 26 Oct to 4 Nov 2026). The work ran as four parallel tracks: video evidence, vehicle logs and physics, the agent and checker, and the replay site. The dashcam video is real (the Nexar Collision Dataset). The CAN and ADAS logs are synthetic, because real fleet logs are proprietary.',
   next: [
     'Label every verdict as robust or timing-sensitive. With the video’s measured timing error applied, the verdict stays the same only 46% of the time.',
     'Build the v2 physics model: a lead car that can brake, and a separate air-brake delay for trucks. It is written up in the README, not built.',
@@ -114,7 +114,7 @@ export const DECISIONS = [
     kicker: 'Trust',
     title: 'The AI decides, and code decides again without telling it',
     problem: 'Checking each claim is not enough. An agent can state true numbers and still reach the wrong conclusion, and a crash report’s conclusion is the part people act on.',
-    decision: 'Allen kept two verdicts. Deterministic attribution reaches one from the evidence and stores it as ATTR:label, which the agent cannot see. The agent reaches its own with tools. The checker compares them, and a disagreement withholds the report for human review.',
+    decision: 'I kept two verdicts. Deterministic attribution reaches one from the evidence and stores it as ATTR:label, which the agent cannot see. The agent reaches its own with tools. The checker compares them, and a disagreement withholds the report for human review.',
     tradeoff: 'The independent verdict is only as good as the attribution rules and the evidence timing. On the synthetic close-call and robustness sets, the expected labels come from the same attribution, so accuracy there is consistency by construction.',
     caption: 'Two verdicts from the same evidence',
     steps: ['Attribution runs in a fixed order: incomplete brake log, then unavoidable, then no fault, then the step furthest over its limit', 'Its result is stored as ATTR:label, hidden from the agent', 'The agent investigates with six tools and submits its own verdict', 'The checker compares the two labels', 'Different labels: the report is withheld pending human review'],
@@ -141,7 +141,7 @@ export const DECISIONS = [
     kicker: 'Checker',
     title: 'A true subtraction that meant the wrong thing',
     problem: 'On a late-handoff case, Muse Wonder measured the “command” time from the brake request the human driver made after the car handed back control. The claim “Command took 2.39 s (8.482 s minus 6.0895 s), well above the 0.1 s command threshold” passed: the subtraction was right, but the interval was not the one the threshold judges.',
-    decision: 'Allen added rule R6. Each threshold names the intervals it judges, and a claim that compares any other interval with it is blocked. The command threshold never applies after a handoff.',
+    decision: 'I added rule R6. Each threshold names the intervals it judges, and a claim that compares any other interval with it is blocked. The command threshold never applies after a handoff.',
     tradeoff: 'Its first version blocked 12 true claims and was loosened before the live run. On the 20 new cases it still blocked one true claim, and one misleading argument with true numbers and no threshold got through, so the independent verdict check stays the last line.',
     caption: 'What R6 found',
     steps: ['The wrong verdict was withheld by the verdict check, not by the claim rules', 'Re-checked offline over 132 earlier runs (1,158 claims): 6 claims newly blocked, no verdict changed', '20 new confusable cases built around the mistake: 8 wrong-interval claims', 'R6 blocked all 8; the old checker would have verified all 8', '1 true claim blocked by R6 (a false alarm)'],
@@ -231,6 +231,6 @@ export const BUILD = {
 export const OVERVIEW = [
   { label: 'What it is', text: 'A crash investigator for cars with driver-assist. Meta AI watches real dashcam video and reads the car’s logs to decide which step failed: noticing the danger, commanding the brakes, the brakes themselves, or handing control back. Plain Python then has to reproduce every number and the verdict.' },
   { label: 'Why it exists', text: 'Built for the Meta Global AI Developer Hackathon 2026. Language models still state things that are not true, and a crash report cannot contain one invented number. So the AI makes the decision, and code checks every word of it before a person sees it.' },
-  { label: 'What Allen built', text: 'Solo: the video evidence from SAM 3.1 tracks, the Muse Spark witness, the synthetic log generator and clock alignment, the braking physics and attribution, the Muse Wonder agent and its six tools, the checker, the code-written report, the replay site, and the benchmarks that grade it.' },
-  { label: 'Where it stands', text: 'A hackathon build with a live replay. In 151 live investigations the AI was wrong twice and the checker held both back. The logs are synthetic, the danger-onset benchmark grades weak, and a realistic timing error changes about half of verdicts, which the README reports.' },
+  { label: 'What I built', text: 'Solo: the video evidence from SAM 3.1 tracks, the Muse Spark witness, the synthetic log generator and clock alignment, the braking physics and attribution, the Muse Wonder agent and its six tools, the checker, the code-written report, the replay site, and the benchmarks that grade it.' },
+  { label: 'Where it stands', text: 'A hackathon build with a live replay. In 151 live investigations the AI was wrong twice, and the checker caught both before they reached a report. Its limits (synthetic vehicle logs, a weak danger-onset grade, sensitivity to video timing) are measured further down.' },
 ];
