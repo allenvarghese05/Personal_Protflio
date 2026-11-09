@@ -1,5 +1,5 @@
 'use client';
-import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
@@ -186,6 +186,16 @@ function ReadyGate() {
 export default function IntroExperience({ tier = 'full' }) {
   const bloomRef = useRef();
   const vignetteRef = useRef();
+  // Function refs, not ref objects: @react-three/postprocessing keys each
+  // effect on JSON.stringify(props), and in React 19 a ref object is a prop.
+  // Once it holds the live effect (a circular object), any re-render (the
+  // theme toggle) would throw. JSON.stringify skips functions.
+  const setBloom = useCallback((e) => {
+    bloomRef.current = e;
+  }, []);
+  const setVignette = useCallback((e) => {
+    vignetteRef.current = e;
+  }, []);
   const full = tier === 'full';
   const palette = usePalette();
   return (
@@ -209,8 +219,8 @@ export default function IntroExperience({ tier = 'full' }) {
         <>
           <FxDriver bloomRef={bloomRef} vignetteRef={vignetteRef} />
           <EffectComposer multisampling={0}>
-            <Bloom ref={bloomRef} intensity={1.15} luminanceThreshold={0} luminanceSmoothing={0.3} mipmapBlur />
-            <Vignette ref={vignetteRef} eskil={false} offset={0.3} darkness={0.7} />
+            <Bloom ref={setBloom} intensity={1.15} luminanceThreshold={0} luminanceSmoothing={0.3} mipmapBlur />
+            <Vignette ref={setVignette} eskil={false} offset={0.3} darkness={0.7} />
             <Noise opacity={0.03} blendFunction={BlendFunction.OVERLAY} />
             <EntryDistortion />
           </EffectComposer>
