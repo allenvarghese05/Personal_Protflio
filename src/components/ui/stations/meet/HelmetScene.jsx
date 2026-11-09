@@ -4,6 +4,7 @@ import { createPortal, useFrame, useThree } from '@react-three/fiber';
 import { Lightformer, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { PALETTE } from '@/lib/palette';
+import { usePalette, useThemeValue } from '@/lib/useTheme';
 
 /**
  * Meet Me: the helmet, on a suit, lit like a studio product shot. Built in
@@ -34,6 +35,11 @@ import { PALETTE } from '@/lib/palette';
  * page, so the figure is seen the same way wherever the slot is.
  *
  * Frames are drawn on demand, only while something is moving.
+ *
+ * Light mode: the canvas is transparent, so the figure already stands on the
+ * page's white; the studio it reflects gets a pale floor instead of a dark
+ * one (the gold picks up a bright room), and the painted details take the
+ * light theme's amber. The portrait itself is never touched.
  */
 
 const R = 1; // helmet radius
@@ -840,8 +846,9 @@ function Peek({ still, liveRef, slotRef, peekRef }) {
  * The reflection map: the warm studio the helmet is lit in, rendered into a
  * cube map once. It's what makes the gold glow.
  */
-function ReflectionRoom({ children }) {
+function ReflectionRoom({ version, children }) {
   const get = useThree((st) => st.get);
+  const invalidate = useThree((st) => st.invalidate);
   const [room] = useState(() => new THREE.Scene());
   const dirty = useRef(true);
   const fbo = useMemo(() => {
@@ -859,6 +866,11 @@ function ReflectionRoom({ children }) {
       fbo.dispose();
     };
   }, [get, fbo]);
+  // a new room (the theme changed): render the cube map again, once
+  useEffect(() => {
+    dirty.current = true;
+    invalidate();
+  }, [version, invalidate]);
   useFrame(({ gl }) => {
     if (!dirty.current) return;
     dirty.current = false;
@@ -909,6 +921,14 @@ export default function HelmetScene({ progress, slot, live, still = false, pose 
   const body = useRef();
   const head = useRef();
   const keyPos = useMemo(() => KEY.clone().multiplyScalar(9).toArray(), []);
+  const theme = useThemeValue();
+  const palette = usePalette();
+  const invalidate = useThree((st) => st.invalidate);
+  // the painted amber (hinge caps, seal line) follows the theme's accent
+  useEffect(() => {
+    accentPaintMat.color.set(palette.accent);
+    invalidate();
+  }, [palette, invalidate]);
 
   return (
     <>
@@ -917,8 +937,9 @@ export default function HelmetScene({ progress, slot, live, still = false, pose 
       <Peek still={still} liveRef={live} slotRef={slot} peekRef={peek} />
 
       {/* reflections: a warm sheen overhead for the gold, a softbox up left,
-          ice panels left and right, an amber console strip, a dark floor */}
-      <ReflectionRoom>
+          ice panels left and right, an amber console strip, a dark floor
+          (a pale one in light mode) */}
+      <ReflectionRoom version={theme}>
         <Lightformer form="rect" intensity={0.7} color="#ffd9a8" position={[0, 5, 5]} scale={[16, 5, 1]} />
         {/* directly overhead: keeps the lifted visor gold over the crown */}
         <Lightformer form="rect" intensity={0.9} color="#ffc98a" position={[0, 6, -1]} scale={[8, 6, 1]} />
@@ -926,7 +947,7 @@ export default function HelmetScene({ progress, slot, live, still = false, pose 
         <Lightformer form="rect" intensity={1.1} color="#9cc3ff" position={[4, 0.5, -1]} scale={[3, 5, 1]} />
         <Lightformer form="rect" intensity={0.9} color="#9cc3ff" position={[-5, 0.4, 3]} scale={[1.2, 4, 1]} />
         <Lightformer form="rect" intensity={1.6} color="#ff9a3c" position={[4.5, -1.2, 3.5]} scale={[4, 0.35, 1]} />
-        <Lightformer form="rect" intensity={0.5} color="#2a3150" position={[0, -3, 0]} rotation-x={Math.PI / 2} scale={[10, 10, 1]} />
+        <Lightformer form="rect" intensity={0.5} color={theme === 'light' ? '#dfe3ee' : '#2a3150'} position={[0, -3, 0]} rotation-x={Math.PI / 2} scale={[10, 10, 1]} />
       </ReflectionRoom>
 
       <ambientLight intensity={0.16} />

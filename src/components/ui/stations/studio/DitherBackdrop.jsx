@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { PALETTE } from '@/lib/palette';
+import { usePalette, useThemeValue } from '@/lib/useTheme';
 
 /**
  * The viewer's backdrop: the open photograph again, filling the room, as a
@@ -14,6 +14,10 @@ import { PALETTE } from '@/lib/palette';
  * maths, re-inked to Signal Amber's void/ink, cover-fitted, driven by the
  * pointer anywhere in the viewer, and drawn only while something changes.
  * Still under reduced motion.
+ *
+ * In light mode it's printed rather than lit: the room is white and the
+ * photo's darks become the ink dots (uInvert), so it reads as a pale
+ * halftone of the shot, not its negative.
  */
 const VERT = /* glsl */ `
 attribute vec2 aPos;
@@ -36,6 +40,7 @@ uniform float uTime;
 uniform float uWave;
 uniform vec3 uDark;
 uniform vec3 uLight;
+uniform float uInvert;    // 1 in light mode: the darks take the ink
 varying vec2 vUv;
 
 float bayer2(vec2 a) { a = floor(a); return fract(a.x * 0.5 + a.y * a.y * 0.75); }
@@ -58,6 +63,7 @@ void main() {
   float thr = bayer8(gl_FragCoord.xy / (3.0 * uDpr));
   float adj = g + (thr - 0.5) * 0.5;
   float tone = adj < 0.33 ? 0.0 : (adj < 0.66 ? 0.5 : 1.0);
+  tone = mix(tone, 1.0 - tone, uInvert);
 
   // dim everywhere; brighter and a little of the real colour near the cursor
   float level = mix(0.32, 0.7, near);
@@ -75,6 +81,8 @@ export default function DitherBackdrop({ src, radius = 320, className = '' }) {
   const host = useRef(null);
   const canvas = useRef(null);
   const reduced = useReducedMotion();
+  const palette = usePalette();
+  const light = useThemeValue() === 'light';
 
   useEffect(() => {
     const cv = canvas.current;
@@ -103,14 +111,15 @@ export default function DitherBackdrop({ src, radius = 320, className = '' }) {
     gl.enableVertexAttribArray(aPos);
     gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
     const U = (n) => gl.getUniformLocation(prog, n);
-    const u = { res: U('uRes'), dpr: U('uDpr'), img: U('uImgAspect'), mouse: U('uMouse'), active: U('uActive'), radius: U('uRadius'), time: U('uTime'), wave: U('uWave'), dark: U('uDark'), light: U('uLight') };
-    gl.uniform3fv(u.dark, hex(PALETTE.void));
-    gl.uniform3fv(u.light, hex(PALETTE.ink));
+    const u = { res: U('uRes'), dpr: U('uDpr'), img: U('uImgAspect'), mouse: U('uMouse'), active: U('uActive'), radius: U('uRadius'), time: U('uTime'), wave: U('uWave'), dark: U('uDark'), light: U('uLight'), invert: U('uInvert') };
+    gl.uniform3fv(u.dark, hex(palette.void));
+    gl.uniform3fv(u.light, hex(palette.ink));
+    gl.uniform1f(u.invert, light ? 1 : 0);
 
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([7, 8, 12, 255]));
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(light ? [255, 255, 255, 255] : [7, 8, 12, 255]));
     [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T].forEach((p) => gl.texParameteri(gl.TEXTURE_2D, p, gl.CLAMP_TO_EDGE));
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -193,7 +202,7 @@ export default function DitherBackdrop({ src, radius = 320, className = '' }) {
       // (no loseContext here: in dev, React re-runs effects on the same canvas,
       // and a lost context would come straight back dead)
     };
-  }, [src, radius, reduced]);
+  }, [src, radius, reduced, palette, light]);
 
   return (
     <div ref={host} aria-hidden className={`pointer-events-none absolute inset-0 transition-opacity duration-1000 ${className}`} style={{ opacity: 0 }}>

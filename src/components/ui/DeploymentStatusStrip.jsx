@@ -1,11 +1,12 @@
 'use client';
-import { PALETTE as P } from '@/lib/palette';
+import { usePalette, useThemeValue } from '@/lib/useTheme';
 import { useState } from 'react';
 
 /**
  * LearnFlow-specific strip between the bento grid and the architecture graph:
  * live deployment status on the left, a static screenshot carousel on the
- * right. Uses the shared .mc-panel / .mc-label primitives.
+ * right. Uses the shared .mc-panel / .mc-label primitives. Colours follow the
+ * site's theme (usePalette).
  */
 
 function PanelShell({ label, className = '', children }) {
@@ -27,6 +28,7 @@ function StatusCell({ label, value }) {
 }
 
 function DeploymentPanel({ deployment }) {
+  const P = usePalette();
   const [launching, setLaunching] = useState(false);
   const href = deployment.href || `https://${deployment.url}`;
 
@@ -84,8 +86,13 @@ function DeploymentPanel({ deployment }) {
    and the context assembly dashboard. */
 const SCANLINES =
   'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px)';
+// on the light greys the same lines read as stripes: a much lighter hand
+const SCANLINES_LIGHT =
+  'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.035) 2px, rgba(0,0,0,0.035) 4px)';
 
 function PreviewPanel() {
+  const P = usePalette();
+  const light = useThemeValue() === 'light';
   const [idx, setIdx] = useState(0);
   const slots = [0, 1, 2];
   return (
@@ -99,11 +106,11 @@ function PreviewPanel() {
               <circle cx="8.5" cy="9" r="1.5" />
               <path d="M21 15l-5-5L5 21" />
             </svg>
-            <span className="font-mono text-micro text-ink-subtle">{`SCREENSHOT ${idx + 1}`}</span>
+            <span className={`font-mono text-micro ${light ? 'text-ink-muted' : 'text-ink-subtle'}`}>{`SCREENSHOT ${idx + 1}`}</span>
           </div>
         </div>
         {/* scanline overlay */}
-        <div className="pointer-events-none absolute inset-0" style={{ background: SCANLINES }} />
+        <div className="pointer-events-none absolute inset-0" style={{ background: light ? SCANLINES_LIGHT : SCANLINES }} />
         {/* preview badge */}
         <div className="pointer-events-none absolute right-2 top-2 font-mono text-micro uppercase tracking-[0.1em] text-ice">
           App Preview

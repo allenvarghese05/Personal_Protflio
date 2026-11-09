@@ -4,8 +4,11 @@ import { usePathname } from 'next/navigation';
 import { holdSmoothScroll } from '@/lib/smoothScroll';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { usePlayer, readEnergy } from './player';
-import Cover, { COVER_THEMES } from './Cover';
+import Cover, { useCoverTheme } from './Cover';
 import { ARTIST, formatTime } from '@/data/beats';
+import { useThemeValue } from '@/lib/useTheme';
+import { alpha } from '@/lib/palette';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -19,6 +22,9 @@ const EASE = [0.16, 1, 0.3, 1];
 /** The live frequency line — a single smoothed curve across the spectrum. */
 function FrequencyLine({ color, still }) {
   const { graph } = usePlayer();
+  // the line fades out at its ends: to clear black on the dark field, to the
+  // line's own colour (clear) on white, so the ends don't grey
+  const light = useThemeValue() === 'light';
   const canvas = useRef(null);
   useEffect(() => {
     const c = canvas.current;
@@ -42,10 +48,11 @@ function FrequencyLine({ color, still }) {
         smooth[i] += (v - smooth[i]) * 0.25;
       }
       const grad = ctx.createLinearGradient(0, 0, W, 0);
-      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      const clear = light ? alpha(color, 0) : 'rgba(0,0,0,0)';
+      grad.addColorStop(0, clear);
       grad.addColorStop(0.18, color);
       grad.addColorStop(0.82, color);
-      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      grad.addColorStop(1, clear);
       ctx.strokeStyle = grad;
       ctx.lineWidth = 2 * dpr;
       ctx.shadowColor = color;
@@ -66,7 +73,7 @@ function FrequencyLine({ color, still }) {
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [graph, color, still]);
+  }, [graph, color, still, light]);
   return <canvas ref={canvas} className="h-20 w-full" aria-hidden />;
 }
 
@@ -150,11 +157,13 @@ function IconBtn({ label, onClick, children, big = false }) {
  */
 function ColorField({ theme, still }) {
   const { graph } = usePlayer();
+  // on white the shapes multiply under the text, so they peak lower there
+  const peak = useThemeValue() === 'light' ? 0.5 : 0.95;
   const refs = useRef([]);
   const blobs = [
-    { color: theme.glow, size: 78, depth: 0.9, home: [-0.18, -0.08] },
-    { color: theme.ring, size: 54, depth: 1.4, home: [0.22, 0.12] },
-    { color: theme.accentSoft, size: 44, depth: 2.0, home: [0.05, 0.3] },
+    { color: theme.field[0], size: 78, depth: 0.9, home: [-0.18, -0.08] },
+    { color: theme.field[1], size: 54, depth: 1.4, home: [0.22, 0.12] },
+    { color: theme.field[2], size: 44, depth: 2.0, home: [0.05, 0.3] },
   ];
 
   useEffect(() => {
@@ -206,7 +215,7 @@ function ColorField({ theme, still }) {
         if (el) {
           const s = 0.9 + energy * 0.9 + b.kick * 0.22;
           el.style.transform = `translate(-50%, -50%) translate3d(${b.x.toFixed(1)}px, ${b.y.toFixed(1)}px, 0) scale(${s.toFixed(3)})`;
-          el.style.opacity = String(Math.min(0.95, 0.32 + energy * 0.9 + b.kick * 0.25));
+          el.style.opacity = String(Math.min(peak, 0.32 + energy * 0.9 + b.kick * 0.25));
         }
       });
       raf = requestAnimationFrame(tick);
@@ -217,7 +226,7 @@ function ColorField({ theme, still }) {
       window.removeEventListener('pointermove', onMove);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graph, still, theme]);
+  }, [graph, still, theme, peak]);
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -247,7 +256,8 @@ export default function NowPlaying() {
   const closeBtn = useRef(null);
   const pathname = usePathname();
   const track = index !== null ? tracks[index] : null;
-  const theme = track ? COVER_THEMES[track.mood] || COVER_THEMES.warm : COVER_THEMES.warm;
+  const theme = useCoverTheme(track?.mood);
+  const light = useThemeValue() === 'light';
 
   // The cover itself gives the faintest pulse on the low end
   useEffect(() => {
@@ -351,23 +361,36 @@ export default function NowPlaying() {
         >
           {/* the living colour field — bounces on the beat, follows the cursor */}
           <ColorField theme={theme} still={reduced || !playing} />
-          <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(90% 70% at 50% 50%, transparent 30%, rgba(7,8,12,0.85) 100%)' }} />
+          {/* the field settles into the room at the edges: a dark vignette,
+              or on white a soft wash of white, so it stays bright and airy */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background: light
+                ? 'radial-gradient(90% 70% at 50% 50%, transparent 40%, rgba(255,255,255,0.7) 100%)'
+                : 'radial-gradient(90% 70% at 50% 50%, transparent 30%, rgba(7,8,12,0.85) 100%)',
+            }}
+          />
 
           {/* top bar */}
           <div className="relative z-10 flex items-center justify-between px-6 pt-6 sm:px-10">
             <button ref={closeBtn} onClick={() => setOpen(false)} className="skip-btn" style={{ paddingRight: '1rem' }}>
               ↓ Close <span className="skip-btn__key">Esc</span>
             </button>
-            <span className="font-mono text-micro uppercase tracking-[0.22em] text-ink-subtle">
-              Studio · Now playing · {String(index + 1).padStart(2, '0')}/{String(tracks.length).padStart(2, '0')}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-micro uppercase tracking-[0.22em] text-ink-subtle">
+                <span className="hidden sm:inline">Studio · Now playing · </span>{String(index + 1).padStart(2, '0')}/{String(tracks.length).padStart(2, '0')}
+              </span>
+              <ThemeToggle />
+            </div>
           </div>
 
           {/* stage */}
           <div className="relative z-10 mx-auto grid h-[calc(100%-5rem)] max-w-6xl grid-cols-1 items-center gap-8 px-6 pb-8 sm:px-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
             <div className="flex justify-center">
               <div ref={coverWrap} className="w-[min(72vw,42vh,440px)] will-change-transform lg:w-[min(40vw,58vh,520px)]">
-                <motion.div layoutId={`cover-${index}`} className="overflow-hidden rounded-2xl shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)]" transition={{ duration: 0.7, ease: EASE }}>
+                <motion.div layoutId={`cover-${index}`} className={`overflow-hidden rounded-2xl ${light ? 'shadow-[0_30px_80px_-30px_rgba(0,0,0,0.28)] ring-1 ring-black/5' : 'shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)]'}`} transition={{ duration: 0.7, ease: EASE }}>
                   <Cover track={track} index={index} className="block h-auto w-full" />
                 </motion.div>
               </div>

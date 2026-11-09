@@ -7,6 +7,8 @@ import { identity } from '@/data/timeline';
 import { ENTRY, entryState, entryElapsed } from '@/lib/entrySequence';
 import { worldState } from '@/lib/worldState';
 import { unlockAudio } from '@/lib/audio';
+import { useThemeValue } from '@/lib/useTheme';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 const EASE = [0.16, 1, 0.3, 1];
 const MIN_LOADER_MS = 1400;
@@ -137,7 +139,7 @@ function Loader() {
             </div>
           </motion.div>
 
-          <div className="absolute inset-x-6 bottom-6 flex justify-between font-mono text-micro uppercase tracking-[0.2em] text-ink-faint sm:inset-x-10 sm:bottom-8">
+          <div className="loader-foot absolute inset-x-6 bottom-6 flex justify-between font-mono text-micro uppercase tracking-[0.2em] text-ink-faint sm:inset-x-10 sm:bottom-8">
             <span>Portfolio · 2026</span>
             <span>Sound on recommended</span>
           </div>
@@ -209,11 +211,13 @@ function Hero() {
 
           {/* top bar */}
           <motion.header variants={fade} className="pointer-events-auto flex items-center justify-between">
-            <span className="text-sm font-medium tracking-tight text-ink">Allen Varghese</span>
-            <nav className="flex items-center gap-5 text-sm text-ink-muted sm:gap-8">
+            <span className="whitespace-nowrap text-sm font-medium tracking-tight text-ink">Allen Varghese</span>
+            <nav className="flex items-center gap-3 text-sm text-ink-muted sm:gap-8">
               <a className="hero-link" href={links.github} target="_blank" rel="noreferrer">GitHub</a>
               <a className="hero-link" href={links.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
               <a className="hero-link" href={`mailto:${links.email}`}>Email</a>
+              {/* -my-2: the 36px button doesn't grow the bar; it never touches the intro's clock */}
+              <ThemeToggle className="-my-2 -ml-2 -mr-2 sm:-ml-4" />
             </nav>
           </motion.header>
 
@@ -274,8 +278,14 @@ const CAPTIONS = [
   { from: ENTRY.ZOOM + 1.2, to: ENTRY.ZOOM + 3.8, title: 'Allen’s World', sub: 'Entering the atmosphere' },
 ];
 
+// The star flash: white-gold glare on the void; on paper, a clean flash to
+// white with only a warm breath at the edges.
+const FLASH_DARK = 'radial-gradient(circle at 50% 50%, #fffdf5 0%, #fff3d6 45%, var(--accent-hi) 100%)';
+const FLASH_LIGHT = 'radial-gradient(circle at 50% 50%, var(--void) 0%, var(--void) 55%, color-mix(in srgb, var(--accent-hi) 10%, var(--void)) 100%)';
+
 function DiveLayer() {
   const phase = useStore((s) => s.phase);
+  const light = useThemeValue() === 'light';
   const [caption, setCaption] = useState(-1);
   const flashRef = useRef(null);
 
@@ -311,7 +321,7 @@ function DiveLayer() {
         className="pointer-events-none fixed inset-0 z-[60]"
         style={{
           opacity: 0,
-          background: 'radial-gradient(circle at 50% 50%, #fffdf5 0%, #fff3d6 45%, var(--accent-hi) 100%)',
+          background: light ? FLASH_LIGHT : FLASH_DARK,
         }}
       />
       <div className="pointer-events-none fixed inset-x-0 bottom-[12vh] z-[61] flex justify-center px-6">
@@ -324,10 +334,12 @@ function DiveLayer() {
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.7, ease: EASE } }}
               exit={{ opacity: 0, y: -6, filter: 'blur(4px)', transition: { duration: 0.4 } }}
             >
-              <div className="font-display text-2xl font-medium tracking-[-0.02em] text-ink sm:text-3xl" style={{ textShadow: '0 2px 24px rgba(0,0,0,0.6)' }}>
+              <div className="font-display text-2xl font-medium tracking-[-0.02em] text-ink sm:text-3xl" style={{ textShadow: light ? '0 1px 20px rgba(255,255,255,0.9)' : '0 2px 24px rgba(0,0,0,0.6)' }}>
                 {c.title}
               </div>
-              <div className="mt-2 font-mono text-micro uppercase tracking-[0.22em] text-ink-muted">{c.sub}</div>
+              <div className="mt-2 font-mono text-micro uppercase tracking-[0.22em] text-ink-muted" style={light ? { textShadow: '0 1px 12px rgba(255,255,255,0.95)' } : undefined}>
+                {c.sub}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -350,15 +362,18 @@ export function SkipIntro() {
   return (
     <AnimatePresence>
       {active && (
-        <motion.button
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, transition: { delay: 0.8, duration: 0.6 } }}
           exit={{ opacity: 0 }}
-          onClick={() => skipToWorld()}
-          className="skip-btn fixed bottom-6 right-6 z-[230] sm:bottom-8 sm:right-10"
+          className="fixed bottom-6 right-6 z-[230] flex items-center gap-2 sm:bottom-8 sm:right-10"
         >
-          Skip intro <span className="skip-btn__key">Esc</span>
-        </motion.button>
+          {/* the theme switch rides with Skip (glass, like it, so it reads over the flash) */}
+          <ThemeToggle className="border border-ink/18 bg-void/55 backdrop-blur-[10px]" />
+          <button type="button" onClick={() => skipToWorld()} className="skip-btn">
+            Skip intro <span className="skip-btn__key">Esc</span>
+          </button>
+        </motion.div>
       )}
     </AnimatePresence>
   );

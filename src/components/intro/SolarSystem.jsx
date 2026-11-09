@@ -5,7 +5,8 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { ASSETS, SUN, PLANETS, ALLENS_WORLD, STARS, NEBULA, cosmos } from './cosmos';
 import { ENTRY, entryState } from '@/lib/entrySequence';
-import { PALETTE } from '@/lib/palette';
+import { PALETTE_LIGHT } from '@/lib/palette';
+import { usePalette, useThemeValue } from '@/lib/useTheme';
 import {
   sunVertexShaderSurface,
   sunFragmentShaderSurface,
@@ -22,7 +23,18 @@ import {
  * as-is, in a display layout (see cosmos.js). The Earth-textured world is
  * Allen's World: parked in place so the final dive can be planned exactly.
  * Hidden until the cut (IntroCamera flips `visible`).
+ *
+ * Light theme: the same system on paper. Additive glows vanish on white, so
+ * the sun's corona and the planets' rims become soft darker halos (normal
+ * blending, deeper tints), the starfield turns to faint graphite dots and the
+ * nebula to the faintest tinted washes. The planet textures are untouched.
  */
+
+// the corona's colours per theme (dark: the original fire; light: deep amber)
+const CORONA_LIGHT = {
+  INNER: new THREE.Color(PALETTE_LIGHT.accentLo),
+  OUTER: new THREE.Color(PALETTE_LIGHT.accentHi),
+};
 
 function Sun() {
   const tex = useLoader(THREE.TextureLoader, ASSETS.sun);
@@ -44,6 +56,7 @@ function Sun() {
           time: { value: 0 },
           coronaColor1: { value: SUN.CORONA.INNER },
           coronaColor2: { value: SUN.CORONA.OUTER },
+          uAlpha: { value: 1 },
         },
         vertexShader: sunVertexShaderCorona,
         fragmentShader: sunFragmentShaderCorona,
@@ -54,6 +67,13 @@ function Sun() {
       }),
     []
   );
+  const light = useThemeValue() === 'light';
+  useEffect(() => {
+    corona.uniforms.coronaColor1.value = light ? CORONA_LIGHT.INNER : SUN.CORONA.INNER;
+    corona.uniforms.coronaColor2.value = light ? CORONA_LIGHT.OUTER : SUN.CORONA.OUTER;
+    corona.uniforms.uAlpha.value = light ? 0.45 : 1;
+    corona.blending = light ? THREE.NormalBlending : THREE.AdditiveBlending;
+  }, [corona, light]);
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     surface.uniforms.time.value = t;
@@ -96,6 +116,7 @@ function useLabelFade(ref, outFrom) {
 /** Faint orbit path — the system reads as a diagram from the wide view. */
 function OrbitRing({ radius, highlight = false }) {
   const ref = useRef();
+  const palette = usePalette();
   const geo = useMemo(() => {
     const pts = [];
     for (let i = 0; i <= 256; i++) {
@@ -115,7 +136,7 @@ function OrbitRing({ radius, highlight = false }) {
   return (
     <line ref={ref} geometry={geo}>
       <lineBasicMaterial
-        color={highlight ? PALETTE.accent : PALETTE.ink}
+        color={highlight ? palette.accent : palette.ink}
         transparent
         opacity={0}
         depthWrite={false}
@@ -123,6 +144,30 @@ function OrbitRing({ radius, highlight = false }) {
       />
     </line>
   );
+}
+
+/**
+ * The rim glow, per theme. Dark: the original additive fresnel shell. Light:
+ * a soft, darker halo — normal blending, a deeper tint of the rim colour,
+ * clear over the face and gathering only toward the limb.
+ */
+function themeGlow(mat, rim, light) {
+  const u = mat.uniforms;
+  if (light) {
+    u.color1.value.set(rim).multiplyScalar(0.55);
+    u.color2.value.set(rim).multiplyScalar(0.7);
+    u.fresnelBias.value = 0;
+    u.fresnelScale.value = 0.4;
+    u.fresnelPower.value = 3;
+    mat.blending = THREE.NormalBlending;
+  } else {
+    u.color1.value.set(rim);
+    u.color2.value.set(0x000000);
+    u.fresnelBias.value = 0.2;
+    u.fresnelScale.value = 0.1;
+    u.fresnelPower.value = 1;
+    mat.blending = THREE.AdditiveBlending;
+  }
 }
 
 function glowMaterial(rim) {
@@ -154,6 +199,18 @@ function Planet({ def }) {
   }, [tex]);
   const glow = useMemo(() => glowMaterial(def.rim), [def.rim]);
   const geo = useMemo(() => new THREE.IcosahedronGeometry(def.size, 12), [def.size]);
+  const ringMat = useRef();
+  const light = useThemeValue() === 'light';
+  useEffect(() => themeGlow(glow, def.rim, light), [glow, def.rim, light]);
+  // the ring textures are opaque JPEGs whose gaps are black — invisible on
+  // the void, solid bands on paper — so in light their brightness is their alpha
+  useEffect(() => {
+    const m = ringMat.current;
+    const next = light ? ringTex : null;
+    if (!m || m.alphaMap === next) return;
+    m.alphaMap = next; // adds/removes a shader define, so recompile
+    m.needsUpdate = true;
+  }, [light, ringTex]);
 
   useFrame((_, delta) => {
     // orbit on the journey clock, so the layout is identical every visit no
@@ -170,7 +227,7 @@ function Planet({ def }) {
         {def.rings && (
           <mesh rotation-x={Math.PI / 2}>
             <ringGeometry args={[def.size + 0.1, def.size + 0.1 + def.rings.size, 48]} />
-            <meshBasicMaterial map={ringTex} side={THREE.DoubleSide} transparent />
+            <meshBasicMaterial ref={ringMat} map={ringTex} side={THREE.DoubleSide} transparent />
           </mesh>
         )}
         <Html center position={[0, def.size * 1.6 + 1.2, 0]} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
@@ -196,6 +253,7 @@ function AllensWorld() {
           nightTexture: { value: night },
           // light comes from the sun at the origin
           sunDirection: { value: ALLENS_WORLD.position.clone().negate().normalize() },
+          uNightFloor: { value: 0 },
         },
         vertexShader: planetNightTextureVertexShader,
         fragmentShader: planetNightTextureFragmentShader,
@@ -215,6 +273,12 @@ function AllensWorld() {
     [clouds]
   );
   const glow = useMemo(() => glowMaterial(0x6fa8ff), []);
+  const light = useThemeValue() === 'light';
+  useEffect(() => themeGlow(glow, 0x6fa8ff, light), [glow, light]);
+  // light: the night side keeps its city lights over a shaded day map
+  useEffect(() => {
+    surface.uniforms.uNightFloor.value = light ? 1 : 0;
+  }, [surface, light]);
 
   // The designation stays up through the first half of the dive, bowing out
   // as the planet fills the frame.
@@ -245,6 +309,13 @@ function AllensWorld() {
 
 function Stars() {
   const tex = useLoader(THREE.TextureLoader, ASSETS.disc);
+  const light = useThemeValue() === 'light';
+  const mat = useRef();
+  // disc.png's black fringe would turn each dot into a dark speck on paper, so
+  // in light the texture is shape only (alphaMap); the swap needs a recompile
+  useEffect(() => {
+    if (mat.current) mat.current.needsUpdate = true;
+  }, [light]);
   const geo = useMemo(() => {
     const p = new Float32Array(STARS.COUNT * 3);
     for (let i = 0; i < p.length; i++) p[i] = THREE.MathUtils.randFloatSpread(STARS.SPREAD);
@@ -255,19 +326,26 @@ function Stars() {
   return (
     <points geometry={geo}>
       <pointsMaterial
-        color={STARS.COLOR}
+        color={light ? PALETTE_LIGHT.slate : STARS.COLOR}
+        ref={mat}
         size={STARS.SIZE}
-        map={tex}
+        map={light ? null : tex}
+        alphaMap={light ? tex : null}
         transparent
+        opacity={light ? 0.5 : 1}
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={light ? THREE.NormalBlending : THREE.AdditiveBlending}
       />
     </points>
   );
 }
 
+// light: the nebula as the faintest tinted washes, same hues, darker inks
+const NEBULA_LIGHT = [PALETTE_LIGHT.accent, PALETTE_LIGHT.lilac, PALETTE_LIGHT.ice, PALETTE_LIGHT.sand, PALETTE_LIGHT.accentLo];
+
 function Nebula() {
   const tex = useLoader(THREE.TextureLoader, ASSETS.smoke);
+  const light = useThemeValue() === 'light';
   const clouds = useMemo(() => {
     const p = new Float32Array(NEBULA.PARTICLE_COUNT * 3);
     for (let i = 0; i < p.length; i++) p[i] = THREE.MathUtils.randFloatSpread(NEBULA.PARTICLE_SPREAD);
@@ -295,6 +373,15 @@ function Nebula() {
       return pts;
     });
   }, [tex]);
+  useEffect(() => {
+    clouds.forEach((pts, i) => {
+      const m = pts.material;
+      if (light) m.color.set(NEBULA_LIGHT[i]);
+      else m.color.set(NEBULA.COLORS[i]).multiplyScalar(NEBULA.COLOR_MULTIPLIER);
+      m.opacity = light ? 0.035 : NEBULA.OPACITY;
+      m.blending = light ? THREE.NormalBlending : THREE.AdditiveBlending;
+    });
+  }, [clouds, light]);
   return (
     <group>
       {clouds.map((c, i) => (
@@ -306,6 +393,7 @@ function Nebula() {
 
 export default function SolarSystem() {
   const group = useRef();
+  const light = useThemeValue() === 'light';
   useEffect(() => {
     cosmos.solarGroup = group.current;
     return () => {
@@ -314,7 +402,8 @@ export default function SolarSystem() {
   }, []);
   return (
     <group ref={group} visible={false}>
-      <ambientLight intensity={0.05} />
+      {/* light: a touch more fill, so night sides read as shade, not holes in the paper */}
+      <ambientLight intensity={light ? 0.2 : 0.05} />
       <Stars />
       <Nebula />
       <Sun />

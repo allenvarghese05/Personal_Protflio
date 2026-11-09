@@ -7,14 +7,15 @@ import { useStore } from '@/lib/store';
 import { zoneById } from '@/data/world';
 import { projectById } from '@/data/projects';
 import { caseStudyFor } from '@/data/caseStudies';
-import { PALETTE } from '@/lib/palette';
 import { ACCENTS, DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
 import { jumpTo, useSmoothScroll } from '@/lib/smoothScroll';
 import CommsPanel from './stations/CommsPanel';
+import ThemeToggle from './ThemeToggle';
 import { keepWorldInHistory } from '@/components/audio/SiteAudio';
 import { CASE_PAGES } from './case/pages';
 
-const P_INK_FAINT = PALETTE.inkSubtle;
+// a CSS variable, so it follows the theme
+const P_INK_FAINT = 'var(--ink-subtle)';
 /** The stage: Mission Control's one scroll container (every room scrolls in it). */
 const SCROLLER = '[data-mc-scroll]';
 
@@ -33,7 +34,13 @@ const DeploymentStatusStrip = dynamic(() => import('./DeploymentStatusStrip'), {
 // Station rooms share the Mission Control shell (nav, backdrop, motion).
 const STATION_ROOMS = { observatory: ObservatoryPanel, studio: StudioPanel, comms: CommsPanel };
 
+/** A kind's accent as a dark-palette hex: BentoPanels and ArchitectureGraph
+ *  map it to its light twin themselves (forTheme), and need a real colour. */
 const accentFor = (kind) => ACCENTS[kind] || ACCENTS.project;
+/** The same accent as a CSS variable, for this file's own parts, so it
+ *  follows the theme (same values as ACCENTS in dark). */
+const KIND_VAR = { signature: 'var(--accent)', award: 'var(--accent)', current: 'var(--ice)', project: 'var(--sand)', classified: 'var(--slate)' };
+const toneFor = (kind) => KIND_VAR[kind] || KIND_VAR.project;
 
 /* ───────────────────────────── TOP NAV BAR ────────────────────────────── */
 
@@ -61,9 +68,12 @@ function NavBar({ zone, project, onBack, onExit }) {
         )}
       </div>
 
-      <button onClick={onExit} className="mc-ghost-btn uppercase">
-        Exit <span className="ml-1 rounded-[3px] border border-line px-1.5 py-0.5 text-micro tracking-normal">ESC</span>
-      </button>
+      <div className="flex items-center gap-2 sm:gap-3">
+        <ThemeToggle />
+        <button onClick={onExit} className="mc-ghost-btn h-9 uppercase leading-9">
+          Exit <span className="ml-1 rounded-[3px] border border-line px-1.5 py-0.5 text-micro tracking-normal">ESC</span>
+        </button>
+      </div>
     </nav>
   );
 }
@@ -241,7 +251,8 @@ function Decisions({ items, accent }) {
 }
 
 function Brief({ project }) {
-  const accent = accentFor(project.kind);
+  const accentHex = accentFor(project.kind);
+  const accent = toneFor(project.kind);
   const study = caseStudyFor(project.id);
   // every project with a case-study page renders it (see case/pages.js)
   const Page = CASE_PAGES[project.id];
@@ -337,7 +348,7 @@ function Brief({ project }) {
       {/* UNDER THE HOOD */}
       <div className="mx-auto max-w-6xl px-6 pb-16 sm:px-12">
         <Section label="Under the hood">
-          <BentoPanels project={project} accent={accent} />
+          <BentoPanels project={project} accent={accentHex} />
           {project.deployment && (
             <div className="mt-6">
               <DeploymentStatusStrip deployment={project.deployment} />
@@ -351,7 +362,7 @@ function Brief({ project }) {
                   nodes={project.architectureGraph.nodes}
                   edges={project.architectureGraph.edges}
                   categoryColors={project.graphColors}
-                  accent={accent}
+                  accent={accentHex}
                 />
               ) : (
                 <div className="mc-label flex h-full items-center justify-center">No diagram</div>

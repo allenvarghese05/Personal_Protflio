@@ -5,7 +5,8 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { MONOLITHS, MONOLITH_NEAR_R } from '@/data/world';
 import { projectById } from '@/data/projects';
-import { KIND_ACCENT, PALETTE } from '@/lib/palette';
+import { alpha } from '@/lib/palette';
+import { usePalette, useThemeValue } from '@/lib/useTheme';
 import { worldState } from '@/lib/worldState';
 import { useStore } from '@/lib/store';
 
@@ -42,8 +43,31 @@ function wrap(ctx, text, maxW) {
   return lines;
 }
 
+/** Project kind → accent, from the palette in force (the same mapping as
+ *  KIND_ACCENT in lib/palette, which is the dark palette's). */
+function kindAccent(palette, kind) {
+  const map = {
+    signature: palette.accent,
+    award: palette.accent,
+    current: palette.ice,
+    project: palette.sand,
+    classified: palette.slate,
+  };
+  return map[kind] || map.project;
+}
+
+/** Deeper shades of the kind accents for the face kicker on pale limestone
+ *  (the plain light accents sit under 4.5:1 on #d8d1c5; these clear ~4.8–5.6). */
+const FACE_KICKER_LIGHT = {
+  signature: '#8a440c',
+  award: '#8a440c',
+  current: '#244f96',
+  project: '#634725',
+  classified: '#444c61',
+};
+
 /** The inscription on a stone's face: index + kind kicker, then the name. */
-function faceTexture(project, index, accent) {
+function faceTexture(project, index, accent, palette) {
   const display = cssFont('--font-display-face', 'sans-serif');
   const mono = cssFont('--font-jetbrains-mono', 'monospace');
   const W = 512;
@@ -61,14 +85,14 @@ function faceTexture(project, index, accent) {
   ctx.fillText(kicker.split('').join(String.fromCharCode(8202)), pad, 96);
   // name
   ctx.font = `600 64px ${display}`;
-  ctx.fillStyle = PALETTE.ink;
+  ctx.fillStyle = palette.ink;
   const lines = wrap(ctx, project.label, W - pad * 2).slice(0, 4);
   lines.forEach((l, i) => ctx.fillText(l, pad, 150 + i * 72));
   // rule + tags, low on the stone
-  ctx.fillStyle = 'rgba(243,238,228,0.22)';
+  ctx.fillStyle = alpha(palette.ink, 0.22);
   ctx.fillRect(pad, H - 250, W - pad * 2, 2);
   ctx.font = `400 24px ${mono}`;
-  ctx.fillStyle = PALETTE.inkMuted;
+  ctx.fillStyle = palette.inkMuted;
   (project.tags || project.primaryStack || []).slice(0, 3).forEach((t, i) => ctx.fillText(t, pad, H - 220 + i * 38));
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -96,11 +120,22 @@ function poolTexture() {
 const basalt = new THREE.MeshStandardMaterial({ color: '#23262e', roughness: 0.48, metalness: 0.12 });
 const plinthMat = new THREE.MeshStandardMaterial({ color: '#5a5045', roughness: 0.95 });
 
+// dark basalt at dusk; pale limestone with dark lettering in daylight
+const STONE = {
+  dark: { slab: '#23262e', plinth: '#5a5045', line: 1 },
+  light: { slab: '#d8d1c5', plinth: '#a99c88', line: 0.25 },
+};
+
 function Monolith({ def }) {
   const project = projectById(def.id);
-  const accent = KIND_ACCENT[project.kind] || KIND_ACCENT.project;
+  const palette = usePalette();
+  const light = useThemeValue() === 'light';
+  const accent = kindAccent(palette, project.kind);
   const openProject = useStore((s) => s.openProject);
-  const face = useMemo(() => faceTexture(project, def.index, accent), [project, def.index, accent]);
+  const kicker = light ? FACE_KICKER_LIGHT[project.kind] || FACE_KICKER_LIGHT.project : accent;
+  const face = useMemo(() => faceTexture(project, def.index, kicker, palette), [project, def.index, kicker, palette]);
+  // a theme switch draws a new inscription; free the old one
+  useEffect(() => () => face.dispose(), [face]);
   const slab = useRef();
   const line = useRef();
   const pool = useRef();
@@ -122,7 +157,7 @@ function Monolith({ def }) {
     const target = THREE.MathUtils.clamp(1 - (d - 1.2) / (MONOLITH_NEAR_R + 3), 0, 1);
     near.current += (target - near.current) * 0.08;
     const n = near.current * worldState.reveal;
-    if (line.current) line.current.emissiveIntensity = 0.6 + n * 2.4;
+    if (line.current) line.current.emissiveIntensity = (0.6 + n * 2.4) * STONE[light ? 'light' : 'dark'].line;
     if (pool.current) pool.current.opacity = 0.05 + n * 0.35;
     if (tag.current) {
       const show = d < MONOLITH_NEAR_R ? 1 : 0;
@@ -166,7 +201,8 @@ function Monolith({ def }) {
         <boxGeometry args={[SLAB.w * 0.78, 0.035, 0.02]} />
         <meshStandardMaterial ref={line} color={accent} emissive={accent} emissiveIntensity={0.6} toneMapped={false} />
       </mesh>
-      {/* glow pool on the ground in front */}
+      {/* glow pool on the ground in front (additive light disappears on pale
+          stone, so daylight lays a tint instead) */}
       <mesh position={[0, 0.02, 1.1]} rotation-x={-Math.PI / 2}>
         <planeGeometry args={[3.4, 3.4]} />
         <meshBasicMaterial
@@ -176,7 +212,7 @@ function Monolith({ def }) {
           transparent
           opacity={0.05}
           depthWrite={false}
-          blending={THREE.AdditiveBlending}
+          blending={light ? THREE.NormalBlending : THREE.AdditiveBlending}
           toneMapped={false}
         />
       </mesh>
@@ -198,6 +234,11 @@ function Monolith({ def }) {
 }
 
 export default function Monoliths() {
+  const theme = useThemeValue();
+  useEffect(() => {
+    basalt.color.set(STONE[theme].slab);
+    plinthMat.color.set(STONE[theme].plinth);
+  }, [theme]);
   return (
     <group>
       {MONOLITHS.map((m) => (

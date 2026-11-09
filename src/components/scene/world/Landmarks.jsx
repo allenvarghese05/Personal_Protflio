@@ -5,6 +5,7 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { STATIONS } from '@/data/world';
 import { PALETTE } from '@/lib/palette';
+import { usePalette, useThemeValue } from '@/lib/useTheme';
 import { worldState } from '@/lib/worldState';
 import { useStore } from '@/lib/store';
 import { labelVisibility } from '@/lib/worldLabels';
@@ -21,7 +22,14 @@ const concrete = new THREE.MeshStandardMaterial({ color: '#8d857a', roughness: 0
 const darkMetal = new THREE.MeshStandardMaterial({ color: '#2a2d35', roughness: 0.4, metalness: 0.7 });
 const brushed = new THREE.MeshStandardMaterial({ color: '#b7b2a8', roughness: 0.32, metalness: 0.65 });
 
+// the shared stone and metal, per theme: dusk, or paler under the daylight sun
+const MATS = {
+  dark: { concrete: '#8d857a', darkMetal: '#2a2d35' },
+  light: { concrete: '#c9c2b6', darkMetal: '#4b4f58' },
+};
+
 function Observatory() {
+  const palette = usePalette();
   const scope = useRef();
   useFrame((state) => {
     // the telescope slowly tracks across the sky
@@ -50,7 +58,7 @@ function Observatory() {
       </mesh>
       <mesh position={[0, 0.03, 2.9]} rotation-x={-Math.PI / 2}>
         <planeGeometry args={[1.2, 0.05]} />
-        <meshBasicMaterial color={PALETTE.accent} toneMapped={false} />
+        <meshBasicMaterial color={palette.accent} toneMapped={false} />
       </mesh>
     </group>
   );
@@ -101,6 +109,7 @@ function Studio() {
 }
 
 function CommsTower() {
+  const palette = usePalette();
   const beacon = useRef();
   useFrame((state) => {
     if (!beacon.current) return;
@@ -132,7 +141,7 @@ function CommsTower() {
       </group>
       <mesh position-y={11.1}>
         <sphereGeometry args={[0.18, 16, 16]} />
-        <meshStandardMaterial ref={beacon} color={PALETTE.accent} emissive={PALETTE.accent} emissiveIntensity={3} toneMapped={false} />
+        <meshStandardMaterial ref={beacon} color={palette.accent} emissive={palette.accent} emissiveIntensity={3} toneMapped={false} />
       </mesh>
     </group>
   );
@@ -141,6 +150,7 @@ function CommsTower() {
 const BUILDERS = { observatory: Observatory, studio: Studio, comms: CommsTower };
 
 function Station({ z }) {
+  const palette = usePalette();
   const Build = BUILDERS[z.id];
   const setEnteredZone = useStore((s) => s.setEnteredZone);
   const hit = useRef();
@@ -214,7 +224,7 @@ function Station({ z }) {
             <span className="world-label__tick" />
           </div>
           <div ref={nearRef} className="stone-tag absolute top-0" style={{ opacity: 0 }}>
-            <span className="stone-tag__kicker" style={{ color: PALETTE.accent }}>{z.blurb}</span>
+            <span className="stone-tag__kicker" style={{ color: palette.accent }}>{z.blurb}</span>
             <span className="stone-tag__name">{z.label}</span>
             <span className="stone-tag__cta">
               Click or press <kbd>E</kbd> to enter
@@ -227,6 +237,11 @@ function Station({ z }) {
 }
 
 export default function Landmarks() {
+  const theme = useThemeValue();
+  useEffect(() => {
+    concrete.color.set(MATS[theme].concrete);
+    darkMetal.color.set(MATS[theme].darkMetal);
+  }, [theme]);
   return (
     <group>
       {STATIONS.map((z) => (

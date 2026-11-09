@@ -1,1 +1,80 @@
 /* Light mode for Mission Control and its rooms (About, Studio, Comms), the helmet, the players. Every rule is scoped under html[data-theme="light"]. */
+
+/* Most of the rooms are built on the tokens and follow on their own. What's
+   here are the rules in globals.css tuned for black: hover states that go
+   to pure white, shadows deep enough to read on #07080c, white hairline
+   highlights, dark caption scrims and a colour field that blends with
+   `screen` (which disappears on white). On white: hairlines, soft shadows,
+   no glows. */
+
+/* ── Mission Control ───────────────────────────────────────────────────── */
+
+/* the panel's faint top highlight is a dark-mode trick; on white, nothing */
+html[data-theme="light"] .mc-root .mc-panel {
+  box-shadow: none;
+}
+
+/* solid ink buttons darken on hover instead of going white (which on a
+   white page would make them vanish) */
+html[data-theme="light"] .mc-root .hero-cta:hover,
+html[data-theme="light"] .studio-playall:hover,
+html[data-theme="light"] .np-play:hover,
+html[data-theme="light"] .mini-player__btn--main:hover {
+  background: #000000;
+}
+
+/* device frames in the generic brief: a soft lift, not a black pit */
+html[data-theme="light"] .mc-root .mock-browser {
+  box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.02);
+}
+html[data-theme="light"] .mc-root .mock-phone {
+  box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.22);
+}
+
+/* ── Studio ────────────────────────────────────────────────────────────── */
+
+/* the caption over a photo: a white scrim under dark ink */
+html[data-theme="light"] .studio-photo__cap {
+  background: linear-gradient(rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.88));
+}
+
+/* the album cover: a soft shadow and a hairline edge */
+html[data-theme="light"] .studio-album__art {
+  box-shadow: 0 30px 70px -36px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+/* the pale cover blurred behind it: a little more colour, so the glow
+   still reads as a wash of the beat's tint on white */
+html[data-theme="light"] .studio-album__glow > * {
+  filter: blur(80px) saturate(1.8);
+}
+
+/* the photo viewer: the print lifted off a white room */
+html[data-theme="light"] .pv-print {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 40px 100px -30px rgba(0, 0, 0, 0.32),
+    0 0 140px -10px color-mix(in srgb, var(--tint) 30%, transparent);
+}
+html[data-theme="light"] .pv-card {
+  background: color-mix(in srgb, var(--void) 78%, transparent);
+  border-color: var(--line);
+}
+html[data-theme="light"] .pv-edge {
+  background: color-mix(in srgb, var(--void) 70%, transparent);
+  border-color: var(--line-hi);
+}
+
+/* ── Now Playing and the mini player ───────────────────────────────────── */
+
+/* the colour field: tints multiply into the white instead of adding light
+   to black, so it's bright and airy rather than gone */
+html[data-theme="light"] .np-blob {
+  mix-blend-mode: multiply;
+}
+
+/* the glass pill: frosted white, a hairline and a light shadow */
+html[data-theme="light"] .mini-player {
+  border-color: var(--line-hi);
+  background: color-mix(in srgb, var(--void) 82%, transparent);
+  box-shadow: 0 18px 48px -22px rgba(0, 0, 0, 0.25);
+}

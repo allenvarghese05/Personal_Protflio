@@ -5,6 +5,7 @@ import { useStore } from '@/lib/store';
 import { worldState } from '@/lib/worldState';
 import { ENTRY, resetEntryState } from '@/lib/entrySequence';
 import { getAudio } from '@/lib/audio';
+import { useThemeValue } from '@/lib/useTheme';
 
 const MONO = { fontFamily: 'var(--font-jetbrains-mono), monospace' };
 
@@ -82,6 +83,10 @@ function typeInto(tl, el, text, at, perChar = 0.04) {
 export default function BigBangTransition() {
   const phase = useStore((s) => s.phase);
   const setJourneyPhase = useStore((s) => s.setJourneyPhase);
+  // Light: the flash is already the paper (white); the vignette is a soft
+  // graphite edge rather than black, the letterbox is paper, and the colour
+  // split multiplies instead of screening (screen does nothing on white).
+  const light = useThemeValue() === 'light';
 
   const vignetteRef = useRef(null);
   const heatRef = useRef(null);
@@ -201,7 +206,12 @@ export default function BigBangTransition() {
       <div
         ref={vignetteRef}
         className="pointer-events-none fixed inset-0 z-[200]"
-        style={{ opacity: 0, background: 'radial-gradient(ellipse at center, transparent 42%, rgba(0,0,0,0.9) 100%)' }}
+        style={{
+          opacity: 0,
+          background: light
+            ? 'radial-gradient(ellipse at center, transparent 42%, color-mix(in srgb, var(--ink) 45%, transparent) 100%)'
+            : 'radial-gradient(ellipse at center, transparent 42%, rgba(0,0,0,0.9) 100%)',
+        }}
       />
       {/* Act B — atmosphere friction burn */}
       <div
@@ -223,12 +233,12 @@ export default function BigBangTransition() {
         style={{ width: '24px', height: '24px', border: '3px solid color-mix(in srgb, var(--accent) 40%, transparent)', opacity: 0, transform: 'translate(-50%, -50%) scale(0)' }}
       />
       {/* chromatic split frames */}
-      <div ref={rgbRedRef} className="pointer-events-none fixed inset-0 z-[209]" style={{ opacity: 0, background: 'rgba(255,0,60,0.5)', transform: 'translateX(-6px)', mixBlendMode: 'screen' }} />
-      <div ref={rgbBlueRef} className="pointer-events-none fixed inset-0 z-[209]" style={{ opacity: 0, background: 'rgba(0,120,255,0.5)', transform: 'translateX(6px)', mixBlendMode: 'screen' }} />
+      <div ref={rgbRedRef} className="pointer-events-none fixed inset-0 z-[209]" style={{ opacity: 0, background: 'rgba(255,0,60,0.5)', transform: 'translateX(-6px)', mixBlendMode: light ? 'multiply' : 'screen' }} />
+      <div ref={rgbBlueRef} className="pointer-events-none fixed inset-0 z-[209]" style={{ opacity: 0, background: 'rgba(0,120,255,0.5)', transform: 'translateX(6px)', mixBlendMode: light ? 'multiply' : 'screen' }} />
 
       {/* Act C — letterbox (appears under the white, irises out later) */}
-      <div ref={barTopRef} className="pointer-events-none fixed inset-x-0 top-0 z-[205] bg-black" style={{ height: '9vh', opacity: 0 }} />
-      <div ref={barBottomRef} className="pointer-events-none fixed inset-x-0 bottom-0 z-[205] bg-black" style={{ height: '9vh', opacity: 0 }} />
+      <div ref={barTopRef} className={`pointer-events-none fixed inset-x-0 top-0 z-[205] ${light ? 'bg-void' : 'bg-black'}`} style={{ height: '9vh', opacity: 0 }} />
+      <div ref={barBottomRef} className={`pointer-events-none fixed inset-x-0 bottom-0 z-[205] ${light ? 'bg-void' : 'bg-black'}`} style={{ height: '9vh', opacity: 0 }} />
 
       {/* Act C — planet designation (typed, sits in the bottom letterbox) */}
       <div
@@ -263,7 +273,7 @@ export default function BigBangTransition() {
             letterSpacing: '-0.04em',
             lineHeight: 1,
             color: 'var(--ink)',
-            textShadow: '0 2px 30px rgba(0,0,0,0.55)',
+            textShadow: light ? '0 1px 24px rgba(255,255,255,0.9)' : '0 2px 30px rgba(0,0,0,0.55)',
           }}
         >
           Allen&rsquo;s World

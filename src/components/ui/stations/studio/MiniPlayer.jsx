@@ -6,7 +6,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useStore } from '@/lib/store';
 import { ARTIST } from '@/data/beats';
 import { usePlayer } from './player';
-import Cover, { COVER_THEMES } from './Cover';
+import Cover, { useCoverTheme } from './Cover';
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -44,7 +44,7 @@ export default function MiniPlayer() {
   const fill = useRef(null);
   const track = index !== null ? tracks[index] : null;
   const show = !!track && !open && !dismissed && !intro && !viewer;
-  const theme = track ? COVER_THEMES[track.mood] || COVER_THEMES.warm : COVER_THEMES.warm;
+  const theme = useCoverTheme(track?.mood);
 
   // the progress line, straight from the audio element (no React renders)
   useEffect(() => {

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatShotDate, formatCoords } from '@/data/studio';
 import { useStore } from '@/lib/store';
+import { useThemeValue } from '@/lib/useTheme';
 import DitherBackdrop from './DitherBackdrop';
 
 const EASE = [0.16, 1, 0.3, 1];
@@ -115,6 +116,9 @@ export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }
   const [info, setInfo] = useState(true);
   const p = photos[index];
   const tint = p.color || '#3a3a44';
+  // the room: near-black in dark, white in light (the void, as an rgb triple)
+  const light = useThemeValue() === 'light';
+  const room = light ? '255,255,255' : '7,8,12';
   // the mini player steps aside while the viewer is up
   useEffect(() => {
     useStore.setState({ viewerOpen: true });
@@ -145,9 +149,9 @@ export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }
   return (
     <motion.div
       className="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-void"
-      initial={{ backgroundColor: 'rgba(7,8,12,0)' }}
-      animate={{ backgroundColor: 'rgba(7,8,12,1)', transition: { duration: 0.4 } }}
-      exit={{ backgroundColor: 'rgba(7,8,12,0)', transition: { duration: 0.45, delay: 0.1 } }}
+      initial={{ backgroundColor: `rgba(${room},0)` }}
+      animate={{ backgroundColor: `rgba(${room},1)`, transition: { duration: 0.4 } }}
+      exit={{ backgroundColor: `rgba(${room},0)`, transition: { duration: 0.45, delay: 0.1 } }}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -166,7 +170,7 @@ export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }
           <DitherBackdrop src={p.src} />
         </motion.div>
       </AnimatePresence>
-      <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(100% 90% at 50% 50%, transparent 45%, rgba(7,8,12,0.55) 100%)' }} />
+      <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: `radial-gradient(100% 90% at 50% 50%, transparent 45%, rgba(${room},0.55) 100%)` }} />
 
       {/* top bar */}
       <motion.div

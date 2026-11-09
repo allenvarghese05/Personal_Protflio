@@ -1,8 +1,9 @@
 'use client';
-import { forwardRef, useRef, useMemo } from 'react';
+import { forwardRef, useEffect, useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { PALETTE } from '@/lib/palette';
+import { usePalette, useThemeValue } from '@/lib/useTheme';
 
 /**
  * Allen's avatar on the surface. Built from primitives (no model to load) with
@@ -27,6 +28,19 @@ const Astronaut = forwardRef(function Astronaut({ moving = { current: false } },
     []
   );
   const pack = useMemo(() => new THREE.MeshStandardMaterial({ color: PALETTE.slate, roughness: 0.45, metalness: 0.55 }), []);
+
+  // the suit, amber panel and pack follow the theme (the visor stays dark
+  // glass in both)
+  // the suit turns a cooler, deeper white in daylight so it doesn't wash into
+  // the pale sand
+  const palette = usePalette();
+  const light = useThemeValue() === 'light';
+  useEffect(() => {
+    suit.color.set(light ? '#d9dde4' : '#e9e5dc');
+    accent.color.set(palette.accent);
+    accent.emissive.set(palette.accent);
+    pack.color.set(palette.slate);
+  }, [palette, light, suit, accent, pack]);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;

@@ -147,6 +147,7 @@ export const sunFragmentShaderCorona = `
 uniform float time;
 uniform vec3 coronaColor1;
 uniform vec3 coronaColor2;
+uniform float uAlpha; // 1.0 in dark; eased back in light, where it's a halo, not a glow
 
 varying vec3 vNormal;
 varying vec3 vViewPosition;
@@ -164,7 +165,7 @@ void main() {
     vec3 color = mix(coronaColor1, coronaColor2, noiseValue * 0.5 + 0.5);
     color += vec3(1.0, 0.6, 0.2) * flares * 0.8;
     float alpha = fresnelFactor * (0.7 + 0.3 * sin(time * 0.5 + noiseValue * 5.0));
-    gl_FragColor = vec4(color, alpha);
+    gl_FragColor = vec4(color, alpha * uAlpha);
 }
 `;
 
@@ -216,6 +217,9 @@ export const planetNightTextureFragmentShader = `
   uniform sampler2D dayTexture;
   uniform sampler2D nightTexture;
   uniform vec3 sunDirection;
+  // light theme: lifts the unlit side to a shaded copy of the day map, so it
+  // reads as shade rather than a black hole on paper. 0 = untouched (dark).
+  uniform float uNightFloor;
 
   varying vec2 vUv;
   varying vec3 vWorldNormal;
@@ -226,6 +230,7 @@ export const planetNightTextureFragmentShader = `
     float dayNightMix = smoothstep(0.0, 0.3, sunLight);
     vec4 dayColor = texture2D(dayTexture, vUv);
     vec4 nightColor = texture2D(nightTexture, vUv);
+    nightColor = max(nightColor, dayColor * 0.35 * uNightFloor);
     gl_FragColor = mix(nightColor, dayColor, dayNightMix);
   }
 `;

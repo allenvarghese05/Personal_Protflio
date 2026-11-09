@@ -1,1 +1,72 @@
 /* Light mode for the 3D world surface (sky, fog, ground, landmarks, monoliths, astronaut, labels) and the world dock. Every rule is scoped under html[data-theme="light"]. */
+
+/* ── Floating labels: dark ink on a pane of light glass ───────────────────
+   The glass is a pseudo-element behind the text, so the label's own box (and
+   with it where it anchors in the scene) is the same as in the dark theme.
+   The tick below the label stays outside the glass. Scoped to the world
+   (.world-surface) — the intro's destination tag uses the same classes. */
+html[data-theme="light"] .world-surface .world-label {
+  position: relative;
+  isolation: isolate;
+}
+html[data-theme="light"] .world-surface .world-label::before {
+  content: "";
+  position: absolute;
+  inset: -7px -14px 23px;
+  z-index: -1;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  box-shadow: 0 6px 20px -12px rgba(0, 0, 0, 0.18);
+}
+html[data-theme="light"] .world-surface .world-label__name {
+  text-shadow: none;
+}
+
+/* Preview tags above a stone / a landmark */
+html[data-theme="light"] .world-surface .stone-tag {
+  isolation: isolate;
+}
+html[data-theme="light"] .world-surface .stone-tag:not(.absolute) {
+  position: relative;
+}
+html[data-theme="light"] .world-surface .stone-tag::before {
+  content: "";
+  position: absolute;
+  inset: -12px -14px;
+  z-index: -1;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: 0 10px 30px -16px rgba(0, 0, 0, 0.22);
+}
+html[data-theme="light"] .world-surface .stone-tag__name,
+html[data-theme="light"] .world-surface .stone-tag__sub {
+  text-shadow: none;
+}
+html[data-theme="light"] .world-surface .stone-tag__cta kbd {
+  border-color: var(--line-hi);
+  background: var(--surface);
+}
+
+/* ── The travel dock (.world-dock--travel; the Studio's tab rail shares the
+   base class): white translucent glass, hairline border ── */
+html[data-theme="light"] .world-dock--travel {
+  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -14px rgba(0, 0, 0, 0.16);
+}
+html[data-theme="light"] .world-dock--travel .world-dock__item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+/* where you are: a solid amber dot, no glow (a glow only reads on black) */
+html[data-theme="light"] .world-dock--travel .world-dock__item.is-here .world-dock__dot {
+  background: var(--accent);
+  box-shadow: none;
+}

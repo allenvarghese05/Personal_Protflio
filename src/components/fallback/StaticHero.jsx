@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { identity } from '@/data/timeline';
 import { useStore } from '@/lib/store';
 import { PageLink } from '@/components/audio/SiteAudio';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 // set when "About me" opens the room, so focus comes back to it on the way out
 let cameFromAbout = false;
@@ -32,11 +33,12 @@ export default function StaticHero() {
       }}
     >
       <header className="flex items-center justify-between">
-        <span className="text-sm font-medium tracking-tight text-ink">Allen Varghese</span>
-        <nav className="flex items-center gap-5 text-sm text-ink-muted sm:gap-7">
+        <span className="whitespace-nowrap text-sm font-medium tracking-tight text-ink">Allen Varghese</span>
+        <nav className="flex items-center gap-3 text-sm text-ink-muted sm:gap-7">
           <a className="hero-link" href={links.github} target="_blank" rel="noreferrer">GitHub</a>
           <a className="hero-link" href={links.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
           <a className="hero-link" href={`mailto:${links.email}`}>Email</a>
+          <ThemeToggle className="-my-2 -ml-2 -mr-2 sm:-ml-3" />
         </nav>
       </header>
 

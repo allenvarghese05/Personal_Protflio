@@ -6,7 +6,7 @@ import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
 import { useStore } from '@/lib/store';
 import { ENTRY, entryState, entryElapsed } from '@/lib/entrySequence';
-import { PALETTE } from '@/lib/palette';
+import { usePalette, useThemeValue } from '@/lib/useTheme';
 import { GALAXY, ALLENS_WORLD, SYSTEM_START, FRAME_ALL, SYSTEM_LOOK, WORLD_ENTRY, cosmos } from './cosmos';
 import Galaxy from './Galaxy';
 import SolarSystem from './SolarSystem';
@@ -115,11 +115,32 @@ function IntroCamera() {
   return null;
 }
 
-/** Bloom tuned per act: the galaxy glows hot, the system reads crisp. */
-function FxDriver({ bloomRef }) {
+/** The clear colour follows the theme (paper in light, the void in dark). */
+function ThemeClear() {
+  const gl = useThree((s) => s.gl);
+  const palette = usePalette();
+  useEffect(() => {
+    gl.setClearColor(palette.void, 1);
+  }, [gl, palette]);
+  return null;
+}
+
+/**
+ * Bloom tuned per act: the galaxy glows hot, the system reads crisp. In light
+ * there is no glow to bloom (ink on paper), so bloom rests at 0 and there is
+ * no vignette: the paper stays clean to the edges.
+ */
+function FxDriver({ bloomRef, vignetteRef }) {
+  const light = useThemeValue() === 'light';
   useFrame(() => {
+    const v = vignetteRef.current;
+    if (v) v.darkness = light ? 0 : 0.7;
     const b = bloomRef.current;
     if (!b) return;
+    if (light) {
+      b.intensity = 0;
+      return;
+    }
     const inGalaxy = useStore.getState().phase !== 'dive' || entryState.t < ENTRY.SOLAR;
     b.intensity = inGalaxy ? 1.15 : 0.75 + entryState.heat * 1.1;
     if (b.luminanceMaterial) b.luminanceMaterial.threshold = inGalaxy ? 0 : 0.55;
@@ -151,7 +172,9 @@ function ReadyGate() {
 
 export default function IntroExperience({ tier = 'full' }) {
   const bloomRef = useRef();
+  const vignetteRef = useRef();
   const full = tier === 'full';
+  const palette = usePalette();
   return (
     <Canvas
       flat
@@ -159,8 +182,9 @@ export default function IntroExperience({ tier = 'full' }) {
       dpr={full ? [1, 2] : [1, 1.5]}
       gl={{ antialias: true, powerPreference: 'high-performance', alpha: false }}
       camera={{ position: GALAXY.CAMERA_DESKTOP.toArray(), fov: GALAXY.FOV_DESKTOP, near: 0.02, far: 4000 }}
-      onCreated={({ gl }) => gl.setClearColor(PALETTE.void, 1)}
+      onCreated={({ gl }) => gl.setClearColor(palette.void, 1)}
     >
+      <ThemeClear />
       <Suspense fallback={null}>
         <Galaxy />
         <SolarSystem />
@@ -170,10 +194,10 @@ export default function IntroExperience({ tier = 'full' }) {
 
       {full && (
         <>
-          <FxDriver bloomRef={bloomRef} />
+          <FxDriver bloomRef={bloomRef} vignetteRef={vignetteRef} />
           <EffectComposer multisampling={0}>
             <Bloom ref={bloomRef} intensity={1.15} luminanceThreshold={0} luminanceSmoothing={0.3} mipmapBlur />
-            <Vignette eskil={false} offset={0.3} darkness={0.7} />
+            <Vignette ref={vignetteRef} eskil={false} offset={0.3} darkness={0.7} />
             <Noise opacity={0.03} blendFunction={BlendFunction.OVERLAY} />
             <EntryDistortion />
           </EffectComposer>

@@ -3,8 +3,9 @@
  * A case study on its own page (/projects/<id>), outside Mission Control. It
  * keeps Mission Control's frame (a fixed nav over a [data-mc-scroll] stage)
  * so the case-study sections behave exactly as they do in the game, and it
- * hands NextSection a navigate function so "Up next" changes the URL. Its
- * theme follows /projects (./theme.jsx); in the game the same pages stay dark.
+ * hands NextSection a navigate function so "Up next" changes the URL. Like
+ * every page, it follows the site's theme (src/lib/theme.js), and so do the
+ * same pages in the game: their colours are CSS variables.
  */
 import { useRef } from 'react';
 import Link from 'next/link';
