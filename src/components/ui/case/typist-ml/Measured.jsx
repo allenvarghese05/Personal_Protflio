@@ -25,7 +25,7 @@
  */
 import { useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { MEASURED } from '@/data/studies/typist-ml';
 import { Choices, Glyph, IN_VIEW, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
 import { armLabel } from '@/components/ui/case/typist-ml/parts';
@@ -84,7 +84,7 @@ export default function Measured({ accent }) {
   const rare = MEASURED.rows.find((r) => r.arm === 'markov' && r.kind === 'rare');
   const hRows = byArm('heuristic').length;
   const mRows = byArm('markov').length;
-  const text = `${armLabel('heuristic')} ${total('heuristic')} of ${hRows * N}; ${armLabel('markov')} ${total('markov')} of ${mRows * N}, and ${rare[win.key].ok} of ${N} on rare pairs, whose drills peak at ${rare[win.key].max.toFixed(3)}.`;
+  const text = `${armLabel('heuristic')}: ${total('heuristic')} of ${hRows * N} passed. ${armLabel('markov')}: ${total('markov')} of ${mRows * N}, including ${rare[win.key].ok} of ${N} on rare pairs, where the densest drill reaches only ${rare[win.key].max.toFixed(3)}.`;
 
   return (
     <div ref={ref}>
@@ -143,8 +143,8 @@ export default function Measured({ accent }) {
             })}
           </ul>
           <p className="border-t border-line pt-3 font-mono text-micro text-ink-subtle">
-            Control has no targets, so no density, {MEASURED.control.ok}/{N} passed at both windows. Bar = lowest to highest drill · tick = median ·
-            shaded = the window.
+            Control has no targets, so it has no density; {MEASURED.control.ok}/{N} passed at both windows. Bar: lowest to highest drill · tick: median ·
+            shaded: the window.
           </p>
 
           <table className="sr-only">
@@ -174,11 +174,12 @@ export default function Measured({ accent }) {
           </table>
         </div>
       </PanelFrame>
-      <p className="mt-3 max-w-[68ch] text-label text-ink-subtle">
-        Measured by running the repo’s generators and gate on seeds 0–49, one attempt each (the worker allows five). “Common” is the corpus’s four most
-        frequent tracked pairs, “rare” the four least frequent of the 150, “3 pairs” the fallback set size. The heuristic’s first-window range,
-        0.223–0.281, matches the T2.4 plan; the Markov median, 0.175, matches T3.1’s.
-      </p>
+      {/* how it was measured: three short notes, not one dense paragraph */}
+      <ul className="mt-5 grid max-w-[72ch] gap-1.5 text-label text-ink-subtle">
+        <li>The repo’s own generators and gate, on seeds 0 to 49, one attempt each (the real worker allows five).</li>
+        <li>“Common” is the four most frequent tracked pairs, “rare” the four least frequent of the 150, “3 pairs” the fallback set size.</li>
+        <li>The heuristic’s first-window range (0.223 to 0.281) and the Markov median (0.175) match the T2.4 and T3.1 plans.</li>
+      </ul>
     </div>
   );
 }

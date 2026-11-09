@@ -35,7 +35,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { LOOP } from '@/data/studies/chronos-ai';
 import { Choices, Glyph, IN_VIEW, PanelFrame, Readout, useRun } from '@/components/ui/case/kit';
 
@@ -76,11 +76,11 @@ function dayAt(t, sc) {
   if (t < WIN_FROM) return { ...base, state: 'idle', action: 'Noop("before_window")' };
   if (t === WIN_FROM) return { ...base, state: 'monitoring', path: ['idle'], action: 'StartMonitoring()' };
   if (confirmT != null && t >= confirmT) {
-    return { ...base, state: 'confirmed', path: ['idle', 'monitoring'], action: t === confirmT ? 'a snapshot scores confirm → confirmed' : 'Noop("already_terminal")' };
+    return { ...base, state: 'confirmed', path: ['idle', 'monitoring'], ...(t === confirmT ? { event: 'A snapshot scored confirm, so the day is confirmed.' } : { action: 'Noop("already_terminal")' }) };
   }
   if (t >= WIN_TO) return { ...base, state: 'fallback', path: ['idle', 'monitoring'], action: t === WIN_TO ? 'Fallback()' : 'Noop("already_terminal")' };
   if (sc.restartAfter != null && t === RESTART_AT(sc.restartAfter)) {
-    return { ...base, state: 'monitoring', action: `new Scheduler: ticks 0–${sc.restartAfter} read back from push_notifications` };
+    return { ...base, state: 'monitoring', event: `A new Scheduler read ticks 0 to ${sc.restartAfter} back from push_notifications.` };
   }
   const now = allowed.find(({ k }) => sentAt(k) === t);
   return { ...base, state: 'monitoring', action: now ? `SendTick(tick_seq=${now.k})` : 'Noop("all_due_ticks_sent")' };
@@ -94,12 +94,12 @@ function StatePill({ s, day, accent }) {
   const otherBranch = (s.key === 'confirmed' && day.state === 'fallback') || (s.key === 'fallback' && day.state === 'confirmed');
   const mover = MOVER[s.key];
   let style = { borderColor: P.line, color: P.inkMuted };
-  if (s.planned) style = { borderColor: P.lineHi, borderStyle: 'dashed', color: P.inkSubtle };
-  if (passed) style = { borderColor: alpha(P.jade, 0.35), color: P.inkMuted };
-  if (current) style = { borderColor: alpha(accent, 0.55), color: accent, background: alpha(accent, 0.08) };
+  if (s.planned) style = { borderColor: P.lineHi, borderTopStyle: 'dashed', color: P.inkSubtle };
+  if (passed) style = { borderColor: alpha(P.jade, 0.6), color: P.inkMuted };
+  if (current) style = { borderColor: accent, color: accent };
 
   return (
-    <li className={`min-w-0 rounded-[6px] border px-3 py-2 transition-opacity duration-300 ${otherBranch ? 'opacity-40' : ''}`} style={style}>
+    <li className={`min-w-0 border-t-2 pt-2 transition-opacity duration-300 ${otherBranch ? 'opacity-40' : ''}`} style={style}>
       <p className="flex items-center gap-2 font-mono text-label">
         {passed && <Glyph kind="tick" />}
         {s.label}
@@ -117,7 +117,7 @@ function Timeline({ t, day, sc, accent }) {
     <div aria-hidden className="relative mt-8 px-1">
       <div className="relative h-14">
         {/* the window */}
-        <div className="absolute inset-y-0 rounded-[4px] border border-line" style={{ left: pct(WIN_FROM), width: `calc(${pct(WIN_TO)} - ${pct(WIN_FROM)})`, background: alpha(P.inkMuted, 0.04) }} />
+        <div className="absolute inset-y-0" style={{ left: pct(WIN_FROM), width: `calc(${pct(WIN_TO)} - ${pct(WIN_FROM)})`, background: alpha(P.inkMuted, 0.06) }} />
         {/* the tick instants */}
         {TICKS.map(({ k, at: instant }) => {
           const isSent = day.lastSent != null && k <= day.lastSent && (confirmT == null || sentAt(k) <= confirmT);
@@ -208,7 +208,7 @@ export default function DayLoop({ accent = P.ice }) {
         footer={
           settled ? (
             <Readout runKey={`${runKey}-${t}`} delay={0.05} reduce={reduce} tone={stateTone} status={`${fmt(t)} · ${day.state}`}>
-              <span className="text-body text-ink-muted">{atEnd ? sc.readout : `${day.sent} ${day.sent === 1 ? 'tick' : 'ticks'} sent so far; plan() returned ${day.action}.`}</span>
+              <span className="text-body text-ink-muted">{atEnd ? sc.readout : `${day.sent} ${day.sent === 1 ? 'tick' : 'ticks'} sent so far. ${day.event ?? `plan() returned ${day.action}.`}`}</span>
             </Readout>
           ) : (
             <p className="text-body text-ink-subtle">{active ? 'Running the morning…' : 'Choose a simulation.'}</p>
@@ -216,7 +216,7 @@ export default function DayLoop({ accent = P.ice }) {
         }
       >
         <div className="@container">
-          <ol aria-label="Day states" className="grid grid-cols-2 gap-2 @min-[40rem]:grid-cols-5">
+          <ol aria-label="Day states" className="grid grid-cols-2 gap-x-4 gap-y-4 @min-[40rem]:grid-cols-5">
             {LOOP.states.map((s) => (
               <StatePill key={s.key} s={s} day={day} accent={accent} />
             ))}
@@ -239,10 +239,16 @@ export default function DayLoop({ accent = P.ice }) {
             />
           </label>
 
-          <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 rounded-[6px] border border-line bg-surface-2 px-4 py-3">
+          <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-t border-line pt-3">
             <p className="min-w-0 font-mono text-label text-ink-muted [overflow-wrap:anywhere]">
-              <span className="text-ink-subtle">plan({fmt(t)}) → </span>
-              <span className="text-ink">{day.action}</span>
+              {day.event ? (
+                <span className="text-ink">{day.event}</span>
+              ) : (
+                <>
+                  <span className="text-ink-subtle">plan({fmt(t)}) returned </span>
+                  <span className="text-ink">{day.action}</span>
+                </>
+              )}
             </p>
             <p className="font-mono text-micro tabular-nums text-ink-subtle">
               pushes sent <span className="text-ink">{day.sent}</span> / {TICKS.length}

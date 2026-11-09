@@ -31,7 +31,7 @@
  */
 import { useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { GATE } from '@/data/studies/typist-ml';
 import { Choices, Glyph, IN_VIEW, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
 import { Meter, armLabel, fixed, pct } from '@/components/ui/case/typist-ml/parts';
@@ -39,7 +39,7 @@ import { Meter, armLabel, fixed, pct } from '@/components/ui/case/typist-ml/part
 const MIN_COVERAGE = 3;
 const REASON_WORDS = {
   too_short: 'it is under 270 characters',
-  bad_charset: 'it has characters other than a–z and single spaces',
+  bad_charset: 'it has characters other than a to z and single spaces',
   density_low: `its target density is under ${GATE.window.min.toFixed(2)}`,
   density_high: `its target density is over ${GATE.window.max.toFixed(2)}`,
   coverage: `a target pair appears fewer than ${MIN_COVERAGE} times`,
@@ -78,7 +78,7 @@ function marked(text, targets) {
 function Drill({ sample }) {
   const runs = marked(sample.text, sample.targets);
   return (
-    <p className="rounded-md border border-line bg-void px-3 py-3 font-mono text-label leading-[1.9] text-ink-muted [overflow-wrap:anywhere] sm:px-4">
+    <p className="font-mono text-label leading-[1.9] text-ink-muted [overflow-wrap:anywhere]">
       {runs.map((r) =>
         r.on ? (
           <span key={r.at} className="text-ink" style={{ boxShadow: `inset 0 -2px 0 ${alpha(P.ink, 0.55)}` }}>
@@ -105,7 +105,7 @@ function Coverage({ sample }) {
             <span className="relative h-2 min-w-0 flex-1 rounded-sm" style={{ background: alpha(P.lineHi, 0.35) }}>
               <span
                 className="absolute inset-y-0 left-0 rounded-sm"
-                style={ok ? { width: `${(n / max) * 100}%`, background: P.jade } : { width: `${Math.max(n / max, 0.02) * 100}%`, background: P.surface, boxShadow: `inset 0 0 0 1px ${P.alert}` }}
+                style={ok ? { width: `${(n / max) * 100}%`, background: P.jade } : { width: `${Math.max(n / max, 0.02) * 100}%`, background: P.void, boxShadow: `inset 0 0 0 1px ${P.alert}` }}
               />
               <span aria-hidden="true" className="absolute -inset-y-1 border-l border-dashed" style={{ left: `${(MIN_COVERAGE / max) * 100}%`, borderColor: P.inkSubtle }} />
             </span>
@@ -154,9 +154,9 @@ export default function Gate({ accent }) {
 
   let text;
   if (!passed) {
-    text = `Rejected, ${sample.reasons.map((r) => REASON_WORDS[r]).join(', and ')}. The worker logs the attempt and tries a new seed, up to ${GATE.maxAttempts} times.`;
+    text = `Rejected: ${sample.reasons.map((r) => REASON_WORDS[r]).join(', and ')}. The worker logs the attempt and tries a new seed, up to ${GATE.maxAttempts} times.`;
   } else if (!targeted) {
-    text = `Passes all ${applied.length} checks that apply. Control has no target pairs, so density and coverage don’t apply, it is the plain-practice baseline.`;
+    text = `Passes all ${applied.length} checks that apply. Control has no target pairs, so density and coverage don’t apply. It is the plain-practice baseline.`;
   } else {
     const near = sample.density - w.min < 0.03 ? `, just above the ${w.min.toFixed(2)} floor` : '';
     text = `Passes all ${applied.length} checks that apply to ${armLabel(sample.arm)}: density ${fixed(sample.density)}${near}, every pair at least ${MIN_COVERAGE} times.`;
@@ -192,12 +192,12 @@ export default function Gate({ accent }) {
             <div className="min-w-0">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="mc-label">Target density</span>
-                <span className="font-mono text-label tabular-nums text-ink">{targeted ? fixed(sample.density) : ', '}</span>
+                <span className="font-mono text-label tabular-nums text-ink">{targeted ? fixed(sample.density) : 'n/a'}</span>
               </div>
               {targeted ? (
                 <Meter value={sample.density} min={w.min} max={w.max} ghost={w.firstMin} ghostLabel={`was ${w.firstMin.toFixed(2)}`} />
               ) : (
-                <p className="mt-3 text-label text-ink-subtle">No targets, not measured.</p>
+                <p className="mt-3 text-label text-ink-subtle">No targets, so density is not measured.</p>
               )}
               {targeted && (
                 <>
@@ -219,7 +219,7 @@ export default function Gate({ accent }) {
       </PanelFrame>
       <p className="mt-3 max-w-[64ch] text-label text-ink-subtle">
         The LLM’s drills go through the same function, plus the real-word check. Its model runs only on Apple Silicon and no recorded run is committed
-        yet, so there is no LLM drill here. Markov writes mostly pseudo-words by design: its real-word ratio is recorded and reported as a difference between methods, not gated.
+        yet, so there is no LLM drill here. Markov writes mostly pseudo-words by design, so its real-word ratio is recorded and reported as a difference between methods rather than used as a gate.
       </p>
     </div>
   );

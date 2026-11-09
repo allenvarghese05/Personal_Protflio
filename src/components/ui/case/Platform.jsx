@@ -3,7 +3,7 @@
 /**
  * Platform — "Around the engine: analytics, notifications, an offline form
  * and a nightly job." The four systems that hang off the workflow engine, as
- * a 2 × 2 of cards (one column under 1024px). Every card reads the same way:
+ * a 2 × 2 grid of open blocks on hairlines (one column under 1024px). Every block reads the same way:
  * a mono eyebrow with its number on the right, a display title, one
  * paragraph, a small purpose-built diagram, then the number again with what
  * it counts.
@@ -11,18 +11,17 @@
  * The diagrams:
  *   analytics — the five scopes as nested rectangles (Organisation ⊃ Division
  *               ⊃ Church / Pastor ⊃ Project, the two middle scopes side by
- *               side and overlapping), fed by a bundle of parallel lines, one
- *               per query. Hover, focus or tap a scope to light it and the
+ *               side and overlapping), under a row of dots, one per query,
+ *               that pulse together. Hover, focus or tap a scope to light it and the
  *               scopes around it; the chain below says the same in words.
  *   notify    — the real recipient matrix: every event × every audience as a
  *               dot grid (filled = notified, ring = not), with a total per
  *               audience. Hover or focus a row — arrow keys move between rows,
  *               a click or tap pins one — and the caption names the event and
  *               who hears about it.
- *   offline   — the sync as five steps on one line: dashed while there is no
- *               signal, solid once it is back, a signal glyph on every step.
- *               A packet rides the line once and each step it reaches turns
- *               jade; the last one is the single post.
+ *   offline   — the sync as five numbered steps, a signal glyph on every
+ *               step. Each step turns jade in order; the last one is the
+ *               single post.
  *   daily     — a 24-hour dial with one amber mark at the run time (read from
  *               the card's title), beside the seven steps, numbered.
  *
@@ -49,7 +48,7 @@
  */
 import { Fragment, useId, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { AUDIENCES, NOTIFY_MATRIX, PLATFORM } from '@/data/studies/iet';
 
@@ -59,12 +58,9 @@ const VISUAL_IN_VIEW = { once: true, amount: 0.5 }; // a diagram plays once half
 const RISE_PX = 14;
 const FADE_S = 0.6;
 const PAIR_S = 0.07; // the right-hand card trails the left by one beat
-const RULE_PX = 2;
-const RULE_ALPHA = 0.6; // top rule, present, not loud
-const INSET = 'inset 0 1px 0 rgba(255, 255, 255, 0.04)';
 const H3 = 'font-display text-[1.375rem] font-semibold leading-tight tracking-[-0.01em] text-ink';
 
-// Top-rule tone per card — the hues Architecture gives these nodes (analytics:
+// Marker tone per block — the hues Architecture gives these nodes (analytics:
 // data and offline: storage → ice; notify: notifications → muted ink; daily:
 // workflow → sand), so amber stays free for whatever is being pointed at.
 const TONE = { analytics: P.ice, notify: P.inkMuted, offline: P.ice, daily: P.sand };
@@ -95,8 +91,8 @@ function Sep({ glyph, spoken = '' }) {
 const LADDER = [[0], [1], [2, 3], [4]];
 const SCOPE_COUNT = LADDER.flat().length;
 const LEVEL_OF = Object.fromEntries(LADDER.flatMap((level, l) => level.map((i) => [i, l])));
-// query lines: spacing (% of the width), drop (px), one trip (s), pause between the two trips
-const QUERY = { gapPct: 7, h: 26, trip: 0.9, rest: 0.35 };
+// query dots: one pulse (s), pause between the two pulses
+const QUERY = { trip: 0.9, rest: 0.35 };
 const BOX_LEAD_S = 0.45; // the scopes appear as the first queries land…
 const BOX_STEP_S = 0.1; // …outermost first
 
@@ -115,45 +111,27 @@ function boxLook(rel, accent) {
 
 const CHAIN_INK = { outer: P.ink, idle: P.inkSubtle, none: P.inkMuted };
 
-/** "4 queries · one Promise.all": parallel lines dropping into the outer scope. */
+/** "4 queries · one Promise.all": one dot per query, pulsing together. */
 function QueryBundle({ count, run }) {
-  const xs = Array.from({ length: count }, (_, i) => round2(50 + (i - (count - 1) / 2) * QUERY.gapPct));
-  const trip = { duration: QUERY.trip, repeat: 1, repeatDelay: QUERY.rest };
+  const dots = Array.from({ length: count }, (_, i) => i);
   return (
-    <div className="flex flex-col items-center">
+    <div className="mb-3 flex flex-col items-center gap-2">
       <p className="font-mono text-micro text-ink-subtle">
         {count} queries <Sep glyph="·" /> one Promise.all
       </p>
-      <svg aria-hidden="true" className="mt-1.5 block w-full overflow-visible" height={QUERY.h}>
-        {/* the bundle's head, one Promise.all holding them together */}
-        <line
-          x1={`${xs[0]}%`}
-          x2={`${xs[xs.length - 1]}%`}
-          y1="0.75"
-          y2="0.75"
-          stroke={alpha(P.ice, 0.55)}
-          strokeWidth="1.5"
-        />
-        {xs.map((x) => (
-          <line key={x} x1={`${x}%`} x2={`${x}%`} y1="0" y2={QUERY.h} stroke={alpha(P.ice, 0.45)} strokeWidth="1.25" />
-        ))}
+      <span aria-hidden="true" className="flex items-center gap-2">
         {/* all of them at once, that is the point */}
-        {run &&
-          xs.map((x) => (
-            <motion.circle
-              key={`packet-${x}`}
-              cx={`${x}%`}
-              r="2.5"
-              fill={P.ice}
-              initial={{ cy: 0, opacity: 0 }}
-              animate={{ cy: QUERY.h, opacity: [0, 1, 1, 0] }}
-              transition={{
-                cy: { ...trip, ease: 'easeIn' },
-                opacity: { ...trip, times: [0, 0.15, 0.8, 1] },
-              }}
-            />
-          ))}
-      </svg>
+        {dots.map((i) => (
+          <motion.span
+            key={i}
+            className="block h-1.5 w-1.5 rounded-full"
+            style={{ background: P.ice }}
+            initial={false}
+            animate={run ? { opacity: [1, 0.3, 1] } : { opacity: 1 }}
+            transition={run ? { duration: QUERY.trip, repeat: 1, repeatDelay: QUERY.rest } : { duration: 0 }}
+          />
+        ))}
+      </span>
     </div>
   );
 }
@@ -205,12 +183,13 @@ function ScopeChain({ scopes, active, accent }) {
   };
   return (
     <p className="mt-4 break-words font-mono text-label leading-relaxed">
+      <span className="text-ink-subtle">Widest to narrowest: </span>
       {LADDER.map((level, l) => (
         <Fragment key={level.join('-')}>
-          {l > 0 && <Sep glyph=" ⊃ " spoken=", containing " />}
+          {l > 0 && <span className="text-ink-subtle">, </span>}
           {level.map((i, k) => (
             <Fragment key={i}>
-              {k > 0 && <Sep glyph=" / " spoken=" or " />}
+              {k > 0 && <span className="text-ink-subtle"> or </span>}
               <span className="transition-colors duration-200 motion-reduce:transition-none" style={{ color: inkOf(i) }}>
                 {scopes[i]}
               </span>
@@ -488,7 +467,7 @@ function NotifyVisual({ accent, reduce, live }) {
                 </p>
                 <p className="mt-1.5 text-body font-medium leading-snug text-ink">{event.name}</p>
                 <p className="mt-1.5 text-label text-ink-muted">
-                  <Sep glyph="→ " spoken="to " />
+                  To{' '}
                   {event.to.map((a, k) => (
                     <Fragment key={a}>
                       {k > 0 && <Sep glyph=" · " spoken=", " />}
@@ -523,7 +502,7 @@ function NotifyVisual({ accent, reduce, live }) {
 }
 
 /* ── offline: the sync line ────────────────────────────────────────────── */
-const SYNC = { lead: 0.35, seg: 0.6, pulse: 0.9 }; // s: before the packet, per step, the last ring
+const SYNC = { lead: 0.35, seg: 0.6, pulse: 0.9 }; // s: before the first step, per step, the last ring
 const SIGNAL_STEP = /signal/i; // the step where the signal comes back
 const CODE_IN_PARENS = /\(([A-Za-z][A-Za-z0-9]*)\)/; // "(offlineId)" → set as code
 const SIGNAL_BARS = [3, 6, 9, 12]; // px heights, rising
@@ -561,44 +540,6 @@ function StepLabel({ text }) {
   );
 }
 
-/**
- * The line from one step to the next. It is a zero-height box across (or a
- * zero-width box down), so the same top + left borders draw it in either
- * direction; the trail grows both width and height, and the packet rides its
- * far corner — whichever way the line runs.
- */
-function SyncLine({ dashed, delay, run, reduce, accent }) {
-  const pattern = dashed ? 'border-dashed' : 'border-solid';
-  return (
-    <span
-      aria-hidden="true"
-      className="pointer-events-none absolute left-[6.25px] top-1/2 h-full w-0 @min-[30rem]:left-1/2 @min-[30rem]:top-[26.25px] @min-[30rem]:h-0 @min-[30rem]:w-full"
-    >
-      <span
-        className={`absolute left-0 top-0 h-full w-full border-l-[1.5px] border-t-[1.5px] ${pattern}`}
-        style={{ borderColor: P.lineHi }}
-      />
-      <motion.span
-        className={`absolute left-0 top-0 border-l-[1.5px] border-t-[1.5px] ${pattern}`}
-        style={{ borderColor: alpha(P.jade, 0.7) }}
-        initial={reduce ? false : { width: '0%', height: '0%' }}
-        animate={reduce || run ? { width: '100%', height: '100%' } : { width: '0%', height: '0%' }}
-        transition={reduce ? { duration: 0 } : { delay, duration: SYNC.seg, ease: 'easeInOut' }}
-      >
-        {run && (
-          <motion.span
-            className="absolute bottom-0 right-0 h-2 w-2 translate-x-[calc(50%_-_0.75px)] translate-y-[calc(50%_-_0.75px)] rounded-full"
-            style={{ background: accent, boxShadow: `0 0 0 2px ${P.surface}` }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 1, 0] }}
-            transition={{ delay, duration: SYNC.seg, times: [0, 0.12, 0.88, 1] }}
-          />
-        )}
-      </motion.span>
-    </span>
-  );
-}
-
 function SyncNode({ reachAt, last, run, reduce }) {
   const idle = { backgroundColor: P.void, borderColor: P.lineHi };
   const done = { backgroundColor: alpha(P.jade, last ? 0.9 : 0.22), borderColor: P.jade };
@@ -624,7 +565,7 @@ function SyncNode({ reachAt, last, run, reduce }) {
   );
 }
 
-function OfflineVisual({ entry, accent, reduce, live }) {
+function OfflineVisual({ entry, reduce, live }) {
   const flow = entry.flow ?? [];
   const n = flow.length;
   const signalAt = Math.max(0, flow.findIndex((s) => SIGNAL_STEP.test(s)));
@@ -641,13 +582,13 @@ function OfflineVisual({ entry, accent, reduce, live }) {
               key={step}
               className="relative flex h-11 items-center gap-3 @min-[30rem]:h-auto @min-[30rem]:flex-col @min-[30rem]:gap-2 @min-[30rem]:px-1.5 @min-[30rem]:text-center"
             >
-              {i < n - 1 && (
-                <SyncLine dashed={i < signalAt} delay={reachAt(i)} run={run} reduce={reduce} accent={accent} />
-              )}
               <span className="relative z-10 order-1 @min-[30rem]:order-2">
                 <SyncNode reachAt={reachAt(i)} last={i === n - 1} run={run} reduce={reduce} />
               </span>
               <span className="order-2 min-w-0 flex-1 text-label leading-snug text-ink-muted @min-[30rem]:order-3 @min-[30rem]:flex-none">
+                <span aria-hidden="true" className="mr-1.5 font-mono text-micro tabular-nums text-ink-subtle">
+                  {pad2(i + 1)}
+                </span>
                 <StepLabel text={step} />
                 <span className="sr-only">{offline ? ', no signal' : ', signal'}</span>
               </span>
@@ -660,12 +601,12 @@ function OfflineVisual({ entry, accent, reduce, live }) {
       </ol>
       <ul aria-hidden="true" className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-micro text-ink-subtle">
         <li className="inline-flex items-center gap-2">
-          <span className="inline-block w-5 border-t-[1.5px] border-dashed" style={{ borderColor: P.inkSubtle }} />
-          offline
+          <SignalGlyph on={false} />
+          no signal
         </li>
         <li className="inline-flex items-center gap-2">
-          <span className="inline-block w-5 border-t-[1.5px] border-solid" style={{ borderColor: P.inkSubtle }} />
-          online
+          <SignalGlyph on />
+          signal
         </li>
       </ul>
     </div>
@@ -758,7 +699,7 @@ function Dial({ time, accent, reduce, run, shown }) {
         cy={dot.y}
         r="3.5"
         fill={accent}
-        stroke={P.surface}
+        stroke={P.void}
         strokeWidth="2"
         initial={reduce ? false : { scale: 0, opacity: 0 }}
         animate={shown ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
@@ -864,21 +805,16 @@ function PlatformCard({ entry, order, accent, reduce }) {
   return (
     <motion.li
       ref={cardRef}
-      className="relative flex min-w-0 flex-col overflow-hidden rounded-panel border border-line bg-surface"
-      style={{ boxShadow: INSET }}
+      className="flex min-w-0 flex-col border-t border-line pt-5"
       initial={reduce ? false : { opacity: 0, y: RISE_PX }}
       animate={shown ? { opacity: 1, y: 0 } : { opacity: 0, y: RISE_PX }}
       transition={at(reduce, (order % 2) * PAIR_S, FADE_S)}
     >
-      <span
-        aria-hidden="true"
-        className="absolute inset-x-0 top-0"
-        style={{ height: RULE_PX, background: alpha(tone, RULE_ALPHA) }}
-      />
       <article aria-labelledby={titleId} className="flex flex-1 flex-col">
-        <header className="flex items-start justify-between gap-3 border-b border-line px-4 pb-3 pt-4 sm:px-6">
+        <header className="flex items-start justify-between gap-3">
           {/* .mc-label sets its own colour; the inline style lifts it a step */}
-          <p className="mc-label leading-normal" style={{ color: P.inkMuted }}>
+          <p className="mc-label inline-flex items-center gap-2.5 leading-normal" style={{ color: P.inkMuted }}>
+            <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: tone }} />
             {entry.label}
           </p>
           {stat && (
@@ -889,7 +825,7 @@ function PlatformCard({ entry, order, accent, reduce }) {
           )}
         </header>
 
-        <div className="flex flex-1 flex-col px-4 pb-5 pt-5 sm:px-6 sm:pb-6">
+        <div className="flex flex-1 flex-col pt-4">
           <h3 id={titleId} className={H3}>
             {entry.title}
           </h3>
@@ -918,7 +854,7 @@ function PlatformCard({ entry, order, accent, reduce }) {
 export default function Platform({ accent = P.accent }) {
   const reduce = useReducedMotion() ?? false;
   return (
-    <ul className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
+    <ul className="grid min-w-0 grid-cols-1 gap-x-12 gap-y-16 lg:grid-cols-2 lg:gap-x-16">
       {PLATFORM.map((entry, i) => (
         <PlatformCard key={entry.key} entry={entry} order={i} accent={accent} reduce={reduce} />
       ))}

@@ -37,7 +37,7 @@
  */
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { Choices, DecisionList, Glyph, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
 import { LABEL } from '@/components/ui/case/shell';
 import { DECISIONS } from '@/data/studies/bis-report-card';
@@ -53,7 +53,7 @@ const rowIn = (reduce, i) => ({
 
 /* ── lock ──────────────────────────────────────────────────────────────── */
 const LOCK_SCENARIOS = [
-  { key: 'race', label: 'Approve + 8 saves' },
+  { key: 'race', label: 'Approve plus 8 saves' },
   { key: 'double', label: 'Two approves' },
   { key: 'nolock', label: 'Without the lock' },
 ];
@@ -73,7 +73,7 @@ function raceRound(decision, round) {
         key: `save-${save}`,
         label: `save · roll ${save}`,
         reads: before ? 'draft' : 'approved',
-        does: before ? 'mark written' : 'refused, nothing written',
+        does: before ? 'mark written' : 'refused, so nothing is written',
         code: before ? 200 : 409,
         tone: before ? 'ok' : 'no',
       });
@@ -96,7 +96,7 @@ function LockRow({ row, index, reduce, accent }) {
           {row.label}
         </span>
         <span className="block text-micro text-ink-subtle">
-          reads {row.reads} → {row.does}
+          reads {row.reads} · {row.does}
         </span>
       </span>
       <span className="flex items-center gap-2">
@@ -137,8 +137,8 @@ function LockVisual({ decision, inView, reduce, accent }) {
     footer = (
       <Readout runKey={runKey} delay={doneAt} reduce={reduce} tone={P.jade} status="0 marks after lockedAt">
         <span className="text-body text-ink-muted">
-          {race.before} {race.before === 1 ? 'save' : 'saves'} committed before the approve; {race.after} got 409. Every save is one or the other, never
-          both.
+          {race.before} {race.before === 1 ? 'save' : 'saves'} committed before the approval and {race.after} got 409. Each save either commits first or
+          is refused.
         </span>
       </Readout>
     );
@@ -146,14 +146,14 @@ function LockVisual({ decision, inView, reduce, accent }) {
     doneAt = LEAD_S + 2 * ROW_S;
     footer = (
       <Readout runKey={runKey} delay={doneAt} reduce={reduce} tone={P.jade} status="201 · 400">
-        <span className="text-body text-ink-muted">Exactly one approve wins; the revision goes up by one, not two.</span>
+        <span className="text-body text-ink-muted">Exactly one approval wins, so the revision goes up by one, not two.</span>
       </Readout>
     );
   } else if (key === 'nolock') {
     doneAt = LEAD_S + NOLOCK_STEPS.length * ROW_S;
     footer = (
       <Readout runKey={runKey} delay={doneAt} reduce={reduce} tone={P.alert} status="A mark in a locked card">
-        <span className="text-body text-ink-muted">What the lock rules out: with it, the approve waits for the save to commit, or the save reads “approved” and gets 409.</span>
+        <span className="text-body text-ink-muted">This is the race the lock prevents. With the lock, either the approval waits for the save to commit, or the save reads “approved” and gets 409.</span>
       </Readout>
     );
   }
@@ -167,7 +167,7 @@ function LockVisual({ decision, inView, reduce, accent }) {
       {key === 'race' && (
         <div className="mb-4">
           <Choices label="Pick a round" options={rounds} value={String(round)} onChoose={(k) => setRound(Number(k))} accent={accent} />
-          <p className="mt-2 font-mono text-micro text-ink-subtle">lock order is illustrative · the test asserts the outcome, five rounds</p>
+          <p className="mt-2 font-mono text-micro text-ink-subtle">The lock order here is an example. The test checks the outcome over five rounds.</p>
         </div>
       )}
       <div key={runKey} className="min-w-0">
@@ -186,7 +186,7 @@ function LockVisual({ decision, inView, reduce, accent }) {
         )}
         {key === 'nolock' && (
           <div>
-            <p className={`${LABEL} text-ink-subtle`}>Illustration · check, then write, no lock</p>
+            <p className={`${LABEL} text-ink-subtle`}>Illustration · check the status, then write, with no lock</p>
             <ol className="mt-3 border-b border-line">
               {NOLOCK_STEPS.map((s, i) => (
                 <motion.li key={s.text} {...rowIn(reduce, i)} className="grid grid-cols-[1.5rem_5rem_minmax(0,1fr)_20px] items-center gap-x-3 border-t border-line py-2.5">
@@ -224,18 +224,18 @@ function signIn(person, machine, policy) {
     { label: 'Password', value: 'argon2id · ok', state: 'pass' },
     {
       label: 'Tokens already in this browser',
-      value: machine.cookie.length ? `${machine.cookie.join(', ')}, none for u${person.id}` : 'none',
+      value: machine.cookie.length ? `${machine.cookie.join(', ')} (none for u${person.id})` : 'none',
       state: 'pass',
     },
     { label: 'MAC from the ARP table', value: registered ? `registered as ${machine.registeredOs} PC` : 'not a registered PC', state: registered ? 'pass' : 'skip' },
     {
       label: 'May use a school computer?',
-      value: person.approver ? 'no, approvers never' : person.tempPassword ? 'no, still on a temporary password' : 'yes',
+      value: person.approver ? 'no, never for approvers' : person.tempPassword ? 'no, still on a temporary password' : 'yes',
       state: !registered ? 'skip' : eligible ? 'pass' : 'stop',
     },
     {
       label: 'Browser OS = registered OS?',
-      value: registered ? `${machine.os} vs ${machine.registeredOs}` : ', ',
+      value: registered ? `${machine.os} vs ${machine.registeredOs}` : 'not checked',
       state: !registered || !eligible ? 'skip' : osMatch ? 'pass' : 'stop',
     },
   ];
@@ -303,7 +303,7 @@ function DeviceVisual({ decision, inView, reduce, accent }) {
               </motion.li>
             ))}
           </ol>
-          <motion.div {...rowIn(reduce, r.steps.length)} className="min-w-0 rounded-md border border-line bg-void p-3">
+          <motion.div {...rowIn(reduce, r.steps.length)} className="min-w-0 border-t border-line pt-3">
             <p className={`${LABEL} text-ink-subtle`}>The cookie, after</p>
             <ul className="mt-2.5 flex flex-col gap-1.5 font-mono text-label">
               {r.cookieAfter.map((k) => {
@@ -316,7 +316,7 @@ function DeviceVisual({ decision, inView, reduce, accent }) {
                 );
               })}
             </ul>
-            <p className="mt-3 text-micro text-ink-subtle">only SHA-256 hashes reach the database · 20 tokens kept</p>
+            <p className="mt-3 text-micro text-ink-subtle">Only SHA-256 hashes reach the database. The 20 most recent tokens are kept.</p>
           </motion.div>
         </div>
       </div>
@@ -360,15 +360,11 @@ function RollVisual({ decision, inView, reduce, accent }) {
       }
     >
       <div key={runKey} className="min-w-0">
-        <ul aria-label="The section" className="flex flex-wrap gap-2">
+        <ul aria-label="The section" className="flex flex-wrap gap-x-6">
           {final.now.map((s) => {
             const was = sc.students.find((x) => x.name === s.name).roll;
             return (
-              <li
-                key={s.name}
-                className="flex min-w-[7.5rem] flex-1 items-center justify-between gap-2 rounded-md border px-3 py-2"
-                style={s.active ? { borderColor: P.lineHi } : { borderColor: P.line, borderStyle: 'dashed' }}
-              >
+              <li key={s.name} className="flex min-w-[7.5rem] flex-1 items-center justify-between gap-2 border-t border-line py-2">
                 <span className={`text-label ${s.active ? 'text-ink' : 'text-ink-subtle'}`}>
                   {s.name}
                   {!s.active && <span className="ml-1.5 font-mono text-micro text-ink-subtle">left</span>}
@@ -376,7 +372,10 @@ function RollVisual({ decision, inView, reduce, accent }) {
                 <span className="font-mono text-label tabular-nums text-ink-muted">
                   {was !== s.roll ? (
                     <>
-                      <span className="text-ink-subtle line-through">{was}</span> → <span className="text-ink">{s.roll}</span>
+                      <span className="sr-only">changed from {was} to {s.roll}</span>
+                      <span aria-hidden="true">
+                        <span className="text-ink-subtle line-through">{was}</span> <span className="text-ink">{s.roll}</span>
+                      </span>
                     </>
                   ) : (
                     s.roll
@@ -399,7 +398,7 @@ function RollVisual({ decision, inView, reduce, accent }) {
               <motion.li key={`${st.who}-${st.roll}`} {...rowIn(reduce, i + 1)} className="grid grid-cols-[minmax(0,1fr)_20px] items-start gap-x-3 border-t border-line py-2">
                 <span className="min-w-0">
                   <span className="block text-ink [overflow-wrap:anywhere]">
-                    UPDATE students SET roll_no = {st.roll} <span className="text-ink-subtle">, {st.who}</span>
+                    UPDATE students SET roll_no = {st.roll} <span className="text-ink-subtle">· {st.who}</span>
                   </span>
                   <span className="mt-0.5 block font-sans text-micro text-ink-subtle">{st.note}</span>
                 </span>

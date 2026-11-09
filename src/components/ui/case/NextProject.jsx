@@ -22,7 +22,7 @@
  */
 import { useEffect, useId, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { PALETTE as P } from '@/lib/palette';
+import { P } from '@/components/ui/case/tokens';
 
 /* ── the follow (rates are "share of the gap closed per 60fps frame") ──── */
 const FOLLOW = 0.17; // blob → pointer

@@ -27,7 +27,7 @@
  */
 import { Fragment, useEffect, useId, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import CodeBlock from '@/components/ui/case/CodeBlock';
 
@@ -83,9 +83,11 @@ export function useWidth(ref) {
 /* ── small pieces ──────────────────────────────────────────────────────── */
 
 /** Toggle buttons for a diagram (aria-pressed on the active one). */
-export function Choices({ label, options, value, onChoose, accent }) {
+export function Choices({ label, options, value, onChoose, accent, stack = false }) {
+  // `stack`: one choice per row, each the column's full width with its text
+  // left-aligned, for a narrow side column (wrapped buttons there go ragged)
   return (
-    <div role="group" aria-label={label} className="flex flex-wrap gap-2">
+    <div role="group" aria-label={label} className={stack ? 'flex flex-col gap-2' : 'flex flex-wrap gap-2'}>
       {options.map((o) => {
         const on = o.key === value;
         return (
@@ -95,6 +97,8 @@ export function Choices({ label, options, value, onChoose, accent }) {
             aria-pressed={on}
             onClick={() => onChoose(o.key)}
             className={`rounded-chip border px-3 py-2 font-mono text-micro tracking-[0.04em] transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+              stack ? 'w-full text-left leading-snug' : ''
+            } ${
               on ? '' : 'border-line text-ink-muted hover:border-line-hi hover:text-ink'
             }`}
             style={
@@ -111,10 +115,13 @@ export function Choices({ label, options, value, onChoose, accent }) {
   );
 }
 
-/** The panel every diagram sits in: caption + controls, body, readout. */
+/** The open frame every diagram sits in: a hairline, caption + controls, body,
+ *  readout. No box: the rules and the caption do the grouping. */
 export function PanelFrame({ caption, controls, footer, children }) {
+  // the one kind of container the case studies keep: a soft, borderless tray
+  // around an interactive figure, so it reads as an instrument, not as text
   return (
-    <div className="mc-panel flex min-w-0 flex-col">
+    <div className="case-tray flex min-w-0 flex-col rounded-[18px] px-5 pb-4 pt-5 sm:px-7 sm:pt-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <span className="mc-label">{caption}</span>
         {controls}

@@ -22,8 +22,10 @@ import { createContext, useContext, useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { useStore } from '@/lib/store';
 import { ENGINEERING_PROJECTS } from '@/data/projects';
-import { PALETTE as P, alpha } from '@/lib/palette';
-import { ACCENTS, DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
+import { KIND_ACCENT, P, alpha } from '@/components/ui/case/tokens';
+import { DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
+import { GITHUB_MARK } from '@/lib/brandMarks';
+import { SHOWCASE } from '@/data/showcase';
 import NextProject from '@/components/ui/case/NextProject';
 
 /* ── constants ─────────────────────────────────────────────────────────── */
@@ -41,13 +43,12 @@ const FADE_S = 0.7;
 const HEAD_VIEW = { once: true, amount: 0.6 };
 
 const PAIR_VIEW = { once: true, amount: 0.3 };
-const PAIR_STEP_S = 0.1; // between before → after rows
-const PAIR_ARROW_S = 0.18; // the arrow draws after its "before"
-const PAIR_AFTER_S = 0.34; // and the "after" lands once it has
+const PAIR_STEP_S = 0.1; // between before/after rows
+const PAIR_AFTER_S = 0.24; // the "after" lands just after its "before"
 const PAIR_SHIFT_PX = 8;
-// before | arrow | after, on one grid so row i of each column lines up — no
-// gap at md, so the column heads sit on exactly the same tracks as the rows
-const PAIR_GRID = 'md:grid md:grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)] md:items-start md:gap-0';
+// before | after, on one grid so row i of each column lines up and the column
+// heads sit on exactly the same tracks as the rows
+const PAIR_GRID = 'md:grid md:grid-cols-2 md:items-start md:gap-x-16';
 
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 
@@ -60,7 +61,7 @@ export const capWord = (n) => {
   return w.charAt(0).toUpperCase() + w.slice(1);
 };
 /** The page accent for a project kind (signature → amber, …). */
-export const accentFor = (kind) => ACCENTS[kind] || ACCENTS.project;
+export const accentFor = (kind) => KIND_ACCENT[kind] || KIND_ACCENT.project;
 
 /** The project after `id` in the wall's order, wrapping; null if it's alone. */
 function nextAfter(id) {
@@ -100,14 +101,25 @@ const heroItem = {
 /* ── the page wrapper ──────────────────────────────────────────────────── */
 
 /** The page's outer frame, mirrors the generic brief's motion.article. */
-export function CaseArticle({ children }) {
+/**
+ * The project's accent as CSS variables, for .case-accent (globals.css), which
+ * turns them into --accent for the theme in force: the case study's one
+ * highlight colour, the same colour the project has on /projects.
+ */
+export function caseAccentStyle(projectId) {
+  const a = SHOWCASE[projectId]?.accent;
+  return a ? { '--case-accent-dark': a.dark, '--case-accent-light': a.light } : undefined;
+}
+
+export function CaseArticle({ project, children }) {
   return (
     <motion.article
       key="brief"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, transition: { duration: DUR.briefFade, ease: EASE_STD } }}
       exit={{ opacity: 0, transition: { duration: 0.2 } }}
-      className="w-full overflow-x-clip"
+      className="case-article case-accent w-full overflow-x-clip"
+      style={caseAccentStyle(project?.id)}
     >
       {children}
     </motion.article>
@@ -158,17 +170,33 @@ export function Metrics({ metrics, accent }) {
   );
 }
 
-/** A small external link chip (repo, live site) for the hero. */
-function LinkChip({ href, children }) {
+/**
+ * The hero's links. The source is the one solid button (with the GitHub mark
+ * when it is a GitHub link): it is what a reviewer looks for. Anything else
+ * (a live site) is an outlined button beside it.
+ */
+function HeroLink({ href, label, primary }) {
+  const github = /github\.com/.test(href);
   return (
     <a
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex items-center gap-2 rounded-full border border-line px-3.5 py-2 font-mono text-micro font-medium uppercase tracking-[0.18em] text-ink-muted transition-colors hover:border-line-hi hover:text-ink"
+      className={
+        primary
+          ? 'inline-flex h-11 items-center gap-2.5 whitespace-nowrap rounded-full bg-ink pl-4 pr-5 text-sm font-medium text-void transition-[background-color,transform] duration-200 hover:bg-accent active:scale-[0.98]'
+          : 'inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-full px-5 text-sm font-medium text-ink ring-1 ring-inset ring-line-hi transition-[background-color,box-shadow,transform] duration-200 hover:bg-surface-2 hover:ring-ink-subtle active:scale-[0.98]'
+      }
     >
-      {children}
-      <span aria-hidden>↗</span>
+      {github && (
+        <svg aria-hidden viewBox="0 0 24 24" className="h-[18px] w-[18px] shrink-0" fill="currentColor">
+          <path d={GITHUB_MARK} />
+        </svg>
+      )}
+      {github ? 'View source' : label}
+      <span aria-hidden className={primary ? 'opacity-70' : 'text-ink-subtle'}>
+        ↗
+      </span>
     </a>
   );
 }
@@ -216,14 +244,19 @@ export function Hero({ project, accent, outcome, status, statusTone, links, figu
             ))}
           </motion.p>
 
-          {(status || links?.length) && (
-            <motion.div variants={heroItem} className="mt-5 flex flex-wrap items-center gap-3">
-              {status && <StatusPill tone={statusTone}>{status}</StatusPill>}
-              {links?.map((l) => (
-                <LinkChip key={l.href} href={l.href}>
-                  {l.label}
-                </LinkChip>
-              ))}
+          {status && (
+            <motion.div variants={heroItem} className="mt-5">
+              <StatusPill tone={statusTone}>{status}</StatusPill>
+            </motion.div>
+          )}
+          {links?.length > 0 && (
+            <motion.div variants={heroItem} className="mt-7 flex flex-wrap items-center gap-3">
+              {/* the source first, as the solid button; a live site beside it */}
+              {[...links]
+                .sort((x, y) => Number(/github\.com/.test(y.href)) - Number(/github\.com/.test(x.href)))
+                .map((l, i) => (
+                  <HeroLink key={l.href} href={l.href} label={l.label} primary={i === 0} />
+                ))}
             </motion.div>
           )}
 
@@ -263,7 +296,7 @@ export function SectionHead({ id, num, label, title, accent }) {
           <>
             <span style={{ color: accent }}>{num}</span>
             <span aria-hidden className="text-ink-faint">
-              {', '}
+              {' · '}
             </span>
           </>
         )}
@@ -290,7 +323,7 @@ export function Section({ scope, id, num, label, title, accent, children }) {
   );
 }
 
-/* ── the problem: before → after ───────────────────────────────────────── */
+/* ── the problem: before and after ───────────────────────────────────────── */
 
 /** Hollow = how it was; filled accent = how it is. Shape differs, not just hue. */
 function Marker({ filled = false, accent, className = 'mt-[9px]' }) {
@@ -300,28 +333,6 @@ function Marker({ filled = false, accent, className = 'mt-[9px]' }) {
       className={`h-2 w-2 shrink-0 rounded-full ${className}`}
       style={filled ? { background: accent } : { boxShadow: `inset 0 0 0 1.25px ${P.inkSubtle}` }}
     />
-  );
-}
-
-function PairArrow({ shown, reduce, delay }) {
-  const draw = {
-    initial: reduce ? false : { pathLength: 0, opacity: 0 },
-    animate: shown ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 },
-    transition: { duration: FADE_S * 0.6, ease: EASE_STD, delay },
-  };
-  return (
-    <svg width="44" height="10" viewBox="0 0 44 10" fill="none" aria-hidden className="block">
-      <motion.path d="M1 5H41" stroke={P.inkSubtle} strokeWidth="1.25" strokeLinecap="round" {...draw} />
-      <motion.path
-        d="M37 1.5L41 5L37 8.5"
-        stroke={P.inkSubtle}
-        strokeWidth="1.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        {...draw}
-        transition={{ ...draw.transition, delay: delay + FADE_S * 0.4 }}
-      />
-    </svg>
   );
 }
 
@@ -336,13 +347,11 @@ export function BeforeAfter({ before, after, accent, beforeLabel = 'Before', aft
   return (
     <div ref={ref}>
       {/* column heads on desktop; a one-line legend on mobile */}
-      <div aria-hidden className={`flex items-center gap-3 pb-4 ${PAIR_GRID}`}>
+      <div aria-hidden className={`flex flex-wrap items-center gap-x-6 gap-y-2 pb-4 ${PAIR_GRID}`}>
         <span className={`${LABEL} flex items-center gap-3 text-ink-subtle`}>
           <Marker className="" />
           {beforeLabel}
         </span>
-        <span className="text-ink-subtle md:hidden">→</span>
-        <span className="hidden md:block" />
         <span className={`${LABEL} flex items-center gap-3 text-ink`}>
           <Marker filled accent={accent} className="" />
           {afterLabel}
@@ -364,10 +373,6 @@ export function BeforeAfter({ before, after, accent, beforeLabel = 'Before', aft
                   {row.before}
                 </span>
               </motion.p>
-
-              <div className="hidden justify-center pt-[8px] md:flex">
-                <PairArrow shown={shown} reduce={reduce} delay={at + PAIR_ARROW_S} />
-              </div>
 
               <motion.p
                 {...reveal(shown, reduce, at + PAIR_AFTER_S, { x: -PAIR_SHIFT_PX })}

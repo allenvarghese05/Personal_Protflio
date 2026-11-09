@@ -7,10 +7,9 @@
  *   totals   the history in numbers (pull requests, commits, lines, client
  *            decisions). Four cells on hairlines, the value in ink display
  *            type (amber stays with the lane that's running) and the label in mono.
- *   ci       the workflows as lanes in one panel. Each lane has the workflow's
+ *   ci       the workflows as lanes on hairlines. Each lane has the workflow's
  *            name in mono, when it runs as a quiet tag, then its steps as a
- *            left-to-right chain of chips joined by hairline arrows, ending in
- *            a check. Once the panel is a third in view the lanes run: they
+ *            left-to-right row of chips, in order, ending in a check. Once the panel is a third in view the lanes run: they
  *            start one beat apart, and in each one the steps light one at a
  *            time (amber while it's the current step, settled once passed).
  *            The jade check lands when a lane's last step passes. The readout
@@ -20,7 +19,7 @@
  *
  * Every number and label is BUILD's; the counts in the caption and readout
  * are computed from it. The chips are real list items, so the chain reads as
- * text; arrows, checks and lane state are decorative.
+ * text; checks and lane state are decorative.
  *
  * Motion: blocks fade up once in view. Lanes advance on a beat timer that
  * only runs while the sequence is playing. Reduced motion: every lane is
@@ -35,7 +34,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 
 /* ── constants ─────────────────────────────────────────────────────────── */
@@ -131,29 +130,6 @@ function Figures({ items, compact }) {
   );
 }
 
-/** A hairline arrow between chips; jade once the step before it has passed. */
-function Arrow({ lit }) {
-  return (
-    <svg
-      viewBox="0 0 20 8"
-      width="20"
-      height="8"
-      aria-hidden="true"
-      className="mx-1 block shrink-0"
-    >
-      <path
-        d="M1 4 H17 M14 1.5 L17.5 4 L14 6.5"
-        fill="none"
-        stroke={lit ? alpha(P.jade, 0.6) : P.lineHi}
-        strokeWidth="1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="transition-[stroke] duration-300 motion-reduce:transition-none"
-      />
-    </svg>
-  );
-}
-
 /** The end of a lane: an idle ring, then a jade check that pops in. */
 function Check({ done, reduce }) {
   return (
@@ -221,12 +197,11 @@ function Lane({ lane, beat, accent, reduce }) {
         </span>
       </div>
 
-      <ol aria-label={`${lane.name} steps`} className="flex min-w-0 flex-wrap items-center gap-y-2">
+      <ol aria-label={`${lane.name} steps`} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2">
         {lane.steps.map((step, j) => {
           const state = stepState(beat, lane, j);
           return (
             <li key={step} className="flex min-w-0 max-w-full items-center">
-              {j > 0 && <Arrow lit={stepState(beat, lane, j - 1) === 'pass'} />}
               <span
                 className="min-w-0 break-words rounded-chip border px-2.5 py-1.5 font-mono text-micro leading-tight transition-[color,background-color,border-color] duration-300 motion-reduce:transition-none"
                 style={chipStyle(state, accent)}
@@ -234,10 +209,9 @@ function Lane({ lane, beat, accent, reduce }) {
                 {step}
               </span>
               {j === lastIndex && (
-                <>
-                  <Arrow lit={done} />
+                <span className="ml-2.5 block">
                   <Check done={done} reduce={reduce} />
-                </>
+                </span>
               )}
             </li>
           );
@@ -280,7 +254,7 @@ function Lanes({ ci, accent, reduce }) {
   };
 
   return (
-    <div ref={ref} className="mc-panel @container flex min-w-0 flex-col">
+    <div ref={ref} className="@container flex min-w-0 flex-col border-t border-line pt-5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <span className="mc-label">CI · {LANES.length} workflows</span>
         {!reduce && <ReplayButton onClick={replay} />}

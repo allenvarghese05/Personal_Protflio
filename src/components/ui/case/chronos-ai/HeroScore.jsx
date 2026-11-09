@@ -26,7 +26,7 @@
  * breakdown is in sr-only text.
  */
 import { motion, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { MORNINGS, RULES } from '@/data/studies/chronos-ai';
 import { Glyph, at } from '@/components/ui/case/kit';
 import { scoreMorning } from './score';
@@ -174,10 +174,10 @@ export default function HeroScore({ accent = P.ice }) {
   const reduce = Boolean(useReducedMotion());
 
   return (
-    <div className="mc-panel min-w-0" role="group" aria-label="A test morning scored tick by tick">
+    <div className="min-w-0" role="group" aria-label="A test morning scored tick by tick">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span className="mc-label">{MORNING.id}.json</span>
-        <span className="font-mono text-micro text-ink-subtle">weekday · window 06:00–11:00</span>
+        <span className="font-mono text-micro text-ink-subtle">weekday · window 06:00-11:00</span>
       </div>
 
       <div className="mt-5 pl-9">

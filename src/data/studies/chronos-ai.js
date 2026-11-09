@@ -30,14 +30,14 @@ export const RULES = {
   rules: [
     { id: 'steps_10m', label: 'Steps', plain: 'steps in the last 10 minutes', signal: 'steps_10m', rows: [[35, 30], [20, 18], [10, 8]], cap: 30, pedometer: true, unit: 'steps' },
     { id: 'walking_10m', label: 'Walking', plain: 'seconds spent walking in the last 10 minutes, if CoreMotion is at least medium-confident', signal: 'walking_sec_10m', rows: [[60, 20], [30, 12]], requires: { walking_conf: ['medium', 'high'] }, cap: 20, pedometer: true, unit: 's' },
-    { id: 'unlocked', label: 'Unlocked', plain: 'the phone is unlocked, +10 more if it was unlocked on the previous tick too, ≤ 12 min earlier', signal: 'is_unlocked', rows: [[true, 15]], bonus: 10, cap: 25 },
-    { id: 'charger_disconnect', label: 'Off the charger', plain: 'charging on the last tick, unplugged now, worked out by the server', signal: 'charger_disconnected', rows: [[true, 15]], cap: 15, derived: true },
+    { id: 'unlocked', label: 'Unlocked', plain: 'the phone is unlocked; +10 more if it was also unlocked on the previous tick, at most 12 minutes earlier', signal: 'is_unlocked', rows: [[true, 15]], bonus: 10, cap: 25 },
+    { id: 'charger_disconnect', label: 'Off the charger', plain: 'charging on the previous tick and unplugged now (the server works this out)', signal: 'charger_disconnected', rows: [[true, 15]], cap: 15, derived: true },
     { id: 'steps_window', label: 'Steps today', plain: 'at least 100 steps since the morning window opened', signal: 'steps_since_window', rows: [[100, 5]], cap: 5, pedometer: true, unit: 'steps' },
-    { id: 'foreground', label: 'Opened the app', plain: 'this snapshot came from opening the app, not from a background tick', signal: 'wake_source', rows: [['foreground', 40]], cap: 40 },
+    { id: 'foreground', label: 'Opened the app', plain: 'the snapshot was sent because the app was opened, rather than by a background tick', signal: 'wake_source', rows: [['foreground', 40]], cap: 40 },
   ],
   penalties: [
-    { id: 'stationary_dominant', label: 'Lying still', plain: 'still for ≥ 540 of the last 600 seconds and under 10 steps', points: -20 },
-    { id: 'pedometer_denied', label: 'Pedometer denied', plain: 'a marker only, it subtracts nothing', points: 0 },
+    { id: 'stationary_dominant', label: 'Lying still', plain: 'still for at least 540 of the last 600 seconds, with under 10 steps', points: -20 },
+    { id: 'pedometer_denied', label: 'Pedometer denied', plain: 'a marker only; it subtracts nothing', points: 0 },
   ],
   // pedometer permission denied: these become both the cap and the points
   reweight: { unlocked: 35, charger_disconnect: 25, foreground: 40 },
@@ -65,11 +65,11 @@ const ex = (score, decision, streak = 0, reason = null) => ({ score, decision, s
 export const MORNINGS = [
   {
     id: 'worked_example', label: 'Worked example', kind: 'weekday', tz: 'America/Los_Angeles', date: '2026-10-06', featured: true,
-    blurb: 'Built around the design doc’s example snapshot (48 steps, 95 s walking → 85): a tick before the window, the app opened at 06:07, then a walk off the charger.',
+    blurb: 'Built around the design doc’s example snapshot (48 steps and 95 s of walking, which scores 85): a tick before the window, the app opened at 06:07, then a walk away from the charger.',
     ticks: [
-      { local: '05:50', ts: '2026-10-06T12:50:00Z', s: sig('silent_push', 0, 0, 0, 'low', 300, false, 'charging'), expect: ex(0, 'outside_window'), note: 'Ten minutes before the 06:00 window opens, the gate is closed, so nothing is scored.' },
-      { local: '06:07', ts: '2026-10-06T13:07:00Z', s: sig('foreground', 20, 0, 30, 'medium', 120, false, 'charging'), expect: ex(70, 'high', 1), note: 'Opened the app (40), 20 steps (18), 30 s of walking (12): exactly 70, high, but one high tick isn’t enough.' },
-      { local: '06:12', ts: '2026-10-06T13:12:00Z', s: sig('silent_push', 48, 112, 95, 'high', 30, true, 'unplugged'), expect: ex(85, 'confirm', 2, 'both'), note: '48 steps, 95 s walking, unlocked, just unplugged, 112 steps today: 85, strong on its own, and the second high in a row.' },
+      { local: '05:50', ts: '2026-10-06T12:50:00Z', s: sig('silent_push', 0, 0, 0, 'low', 300, false, 'charging'), expect: ex(0, 'outside_window'), note: 'Ten minutes before the 06:00 window opens. The gate is closed, so nothing is scored.' },
+      { local: '06:07', ts: '2026-10-06T13:07:00Z', s: sig('foreground', 20, 0, 30, 'medium', 120, false, 'charging'), expect: ex(70, 'high', 1), note: 'Opened the app (40), 20 steps (18), 30 s of walking (12): exactly 70, a high tick. One high tick is not enough to confirm.' },
+      { local: '06:12', ts: '2026-10-06T13:12:00Z', s: sig('silent_push', 48, 112, 95, 'high', 30, true, 'unplugged'), expect: ex(85, 'confirm', 2, 'both'), note: '48 steps, 95 s of walking, unlocked, just unplugged, 112 steps today: 85. That is strong on its own, and it is also the second high tick in a row.' },
     ],
   },
   {
@@ -77,87 +77,87 @@ export const MORNINGS = [
     blurb: 'Up and walking at 06:48, phone in hand, two background ticks five minutes apart.',
     ticks: [
       { local: '06:48', ts: '2026-10-06T13:48:00Z', s: sig('silent_push', 35, 120, 95, 'high', 30, true, 'unplugged'), expect: ex(70, 'high', 1), note: '35 steps (30), walking (20), unlocked (15), 120 steps today (5): 70, the first high tick.' },
-      { local: '06:53', ts: '2026-10-06T13:53:00Z', s: sig('silent_push', 40, 200, 80, 'high', 20, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: 'Still unlocked five minutes later, so the unlock bonus adds 10: 80, the second high in a row, confirmed.' },
+      { local: '06:53', ts: '2026-10-06T13:53:00Z', s: sig('silent_push', 40, 200, 80, 'high', 20, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: 'Still unlocked five minutes later, so the unlock bonus adds 10: 80. That is the second high tick in a row, so the wake is confirmed.' },
     ],
   },
   {
     id: 'snooze', label: 'Snooze', kind: 'weekday', tz: 'America/Los_Angeles', date: '2026-10-06', featured: true,
     blurb: 'A glance at the phone at 06:30, back to sleep, and really up an hour later.',
     ticks: [
-      { local: '06:30', ts: '2026-10-06T13:30:00Z', s: sig('foreground', 5, 5, 0, 'low', 550, true, 'unplugged'), expect: ex(35, 'low'), note: 'Opened the app (40) and unlocked (15), but still for 550 of 600 seconds with 5 steps: −20. A glance scores 35.' },
+      { local: '06:30', ts: '2026-10-06T13:30:00Z', s: sig('foreground', 5, 5, 0, 'low', 550, true, 'unplugged'), expect: ex(35, 'low'), note: 'Opened the app (40) and unlocked (15), but still for 550 of 600 seconds with only 5 steps, so −20. A glance scores 35.' },
       { local: '06:35', ts: '2026-10-06T13:35:00Z', s: sig('silent_push', 3, 5, 0, 'low', 570, false, 'unplugged'), expect: ex(0, 'low'), note: 'Locked again and lying still: 0 points, −20, clamped to 0.' },
-      { local: '07:40', ts: '2026-10-06T14:40:00Z', s: sig('silent_push', 35, 400, 60, 'high', 30, true, 'unplugged'), expect: ex(70, 'high', 1), note: 'An hour later: 35 steps, a minute of walking, unlocked, 400 steps today, 70. The streak starts again at one.' },
-      { local: '07:45', ts: '2026-10-06T14:45:00Z', s: sig('silent_push', 50, 500, 80, 'high', 10, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: 'Unlocked on both ticks, five minutes apart: +10 bonus, 80, two highs in a row, confirmed.' },
+      { local: '07:40', ts: '2026-10-06T14:40:00Z', s: sig('silent_push', 35, 400, 60, 'high', 30, true, 'unplugged'), expect: ex(70, 'high', 1), note: 'An hour later: 35 steps, a minute of walking, unlocked, 400 steps today. That scores 70, and the streak starts again at one.' },
+      { local: '07:45', ts: '2026-10-06T14:45:00Z', s: sig('silent_push', 50, 500, 80, 'high', 10, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: 'Unlocked on both ticks, five minutes apart, so the +10 bonus applies: 80. Two high ticks in a row, confirmed.' },
     ],
   },
   {
     id: 'early_walk', label: 'Early walk', kind: 'weekday', tz: 'America/Los_Angeles', date: '2026-10-06', featured: true,
-    blurb: 'Out walking before the window opens, back to bed at 06:10, properly up after 08:00.',
+    blurb: 'Out walking before the window opens, back to bed at 06:10, and properly up after 08:00.',
     ticks: [
-      { local: '05:55', ts: '2026-10-06T12:55:00Z', s: sig('silent_push', 100, 0, 200, 'high', 0, false, 'unplugged'), expect: ex(0, 'outside_window'), note: '100 steps, but at 05:55, before the window. Outside the window everything scores 0.' },
-      { local: '06:05', ts: '2026-10-06T13:05:00Z', s: sig('silent_push', 100, 120, 80, 'high', 20, true, 'unplugged'), expect: ex(70, 'high', 1), note: 'Inside the window: steps (30), walking (20), unlocked (15), steps today (5), 70, the first high.' },
-      { local: '06:10', ts: '2026-10-06T13:10:00Z', s: sig('silent_push', 5, 150, 0, 'low', 550, false, 'unplugged'), expect: ex(0, 'low'), note: 'Back to bed: only the 5 for steps today, then −20 for lying still, clamped to 0. The streak resets.' },
-      { local: '08:15', ts: '2026-10-06T15:15:00Z', s: sig('silent_push', 35, 300, 60, 'high', 30, true, 'unplugged'), expect: ex(70, 'high', 1), note: 'Two hours later: 70 again, the streak back at one.' },
-      { local: '08:20', ts: '2026-10-06T15:20:00Z', s: sig('silent_push', 40, 400, 80, 'high', 10, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: 'Unlocked twice running: 80, the second high in a row, confirmed at 08:20, not at 06:05.' },
+      { local: '05:55', ts: '2026-10-06T12:55:00Z', s: sig('silent_push', 100, 0, 200, 'high', 0, false, 'unplugged'), expect: ex(0, 'outside_window'), note: '100 steps, but at 05:55, before the window opens. Outside the window every tick scores 0.' },
+      { local: '06:05', ts: '2026-10-06T13:05:00Z', s: sig('silent_push', 100, 120, 80, 'high', 20, true, 'unplugged'), expect: ex(70, 'high', 1), note: 'Inside the window: steps (30), walking (20), unlocked (15), steps today (5). That is 70, the first high tick.' },
+      { local: '06:10', ts: '2026-10-06T13:10:00Z', s: sig('silent_push', 5, 150, 0, 'low', 550, false, 'unplugged'), expect: ex(0, 'low'), note: 'Back to bed: only 5 points for steps today, then −20 for lying still, clamped to 0. The streak resets.' },
+      { local: '08:15', ts: '2026-10-06T15:15:00Z', s: sig('silent_push', 35, 300, 60, 'high', 30, true, 'unplugged'), expect: ex(70, 'high', 1), note: 'Two hours later: 70 again, and the streak is back at one.' },
+      { local: '08:20', ts: '2026-10-06T15:20:00Z', s: sig('silent_push', 40, 400, 80, 'high', 10, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: 'Unlocked on both ticks: 80, the second high tick in a row. Confirmed at 08:20, not at 06:05.' },
     ],
   },
   {
     id: 'foreground_only', label: 'Opened the app', kind: 'weekday', tz: 'America/Los_Angeles', date: '2026-10-06', featured: true,
     blurb: 'The app is opened right at 06:00, before any steps, then a walk.',
     ticks: [
-      { local: '05:52', ts: '2026-10-06T12:52:00Z', s: sig('foreground', 0, 0, 0, 'low', 300, true, 'charging'), expect: ex(0, 'outside_window'), note: 'Before the window: 0. But it is remembered as the previous tick, unlocked and on the charger.' },
-      { local: '06:00', ts: '2026-10-06T13:00:00Z', s: sig('foreground', 0, 0, 0, 'low', 100, true, 'unplugged'), expect: ex(80, 'high', 1), note: 'Opened the app (40), unlocked twice running (25), just unplugged (15): 80, high, not strong. One tick is not enough.' },
-      { local: '06:05', ts: '2026-10-06T13:05:00Z', s: sig('silent_push', 35, 100, 60, 'high', 20, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: 'Now walking: steps (30), walking (20), unlocked (25), 100 steps (5), 80 again, two in a row.' },
+      { local: '05:52', ts: '2026-10-06T12:52:00Z', s: sig('foreground', 0, 0, 0, 'low', 300, true, 'charging'), expect: ex(0, 'outside_window'), note: 'Before the window, so it scores 0. The server still keeps it as the previous tick: unlocked and on the charger.' },
+      { local: '06:00', ts: '2026-10-06T13:00:00Z', s: sig('foreground', 0, 0, 0, 'low', 100, true, 'unplugged'), expect: ex(80, 'high', 1), note: 'Opened the app (40), unlocked on both ticks (25), just unplugged (15): 80. That is high but not strong, and one high tick is not enough.' },
+      { local: '06:05', ts: '2026-10-06T13:05:00Z', s: sig('silent_push', 35, 100, 60, 'high', 20, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: 'Now walking: steps (30), walking (20), unlocked (25), 100 steps today (5). That is 80 again, two high ticks in a row.' },
     ],
   },
   {
     id: 'pedometer_denied_no_app', label: 'No pedometer, no app', kind: 'weekday', tz: 'America/Los_Angeles', date: '2026-10-06', featured: true,
-    blurb: 'Motion permission denied, and the app never opened: unlocked and unplugged is all the server can see.',
+    blurb: 'Motion permission is denied and the app is never opened, so the server can only see that the phone is unlocked and unplugged.',
     ticks: [
       { local: '05:50', ts: '2026-10-06T12:50:00Z', s: sig('silent_push', 0, 0, 0, 'low', 300, false, 'charging', 'denied'), expect: ex(0, 'outside_window'), note: 'Before the window: 0.' },
-      { local: '06:05', ts: '2026-10-06T13:05:00Z', s: sig('silent_push', 0, 0, 0, 'low', 200, true, 'charging', 'denied'), expect: ex(25, 'low'), note: 'Pedometer rules skipped; unlocked is reweighted to 25 (35 with the bonus). Still on the charger: 25.' },
-      { local: '06:10', ts: '2026-10-06T13:10:00Z', s: sig('silent_push', 0, 0, 0, 'low', 180, true, 'unplugged', 'denied'), expect: ex(60, 'low'), note: 'Unlocked twice (35) and just unplugged (25): 60, the ceiling without the app. It can never reach 70 this way.' },
+      { local: '06:05', ts: '2026-10-06T13:05:00Z', s: sig('silent_push', 0, 0, 0, 'low', 200, true, 'charging', 'denied'), expect: ex(25, 'low'), note: 'The pedometer rules are skipped, and unlocked is reweighted to 25 (35 with the bonus). Still on the charger: 25.' },
+      { local: '06:10', ts: '2026-10-06T13:10:00Z', s: sig('silent_push', 0, 0, 0, 'low', 180, true, 'unplugged', 'denied'), expect: ex(60, 'low'), note: 'Unlocked on both ticks (35) and just unplugged (25): 60. That is the most it can score without the app, so it can never reach 70 this way.' },
     ],
   },
   {
     id: 'night_check', label: '3 a.m. check', kind: 'weekday', tz: 'America/Los_Angeles', date: '2026-10-07', featured: true,
     blurb: 'A background tick at 03:10, phone on the charger.',
     ticks: [
-      { local: '03:10', ts: '2026-10-07T10:10:00Z', s: sig('silent_push', 2, 0, 0, 'low', 590, false, 'charging'), expect: ex(0, 'outside_window'), note: 'Past the 03:00 day boundary, so it belongs to Wednesday, but hours before the 06:00 window. Gate closed: 0.' },
+      { local: '03:10', ts: '2026-10-07T10:10:00Z', s: sig('silent_push', 2, 0, 0, 'low', 590, false, 'charging'), expect: ex(0, 'outside_window'), note: 'After the 03:00 day boundary, so it belongs to Wednesday, but hours before the 06:00 window. The gate is closed: 0.' },
     ],
   },
   {
     id: 'missed_ticks', label: 'Missed ticks', kind: 'weekday', tz: 'America/Los_Angeles', date: '2026-10-06',
     blurb: 'Two high ticks exactly 12 minutes apart, the longest gap that still counts.',
     ticks: [
-      { local: '07:00', ts: '2026-10-06T14:00:00Z', s: sig('silent_push', 35, 200, 60, 'high', 30, true, 'unplugged'), expect: ex(70, 'high', 1), note: '70, the first high.' },
-      { local: '07:12', ts: '2026-10-06T14:12:00Z', s: sig('silent_push', 40, 300, 80, 'high', 15, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: 'Gap of exactly 12 minutes: still consecutive, bonus applies, 80, confirmed.' },
+      { local: '07:00', ts: '2026-10-06T14:00:00Z', s: sig('silent_push', 35, 200, 60, 'high', 30, true, 'unplugged'), expect: ex(70, 'high', 1), note: '70, the first high tick.' },
+      { local: '07:12', ts: '2026-10-06T14:12:00Z', s: sig('silent_push', 40, 300, 80, 'high', 15, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: 'A gap of exactly 12 minutes still counts as in a row, so the bonus applies: 80, confirmed.' },
     ],
   },
   {
     id: 'pedometer_denied', label: 'Pedometer denied', kind: 'weekday', tz: 'America/Los_Angeles', date: '2026-10-06',
-    blurb: 'Motion permission denied, but the app is opened after unplugging.',
+    blurb: 'Motion permission is denied, but the app is opened after unplugging.',
     ticks: [
       { local: '05:50', ts: '2026-10-06T12:50:00Z', s: sig('silent_push', 0, 0, 0, 'low', 300, false, 'charging', 'denied'), expect: ex(0, 'outside_window'), note: 'Before the window: 0.' },
-      { local: '06:10', ts: '2026-10-06T13:10:00Z', s: sig('foreground', 0, 0, 0, 'low', 200, true, 'unplugged', 'denied'), expect: ex(90, 'confirm', 1, 'strong'), note: 'Unlocked (25), just unplugged (25), opened the app (40): 90, strong, confirmed on one tick.' },
+      { local: '06:10', ts: '2026-10-06T13:10:00Z', s: sig('foreground', 0, 0, 0, 'low', 200, true, 'unplugged', 'denied'), expect: ex(90, 'confirm', 1, 'strong'), note: 'Unlocked (25), just unplugged (25), opened the app (40): 90. That is strong, so one tick confirms.' },
     ],
   },
   {
     id: 'weekend', label: 'Weekend', kind: 'weekend', tz: 'America/Los_Angeles', date: '2026-10-10',
-    blurb: 'Saturday: the window is 08:00–14:00.',
+    blurb: 'Saturday: the window is 08:00 to 14:00.',
     ticks: [
-      { local: '09:30', ts: '2026-10-10T16:30:00Z', s: sig('silent_push', 35, 150, 60, 'high', 30, true, 'unplugged'), expect: ex(70, 'high', 1), note: '70, the first high.' },
-      { local: '09:35', ts: '2026-10-10T16:35:00Z', s: sig('silent_push', 40, 250, 80, 'high', 15, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: '80, two in a row, confirmed.' },
+      { local: '09:30', ts: '2026-10-10T16:30:00Z', s: sig('silent_push', 35, 150, 60, 'high', 30, true, 'unplugged'), expect: ex(70, 'high', 1), note: '70, the first high tick.' },
+      { local: '09:35', ts: '2026-10-10T16:35:00Z', s: sig('silent_push', 40, 250, 80, 'high', 15, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: '80, two high ticks in a row, confirmed.' },
     ],
   },
   {
     id: 'dst_fall_back', label: 'Clocks go back', kind: 'weekend', tz: 'America/New_York',
     blurb: 'New York, 2026-11-01: 01:30 happens twice, and both belong to Saturday.',
     ticks: [
-      { local: '01:30', date: '2026-10-31', ts: '2026-11-01T05:30:00Z', s: sig('silent_push', 0, 0, 0, 'low', 590, false, 'charging'), expect: ex(0, 'outside_window'), note: '01:30 EDT, before the 03:00 boundary, so Saturday Oct 31. Gate closed.' },
-      { local: '01:30', date: '2026-10-31', ts: '2026-11-01T06:30:00Z', s: sig('silent_push', 0, 0, 0, 'low', 590, false, 'charging'), expect: ex(0, 'outside_window'), note: '01:30 EST, an hour later in real time, still before 03:00, still Saturday.' },
-      { local: '08:00', date: '2026-11-01', ts: '2026-11-01T13:00:00Z', s: sig('silent_push', 35, 120, 60, 'high', 30, true, 'unplugged'), expect: ex(70, 'high', 1), note: '08:00 EST, Sunday’s window opens at 13:00 UTC, an hour later than Saturday’s. 70; no previous tick today.' },
-      { local: '08:05', date: '2026-11-01', ts: '2026-11-01T13:05:00Z', s: sig('silent_push', 40, 200, 80, 'high', 15, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: '80, two in a row, confirmed.' },
+      { local: '01:30', date: '2026-10-31', ts: '2026-11-01T05:30:00Z', s: sig('silent_push', 0, 0, 0, 'low', 590, false, 'charging'), expect: ex(0, 'outside_window'), note: '01:30 EDT is before the 03:00 boundary, so it belongs to Saturday, Oct 31. The gate is closed.' },
+      { local: '01:30', date: '2026-10-31', ts: '2026-11-01T06:30:00Z', s: sig('silent_push', 0, 0, 0, 'low', 590, false, 'charging'), expect: ex(0, 'outside_window'), note: '01:30 EST, an hour later in real time. Still before 03:00, so still Saturday.' },
+      { local: '08:00', date: '2026-11-01', ts: '2026-11-01T13:00:00Z', s: sig('silent_push', 35, 120, 60, 'high', 30, true, 'unplugged'), expect: ex(70, 'high', 1), note: '08:00 EST. Sunday’s window opens at 13:00 UTC, an hour later than Saturday’s. It scores 70, with no earlier tick that day.' },
+      { local: '08:05', date: '2026-11-01', ts: '2026-11-01T13:05:00Z', s: sig('silent_push', 40, 200, 80, 'high', 15, true, 'unplugged'), expect: ex(80, 'confirm', 2, 'consecutive'), note: '80, two high ticks in a row, confirmed.' },
     ],
   },
 ];
@@ -171,23 +171,23 @@ export const FIXTURE_TICKS = MORNINGS.reduce((n, m) => n + m.ticks.length, 0); /
 export const INGEST = {
   route: 'POST /v1/telemetry',
   stages: [
-    { key: 'auth', label: 'Bearer token', where: 'auth.require_device', items: ['looked up by its SHA-256, never in plaintext', 'missing or unknown → 401', 'revoked phone → 403'] },
-    { key: 'rate', label: 'Rate limit', where: 'ratelimit.py', items: ['token bucket per route + IP', '30 requests a minute'] },
-    { key: 'size', label: 'Body size', where: 'api/telemetry.py', items: ['raw bytes read before parsing', 'over 64 KiB → 422'] },
+    { key: 'auth', label: 'Bearer token', where: 'auth.require_device', items: ['looked up by its SHA-256 hash, never in plaintext', 'missing or unknown: 401', 'revoked phone: 403'] },
+    { key: 'rate', label: 'Rate limit', where: 'ratelimit.py', items: ['token bucket per route and IP', '30 requests a minute'] },
+    { key: 'size', label: 'Body size', where: 'api/telemetry.py', items: ['raw bytes read before parsing', 'over 64 KiB: 422'] },
     { key: 'schema', label: 'Schema', where: 'wake/signals.py · Signals', items: ['typed fields, enums checked', 'extra="forbid": unknown fields rejected'] },
-    { key: 'skew', label: 'Clock skew', where: 'wake/service.py', items: ['phone time vs server time', 'over 300 s apart → 422, with server_time', 'checked before any write'] },
-    { key: 'dupe', label: 'Same snapshot again?', where: 'UNIQUE (device_id, seq)', items: ['already stored → return the stored score', 'with the rule version that made it'] },
+    { key: 'skew', label: 'Clock skew', where: 'wake/service.py', items: ['phone time compared with server time', 'over 300 s apart: 422, with server_time', 'checked before any write'] },
+    { key: 'dupe', label: 'Same snapshot again?', where: 'UNIQUE (device_id, seq)', items: ['if already stored, the stored score is returned', 'with the rule version that made it'] },
     { key: 'score', label: 'Score', where: 'wake/scoring.py · evaluate()', items: ['local date, day row, previous tick', 'pure function, no I/O'] },
-    { key: 'commit', label: 'One commit', where: 'wake/service.py · wake/state.py', items: ['telemetry row + evaluation row', 'day counter + state transition', 'all in one transaction'] },
+    { key: 'commit', label: 'One commit', where: 'wake/service.py · wake/state.py', items: ['telemetry row and evaluation row', 'day counter and state transition', 'all in one transaction'] },
   ],
   probes: [
     { key: 'ok', label: 'A good snapshot', at: null, code: '200', result: 'Scored and stored: the response carries the score, the per-rule breakdown, the decision and the day’s state.' },
-    { key: 'notoken', label: 'No token', at: 'auth', code: '401', result: 'unauthorized, nothing read, nothing stored.' },
-    { key: 'revoked', label: 'Revoked phone', at: 'auth', code: '403', result: 'revoked, the token’s hash is on file, but the phone was revoked (DELETE /v1/device/me or chronos device revoke).' },
-    { key: 'flood', label: '31st in a minute', at: 'rate', code: '429', result: 'rate_limited, the bucket refills at 30 a minute.' },
-    { key: 'big', label: 'A 70 KB body', at: 'size', code: '422', result: 'validation, the body is over 64 KiB, refused before it is parsed.' },
-    { key: 'extra', label: 'An unknown field', at: 'schema', code: '422', result: 'validation, the schema forbids fields it doesn’t know.' },
-    { key: 'skew', label: 'Phone clock 6 min off', at: 'skew', code: '422', result: 'clock_skew, 360 s apart is over the 300 s limit; the answer includes server_time so the phone can see the gap.' },
+    { key: 'notoken', label: 'No token', at: 'auth', code: '401', result: 'Answers “unauthorized”. Nothing is read and nothing is stored.' },
+    { key: 'revoked', label: 'Revoked phone', at: 'auth', code: '403', result: 'Answers “revoked”. The token’s hash is on file, but the phone was revoked (with DELETE /v1/device/me or chronos device revoke).' },
+    { key: 'flood', label: '31st in a minute', at: 'rate', code: '429', result: 'Answers “rate_limited”. The bucket refills at 30 requests a minute.' },
+    { key: 'big', label: 'A 70 KB body', at: 'size', code: '422', result: 'Answers “validation”. The body is over 64 KiB, so it is refused before it is parsed.' },
+    { key: 'extra', label: 'An unknown field', at: 'schema', code: '422', result: 'Answers “validation”. The schema rejects fields it does not know.' },
+    { key: 'skew', label: 'Phone clock 6 min off', at: 'skew', code: '422', result: 'Answers “clock_skew”. 360 s apart is over the 300 s limit. The answer includes server_time so the phone can see the gap.' },
     { key: 'dupe', label: 'Same seq again', at: 'dupe', code: '200', pass: true, result: 'The stored evaluation comes back, under the rule version that first scored it, even if the rules have changed since.' },
   ],
 };
@@ -202,7 +202,7 @@ export const LOOP = {
     { key: 'monitoring', label: 'monitoring', plain: 'ticking every 5 min' },
     { key: 'confirmed', label: 'confirmed', plain: 'a snapshot said you’re up' },
     { key: 'fallback', label: 'fallback', plain: 'the window closed first' },
-    { key: 'delivered', label: 'delivered', plain: 'reel sent, not built (T5.2)', planned: true },
+    { key: 'delivered', label: 'delivered', plain: 'reel sent (not built yet, T5.2)', planned: true },
   ],
   // who moves the day between states (TransitionCause)
   transitions: [
@@ -215,9 +215,9 @@ export const LOOP = {
   window: ['06:00', '11:00'],
   span: ['05:50', '11:05'], // the simulation runs 05:50 → 11:05 in 1-minute steps
   scenarios: [
-    { key: 'fallback', label: 'Never confirmed', test: 'test_full_weekday_60_ticks', confirmAt: null, restartAfter: null, readout: 'Monitoring from 06:00, ticks 0–59 every five minutes, then fallback at 11:00, 60 silent pushes, one start, one fallback.' },
-    { key: 'confirm', label: 'Up at 07:12', test: 'test_stops_on_confirm', confirmAt: '07:12', restartAfter: null, readout: 'A snapshot confirms at 07:12. The day is terminal, so every later plan() is a no-op, no ticks after 07:10.' },
-    { key: 'restart', label: 'Server restarts', test: 'test_restart_mid_window_continues_tick_seq', confirmAt: null, restartAfter: 5, readout: 'A fresh scheduler after tick 5 re-reads what was sent from push_notifications and carries on at tick 6, nothing sent twice.' },
+    { key: 'fallback', label: 'Never confirmed', test: 'test_full_weekday_60_ticks', confirmAt: null, restartAfter: null, readout: 'Monitoring starts at 06:00 and ticks 0 to 59 go out every five minutes. The day falls back at 11:00: 60 silent pushes, one start, one fallback.' },
+    { key: 'confirm', label: 'Up at 07:12', test: 'test_stops_on_confirm', confirmAt: '07:12', restartAfter: null, readout: 'A snapshot confirms at 07:12. The day is now final, so every later plan() does nothing, and no ticks go out after 07:10.' },
+    { key: 'restart', label: 'Server restarts', test: 'test_restart_mid_window_continues_tick_seq', confirmAt: null, restartAfter: 5, readout: 'A new scheduler starts after tick 5. It reads what was already sent from push_notifications and carries on at tick 6, so nothing is sent twice.' },
   ],
 };
 
@@ -226,15 +226,15 @@ export const LOOP = {
 export const MILESTONES = [
   { key: 'M0', label: 'Foundation', tasks: [
     { id: 'T0.1', title: 'Repo skeleton, tooling, CI baseline', state: 'built', pr: '#1' },
-    { id: 'T0.2', title: 'GitHub bootstrap, ruleset drift check', state: 'caveat', pr: '#2', note: 'Server-side branch protection deferred to T6.7, not available on a free private repo.' },
+    { id: 'T0.2', title: 'GitHub bootstrap, ruleset drift check', state: 'caveat', pr: '#2', note: 'Server-side branch protection is deferred to T6.7. It is not available on a free private repo.' },
     { id: 'T0.2b', title: 'Deterministic expo-doctor in CI', state: 'built', pr: '#6' },
     { id: 'T0.2d', title: 'Dependabot: security updates only', state: 'built', pr: '#22' },
     { id: 'T0.3', title: 'API scaffold: FastAPI, SQLite, CLI, health', state: 'built', pr: '#3' },
     { id: 'T0.4', title: 'Expo dev-client + Swift module stub', state: 'built', pr: '#4' },
-    { id: 'T0.4b', title: 'Dev-client with the native module', state: 'caveat', pr: '#21', note: 'Runs on the iOS Simulator. The plan asked for the owner’s iPhone; its port is broken, so that moved to T2.4.' },
-    { id: 'T0.5', title: 'Remotion scaffold: cover scene, smoke render', state: 'built', pr: '#5', note: 'Only the cover scene renders; CI renders one still frame, not a video.' },
-    { id: 'T0.6', title: 'Laptop ops: launchd, certs, models, deploy, doctor', state: 'caveat', pr: '#31', note: 'The scripts are merged; the on-laptop checks are manual and no run is recorded.' },
-    { id: 'T0.7', title: 'Deterministic OpenAPI → mobile types, CI check', state: 'built', pr: '#30' },
+    { id: 'T0.4b', title: 'Dev-client with the native module', state: 'caveat', pr: '#21', note: 'Runs on the iOS Simulator. The plan asked for the owner’s iPhone, but its port is broken, so that check moved to T2.4.' },
+    { id: 'T0.5', title: 'Remotion scaffold: cover scene, smoke render', state: 'built', pr: '#5', note: 'Only the cover scene renders. CI renders one still frame, not a video.' },
+    { id: 'T0.6', title: 'Laptop ops: launchd, certs, models, deploy, doctor', state: 'caveat', pr: '#31', note: 'The scripts are merged. The on-laptop checks are manual, and no run is recorded.' },
+    { id: 'T0.7', title: 'Deterministic mobile types from OpenAPI, CI check', state: 'built', pr: '#30' },
   ] },
   { key: 'M1', label: 'Wake engine', tasks: [
     { id: 'T1.1', title: 'Tables + migration 0001', state: 'built', pr: '#23' },
@@ -243,14 +243,14 @@ export const MILESTONES = [
     { id: 'T1.4', title: 'Rules schema, versions, /v1/config/wake', state: 'built', pr: '#26' },
     { id: 'T1.5', title: 'Scoring engine, 11 golden mornings', state: 'built', pr: '#27' },
     { id: 'T1.6', title: 'Telemetry ingest + day state machine', state: 'built', pr: '#28' },
-    { id: 'T1.7', title: 'Scheduler, silent ticks, Expo push client', state: 'built', pr: '#29', note: 'A pure planner and a 60-second loop instead of the APScheduler the plan named, no new dependency, an injectable clock.' },
+    { id: 'T1.7', title: 'Scheduler, silent ticks, Expo push client', state: 'built', pr: '#29', note: 'Uses a pure planner and a 60-second loop instead of the APScheduler the plan named. No new dependency, and the clock can be injected.' },
     { id: 'T1.8', title: 'Replay, annotate, nightly report', state: 'built', pr: '#32' },
   ] },
   { key: 'M2', label: 'Phone', tasks: [
-    { id: 'T2.1', title: 'Swift sensor module (CoreMotion, device state)', state: 'caveat', pr: '#33', note: '40 XCTests against fake CoreMotion. In the Simulator, step queries return pedometer_unavailable, real motion data has never been read.' },
+    { id: 'T2.1', title: 'Swift sensor module (CoreMotion, device state)', state: 'caveat', pr: '#33', note: '40 XCTests against a fake CoreMotion. In the Simulator, step queries return pedometer_unavailable, so real motion data has never been read.' },
     { id: 'T2.2', title: 'Pairing screen, secure storage, API client', state: 'built', pr: '#35', note: 'Validated in the iOS Simulator: code entry, Keychain storage, revocation. QR scanning and real push registration are not verified on a device.' },
-    { id: 'T2.3', title: 'Telemetry sampler + on-phone outbox', state: 'built', pr: '#36', note: 'Bounded, truthful snapshots and a durable outbox bound to the paired identity, with deadline-aware sending.' },
-    { id: 'T2.4', title: 'Staged background wake handling', state: 'caveat', pr: '#37', note: 'Merged and accepted in the Simulator and in the foreground. The locked-iPhone test, a tick answered within 60 seconds, still needs a physical device; the phone’s port is broken.' },
+    { id: 'T2.3', title: 'Telemetry sampler + on-phone outbox', state: 'built', pr: '#36', note: 'Bounded, accurate snapshots and a durable outbox tied to the paired identity. Sending takes deadlines into account.' },
+    { id: 'T2.4', title: 'Staged background wake handling', state: 'caveat', pr: '#37', note: 'Merged and accepted in the Simulator and in the foreground. The locked-iPhone test (a tick answered within 60 seconds) still needs a physical device, and the phone’s port is broken.' },
     { id: 'T2.5', title: 'Debug screen', state: 'next' },
     { id: 'T2.6', title: 'Settings screen', state: 'planned' },
   ] },
@@ -291,13 +291,13 @@ export const DECISIONS = [
   {
     id: 'reweight',
     kicker: 'Permissions',
-    title: 'Motion permission denied: still reachable, never too easy',
+    title: 'Motion permission denied: a wake can still confirm, but not too easily',
     problem:
-      'Three of the six rules read CoreMotion. If the pedometer permission is denied, they can never score, and with the normal caps, the remaining rules top out at 80, so a denied day would be scored on a scale it could barely reach.',
+      'Three of the six rules read CoreMotion. If the pedometer permission is denied, those three can never score. With the normal caps, the remaining rules top out at 80, so a denied day would be scored on a scale it could barely reach.',
     decision:
-      'When the pedometer is unavailable, those rules are skipped and the other three are reweighted to 35, 25 and 40, so the maximum is still 100. A reweight value is both the rule’s cap and its points. The rules validator rejects reweights that sum past 100, which is why the design doc’s 35 + 30 + 40 = 105 became 35 + 25 + 40 in the YAML.',
+      'When the pedometer is unavailable, those rules are skipped and the other three are reweighted to 35, 25 and 40, so the maximum is still 100. A reweight value sets both the rule’s cap and its points. The rules validator rejects reweights that add up to more than 100. That is why the design doc’s 35 + 30 + 40 = 105 became 35 + 25 + 40 in the YAML.',
     tradeoff:
-      'Without opening the app, a denied day tops out at 35 + 25 = 60, under the 70 line, so it can only confirm when the app is opened. Deliberate: unlock and unplug alone are too weak to trust. The no-pedometer-no-app fixture checks it.',
+      'Without opening the app, a denied day tops out at 35 + 25 = 60, under the 70 line, so it can only confirm when the app is opened. This is on purpose: unlocking and unplugging alone are too weak to trust. The no-pedometer, no-app fixture checks it.',
     code: {
       file: 'services/api/src/chronos/wake/scoring.py',
       lang: 'py',
@@ -321,19 +321,19 @@ if reweight_value is not None and pts > 0:
     kicker: 'Rules',
     title: 'A rule change can’t rewrite yesterday’s score',
     problem:
-      'The rules will be tuned after real mornings. If a stored score couldn’t be traced to the exact rules that produced it, tuning would be guesswork, and two copies of “the active rules” would be worse.',
+      'The rules will be tuned after real mornings. If a stored score could not be traced to the exact rules that produced it, tuning would be guesswork. Two copies of “the active rules” would be even worse.',
     decision:
-      'Rules are content-addressed: the canonical JSON (sorted keys, no whitespace) gets a SHA-256. Applying rules runs in a savepoint, the same hash is a no-op (200); a new one deactivates the old row and inserts version n + 1 (201). A partial unique index allows only one active row. Every evaluation stores its rule version and full breakdown, so replay can re-score stored mornings under a candidate set.',
+      'Rules are content-addressed: the canonical JSON (sorted keys, no whitespace) gets a SHA-256 hash. Applying rules runs in a savepoint. The same hash changes nothing (200). A new hash deactivates the old row and inserts version n + 1 (201). A partial unique index allows only one active row. Every evaluation stores its rule version and full breakdown, so replay can re-score stored mornings under a candidate rule set.',
     tradeoff:
-      'Rules now live in three places, the YAML file, a database row and an in-memory cache, that must agree; GET /v1/config/wake reports a yaml_stale flag when the file has drifted from the active row.',
+      'Rules now live in three places that must agree: the YAML file, a database row and an in-memory cache. GET /v1/config/wake reports a yaml_stale flag when the file has drifted from the active row.',
     // the ledger the visual starts from
     ledger: [
       { version: 1, source: 'yaml', by: 'startup' },
     ],
     scenarios: [
-      { key: 'same', label: 'Apply the same rules', outcome: 'noop', status: '200 · no change', readout: 'Same canonical JSON, same SHA-256, the active row is returned and nothing is written.' },
-      { key: 'edit', label: 'Apply edited rules', outcome: 'created', status: '201 · version 2', readout: 'A new hash: version 1 is deactivated and version 2 inserted, in one savepoint. Scores from yesterday still point at version 1.' },
-      { key: 'fail', label: 'Insert fails', outcome: 'rollback', status: 'Rolled back', readout: 'The insert raises, the savepoint rolls back the deactivation too, version 1 stays active. A test forces exactly this.' },
+      { key: 'same', label: 'Apply the same rules', outcome: 'noop', status: '200 · no change', readout: 'Same canonical JSON, same SHA-256. The active row is returned and nothing is written.' },
+      { key: 'edit', label: 'Apply edited rules', outcome: 'created', status: '201 · version 2', readout: 'A new hash: version 1 is deactivated and version 2 is inserted, in one savepoint. Yesterday’s scores still point at version 1.' },
+      { key: 'fail', label: 'Insert fails', outcome: 'rollback', status: 'Rolled back', readout: 'The insert raises an error, and the savepoint rolls back the deactivation too, so version 1 stays active. A test forces exactly this.' },
     ],
     code: {
       file: 'services/api/src/chronos/wake/rules.py',
@@ -357,19 +357,19 @@ return new_rv, True                    # created (201)`,
     kicker: 'Time',
     title: 'A morning is a local day, even when the clocks change',
     problem:
-      'A tick at 01:30 should belong to the night before, not to “today”. And twice a year the wall clock lies: in spring an hour doesn’t exist; in autumn 01:30 happens twice. A window computed naively opens an hour early or late on exactly those days.',
+      'A tick at 01:30 should belong to the night before, not to “today”. Twice a year the wall clock is also misleading: in spring an hour does not exist, and in autumn 01:30 happens twice. A window computed naively opens an hour early or late on exactly those days.',
     decision:
-      'The phone sends its IANA time zone. A local day starts at 03:00, so anything earlier counts toward the previous date. Window times are resolved per day: a time that doesn’t exist is found by a round trip and binary-searched to the transition second; an ambiguous one takes its first occurrence. A day’s zone and window are frozen when its row is created.',
+      'The phone sends its IANA time zone. A local day starts at 03:00, so anything earlier counts toward the previous date. Window times are worked out for each day. A time that does not exist is detected with a round trip, then binary-searched to the exact second of the transition. An ambiguous time takes its first occurrence. A day’s zone and window are fixed when its row is created.',
     tradeoff:
-      'Travelling, a new time zone only takes effect from the next 03:00 boundary. The DST fixture and the window tests (spring-forward gap, fall-back fold) pin the behaviour.',
+      'When travelling, a new time zone only takes effect from the next 03:00 boundary. The DST fixture and the window tests (the spring-forward gap and the fall-back fold) pin the behaviour.',
     // the clocks-go-back night in New York, from the dst_fall_back fixture
     scenario: {
       tz: 'America/New_York',
       transitionUtc: '06:00', // 02:00 EDT → 01:00 EST
       boundaryUtc: '08:00', // 03:00 EST on Nov 1
       windows: [
-        { date: 'Sat Oct 31', utc: ['12:00', '18:00'], local: '08:00–14:00 EDT' },
-        { date: 'Sun Nov 1', utc: ['13:00', '19:00'], local: '08:00–14:00 EST' },
+        { date: 'Sat Oct 31', utc: ['12:00', '18:00'], local: '08:00-14:00 EDT' },
+        { date: 'Sun Nov 1', utc: ['13:00', '19:00'], local: '08:00-14:00 EST' },
       ],
     },
     code: {
@@ -397,11 +397,11 @@ if roundtrip.replace(tzinfo=None) != local_fold0.replace(tzinfo=None):
 export const PIPELINE = {
   stages: [
     { key: 'understand', agent: 'understander', model: 'Claude Haiku 4.5', writes: 'the task brief: facts, open questions, an approach', gate: 'Allen answers the questions' },
-    { key: 'implement', agent: 'implementer', model: 'Claude Sonnet 4.6', writes: 'the plan, then the code, tests and commits', gate: 'gate · Allen signs off' },
-    { key: 'review', agent: 'reviewer', model: 'Claude Opus 4.6', writes: 'APPROVE or CHANGES NEEDED, fixes loop back', gate: 'gate · Allen signs off' },
-    { key: 'push', agent: 'pusher', model: 'Claude Haiku 4.5', writes: 'the branch and the pull request', gate: 'Allen merges, no agent may' },
+    { key: 'implement', agent: 'implementer', model: 'Claude Sonnet 4.6', writes: 'the plan, then the code, tests and commits', gate: 'Allen signs off' },
+    { key: 'review', agent: 'reviewer', model: 'Claude Opus 4.6', writes: 'APPROVE or CHANGES NEEDED, and sends fixes back to the implementer', gate: 'Allen signs off' },
+    { key: 'push', agent: 'pusher', model: 'Claude Haiku 4.5', writes: 'the branch and the pull request', gate: 'Allen merges; no agent is allowed to' },
   ],
-  record: 'docs/plans/, a brief and a plan for each of the 22 merged tasks',
+  record: 'a brief and a plan for each of the 22 merged tasks, in docs/plans/',
 };
 
 /* ── architecture — node ids are project.architectureGraph ids ──────────── */
@@ -499,7 +499,7 @@ export const BUILD = {
 /* ── the page's own copy ─────────────────────────────────────────────────── */
 export const COPY = {
   outcome:
-    'A wake detector for one person: an iPhone’s steps, unlocks and charger, scored on a MacBook to decide whether he is really up. The engine is built and tested; the morning reel it will trigger is planned.',
+    'A wake detector for one person. An iPhone’s steps, unlocks and charger state are scored on a MacBook to decide whether he is really up. The engine is built and tested; the morning reel it will trigger is planned.',
   status: 'In progress · engine built, reel planned',
   figureCaption: 'One test morning, scored rule by rule',
   before: [
@@ -509,27 +509,27 @@ export const COPY = {
     'Tuning a wake rule would be guesswork',
   ],
   after: [
-    'Six signals, steps, walking, unlocked, off the charger, steps today, opening the app, add up to one score out of 100',
-    'Outside the morning window every snapshot scores 0, and it takes two high ticks in a row, or one strong one',
-    'The server compares each snapshot with the last: charger just unplugged, unlocked twice running',
+    'Six signals (steps, walking, unlocked, off the charger, steps today, opening the app) add up to one score out of 100',
+    'Outside the morning window every snapshot scores 0. Confirming a wake takes two high ticks in a row, or one strong one',
+    'The server compares each snapshot with the previous one to spot a charger just unplugged or a phone unlocked twice in a row',
     'Every score is stored with its breakdown and rule version, and past mornings can be re-scored under new rules',
   ],
   // the honest roadmap — docs/11-implementation-plan.md, M2–M6
   next: [
-    'Finish the phone: the debug and settings screens (T2.5–T2.6), and prove the locked-phone path on a physical iPhone, a server tick answered within 60 seconds (T2.4’s last check).',
-    'The content pipeline (M3): fetch and dedupe overnight AI papers and news, then write a one-minute script with a local language model, with a template fallback.',
-    'The media pipeline (M4): local text-to-speech, word-timed captions and the full Remotion scenes, today only the cover scene renders.',
+    'Finish the phone: the debug and settings screens (T2.5 and T2.6), and prove the locked-phone path on a physical iPhone, where a server tick must be answered within 60 seconds (the last check for T2.4).',
+    'The content pipeline (M3): fetch and dedupe overnight AI papers and news, then write a one-minute script with a local language model, with a template as the fallback.',
+    'The media pipeline (M4): local text-to-speech, word-timed captions and the full Remotion scenes. Today only the cover scene renders.',
     'Delivery (M5): signed media links, the “reel ready” push on confirm or fallback, and the in-app player.',
-    'Then tune the rules on seven real mornings (M6), the target is a median confirm within 10 minutes of actually waking, with zero early confirms.',
+    'Then tune the rules on seven real mornings (M6). The target is a median confirm within 10 minutes of actually waking, with zero early confirms.',
   ],
 };
 
 /* ── the case study in one screen ─────────────────────────────────────────── */
 export const OVERVIEW = [
-  { label: 'What it is', text: 'A personal morning system: it works out from the phone’s own signals, steps, walking, unlocking, the charger, opening the app, the moment its one user is really up, so a one-minute morning briefing can arrive then, not at a fixed alarm time.' },
-  { label: 'Why it exists', text: 'An alarm knows the time, not whether you’re awake, and a 3 a.m. glance at the phone looks just like getting up. iOS gives apps no unlock event and no background loop, so the server has to run the morning and ask.' },
-  { label: 'What Allen built', text: 'Solo: a FastAPI service on a MacBook with an explainable, versioned scoring engine, a scheduler that wakes the phone with silent pushes, telemetry ingest, replay of past mornings under new rules, and the iPhone side, from the sensor module to a durable telemetry outbox.' },
-  { label: 'Where it stands', text: 'In progress. The wake engine is built and tested; the phone side runs in the iOS Simulator and still needs its locked-iPhone test. The Morning Reel it triggers, news, script, voice, video, is designed, not built.' },
+  { label: 'What it is', text: 'A personal morning system. It uses the phone’s own signals (steps, walking, unlocking, the charger, opening the app) to work out when its one user is really up, so a one-minute morning briefing can arrive then instead of at a fixed alarm time.' },
+  { label: 'Why it exists', text: 'An alarm knows the time, not whether you’re awake, and a 3 a.m. glance at the phone looks just like getting up. iOS gives apps no unlock event and no background loop, so the server has to run the morning and ask the phone.' },
+  { label: 'What Allen built', text: 'Solo: a FastAPI service on a MacBook with an explainable, versioned scoring engine, a scheduler that wakes the phone with silent pushes, telemetry ingest, and replay of past mornings under new rules. Also the iPhone side, from the sensor module to a durable telemetry outbox.' },
+  { label: 'Where it stands', text: 'In progress. The wake engine is built and tested. The phone side runs in the iOS Simulator and still needs its locked-iPhone test. The Morning Reel it triggers (news, script, voice, video) is designed but not built.' },
 ];
 
 /* ── inside the code — real excerpts, lightly trimmed ─────────────────────── */
@@ -537,7 +537,7 @@ export const TOUR = [
   {
     key: 'decide',
     label: 'The decision',
-    why: 'Every tick ends in one of a few decisions. The order matters: a day that’s already confirmed stays confirmed, a duplicate tick never counts, and only then do “strong” (one tick ≥ 85) and “consecutive” (two high ticks in a row) get to confirm.',
+    why: 'Every tick ends in one of a few decisions, and the order of the checks matters. A day that is already confirmed stays confirmed, and a duplicate tick never counts. Only after that can “strong” (one tick at 85 or more) or “consecutive” (two high ticks in a row) confirm.',
     code: {
       file: 'services/api/src/chronos/wake/scoring.py',
       lang: 'py',
@@ -563,16 +563,16 @@ elif score >= rules.thresholds.confirm:
     decision = EvaluationDecision.high`,
     },
     notes: [
-      'The score is clamped to 0–100 after the rules and penalties add up, no rule can push it past either end.',
-      'Two high ticks only count as a streak if they’re at most 12 minutes apart (confirm_max_gap_min); a gap resets it to 1.',
-      'A deduplicated tick (under 2 minutes after the last) keeps the previous streak instead of extending it, so a burst of snapshots can’t fake a morning.',
-      'The reason is recorded, strong, consecutive or both, so every confirm can be explained later.',
+      'The score is clamped to 0-100 after the rules and penalties are added up, so no rule can push it past either end.',
+      'Two high ticks only count as a streak if they are at most 12 minutes apart (confirm_max_gap_min). A longer gap resets the streak to 1.',
+      'A duplicate tick (under 2 minutes after the last one) keeps the previous streak instead of extending it, so a burst of snapshots cannot fake a morning.',
+      'The reason (strong, consecutive or both) is recorded, so every confirm can be explained later.',
     ],
   },
   {
     key: 'pure',
     label: 'A pure scorer',
-    why: 'The scorer takes the snapshot, the rules, the time and a context, and does no I/O. That’s what lets eleven scripted “golden mornings” and property tests pin its behaviour, and what lets a past morning be replayed under new rules.',
+    why: 'The scorer takes the snapshot, the rules, the time and a context, and does no I/O. That is what lets eleven scripted “golden mornings” and property tests pin its behaviour, and what lets a past morning be replayed under new rules.',
     code: {
       file: 'services/api/src/chronos/wake/scoring.py',
       lang: 'py',
@@ -595,14 +595,14 @@ elif score >= rules.thresholds.confirm:
     },
     notes: [
       'The “day” starts at 03:00 local time, not midnight, so a late night and the next morning stay separate days.',
-      'A previous tick from another day, or one that arrived out of order, is dropped with a note rather than trusted.',
-      'Outside the morning window the gate is closed and the score is 0, the window differs on weekdays and weekends.',
+      'A previous tick from another day, or one that arrived out of order, is dropped with a note instead of being trusted.',
+      'Outside the morning window the gate is closed and the score is 0. The window is different on weekdays and weekends.',
     ],
   },
   {
     key: 'versions',
     label: 'Versioned rules',
-    why: 'Tuning the rules must never rewrite history. Rules are hashed from their canonical JSON; applying the same rules is a no-op, new rules become a new version in one savepoint, and every stored score keeps the version it was scored with.',
+    why: 'Tuning the rules must never rewrite history. Rules are hashed from their canonical JSON. Applying the same rules does nothing, new rules become a new version in one savepoint, and every stored score keeps the version it was scored with.',
     code: {
       file: 'services/api/src/chronos/wake/rules.py',
       lang: 'py',
@@ -622,9 +622,9 @@ def activate_new_version(session, rules, source, created_by):
         # if the insert raises, the savepoint rolls back the deactivation too`,
     },
     notes: [
-      'Sorted keys and no whitespace make the hash depend on what the rules say, not how the file was formatted.',
-      'Same hash → the active row is returned and nothing is written (a 200, not a new version).',
-      'The deactivation and the insert share one savepoint: a failed insert leaves the old version active, a test forces exactly that.',
+      'Sorted keys and no whitespace make the hash depend on what the rules say, not on how the file is formatted.',
+      'Same hash: the active row is returned and nothing is written (a 200, not a new version).',
+      'The deactivation and the insert share one savepoint, so a failed insert leaves the old version active. A test forces exactly that.',
     ],
   },
 ];

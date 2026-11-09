@@ -33,7 +33,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { Glyph, PanelFrame, Readout, at } from '@/components/ui/case/kit';
 import { LABEL } from '@/components/ui/case/shell';
 import { REVIEW } from '@/data/studies/bis-report-card';
@@ -70,8 +70,8 @@ function StateCard({ state, now, accent }) {
   const open = state.edit.code === 200;
   return (
     <li
-      className="relative flex min-w-0 flex-col gap-2 rounded-md border p-3 transition-colors duration-300"
-      style={now ? { borderColor: alpha(accent, 0.6), background: alpha(accent, 0.06) } : { borderColor: P.line }}
+      className="relative flex min-w-0 flex-col gap-2 border-t-2 pt-3 transition-colors duration-300"
+      style={{ borderColor: now ? accent : P.line }}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="font-display text-base font-semibold leading-tight text-ink">{state.label}</span>
@@ -94,7 +94,7 @@ function PrintedFooter({ frame, reduce }) {
   const approved = frame.state === 'approved';
   const revision = REVIEW.revision(frame.count);
   return (
-    <div className="rounded-md border border-line bg-void p-3.5">
+    <div className="border-t border-line pt-3.5">
       <p className={`${LABEL} text-ink-subtle`}>The printed card, now</p>
       <div className="mt-3 flex min-h-[2.25rem] flex-wrap items-center gap-2">
         {approved ? (
@@ -149,7 +149,7 @@ function LogRow({ row, current, reduce }) {
         <p className="flex flex-wrap items-baseline gap-x-2 leading-6">
           <span className={`text-body font-medium ${current ? 'text-ink' : 'text-ink-muted'}`}>{row.move.label}</span>
           <span className="font-mono text-micro text-ink-subtle">
-            {STATE[row.from].label.toLowerCase()} {forward ? '→' : '↩'} {STATE[row.to].label.toLowerCase()}
+            {STATE[row.from].label.toLowerCase()} {forward ? 'to' : 'back to'} {STATE[row.to].label.toLowerCase()}
           </span>
         </p>
         <p className="mt-0.5 text-label text-ink-subtle">
@@ -173,7 +173,6 @@ function LogRow({ row, current, reduce }) {
 function StepRail({ step, onPick, accent }) {
   return (
     <div role="group" aria-label="Step through the review" className="relative">
-      <span aria-hidden="true" className="absolute left-3.5 right-3.5 top-3.5 h-px bg-line-hi" />
       <ol className="relative flex flex-wrap justify-between gap-y-3">
         {RUN.map((r, i) => {
           const now = i === step;
@@ -251,14 +250,14 @@ function RunPanel({ accent }) {
     footer = (
       <Readout runKey={`step-${step}`} reduce={reduce} tone={accent} status={`Step ${step} · ${last.move.label}`}>
         <span className="text-body text-ink-muted">
-          {last.move.by}: {STATE[last.from].label.toLowerCase()} → {STATE[last.to].label.toLowerCase()}.
+          {last.move.by} moved the section from {STATE[last.from].label.toLowerCase()} to {STATE[last.to].label.toLowerCase()}.
           {last.move.count ? ` The approval count is now ${last.count}.` : ''}
           {last.move.notify ? ` In-app notice to ${last.move.notify.to}.` : ' No one is notified.'}
         </span>
       </Readout>
     );
   } else {
-    footer = <p className="text-body text-ink-subtle">A new section starts as a draft, editable, and watermarked if printed.</p>;
+    footer = <p className="text-body text-ink-subtle">A new section starts as an editable draft. If it is printed now, it carries a watermark.</p>;
   }
 
   return (
@@ -295,7 +294,7 @@ function RunPanel({ accent }) {
 
           <div className="mt-5 grid grid-cols-1 gap-6 @3xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] @3xl:gap-8">
             <div className="flex min-w-0 flex-col gap-4">
-              <ul aria-label="Review states" className="grid grid-cols-1 gap-2 @md:grid-cols-3">
+              <ul aria-label="Review states" className="grid grid-cols-1 gap-4 @md:grid-cols-3">
                 {STATES.map((s) => (
                   <StateCard key={s.key} state={s} now={s.key === frame.state} accent={accent} />
                 ))}
@@ -313,7 +312,7 @@ function RunPanel({ accent }) {
                   ))}
                 </ol>
               ) : (
-                <p className="mt-3 border-t border-line pt-3 text-label text-ink-subtle">Nothing yet, step forward.</p>
+                <p className="mt-3 border-t border-line pt-3 text-label text-ink-subtle">Nothing yet. Step forward to see the first move.</p>
               )}
             </div>
           </div>
@@ -338,12 +337,12 @@ function MoveTable() {
             >
               <span className="text-body font-medium text-ink">{m.label}</span>
               <span className="font-mono text-label text-ink-muted">
-                {STATE[m.from].label} {forward ? '→' : '↩'} {STATE[m.to].label}
+                {STATE[m.from].label} {forward ? 'to' : 'back to'} {STATE[m.to].label}
               </span>
               <span className="text-label text-ink-subtle">
                 {m.by} · <span className="font-mono [overflow-wrap:anywhere]">{m.audit}</span>
                 {m.reason ? ' · reason required' : ''} ·{' '}
-                {m.notify ? `${m.notify.kind} → ${m.notify.to}` : 'no notification'}
+                {m.notify ? `${m.notify.kind}, sent to ${m.notify.to}` : 'no notification'}
               </span>
             </li>
           );

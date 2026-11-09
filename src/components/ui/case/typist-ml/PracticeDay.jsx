@@ -28,7 +28,7 @@
  */
 import { useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { ARMS, PLANNER } from '@/data/studies/typist-ml';
 import { Choices, IN_VIEW, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
 
@@ -108,14 +108,14 @@ function Blocks({ day, view, reduce }) {
             sessions.block_order = <span className="text-ink">&quot;{order.map((a) => a.initial).join('')}&quot;</span>
           </>
         ) : (
-          <>no method, no block order, labels and text only</>
+          <>no method and no block order, only labels and text</>
         )}
       </p>
-      <ol className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+      <ol className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 min-[420px]:grid-cols-2">
         {order.map((a, i) => (
           <motion.li
             key={`${view}-${day}-${i}`}
-            className="flex min-w-0 flex-col gap-1 rounded-md border border-line bg-surface-2 px-3 py-2.5"
+            className="flex min-w-0 flex-col gap-1 border-t border-line pt-2.5"
             initial={reduce ? false : { opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={at(reduce, i * 0.05, 0.3)}
@@ -160,7 +160,7 @@ function Pool() {
         ))}
       </ul>
       <p className="mt-3 text-label text-ink-subtle">
-        Hollow = used today. Completing a practice session queues jobs to bring every method back to {POOL} ready drills ({PLANNER.poolDays} days’ worth).
+        Hollow squares are drills used today. Completing a practice session queues jobs to bring every method back to {POOL} ready drills ({PLANNER.poolDays} days’ worth).
       </p>
     </div>
   );
@@ -176,10 +176,11 @@ export default function PracticeDay({ accent }) {
   const order = orderOf(day);
   const runKey = active ? `${active.key}-${active.run}` : 'idle';
 
+  const labels = order.map((a) => a.label);
   const text =
     view === 'stored'
-      ? `Day ${day}: ${order.map((a) => a.label).join(' → ')}. Stored as “${order.map((a) => a.initial).join('')}”, never sent to the browser.`
-      : `Day ${day}: the browser gets Block 1 to Block ${N} and their text. Which method wrote which block stays in the database (the builder, also a participant, is never blinded).`;
+      ? `Day ${day}: ${labels.slice(0, -1).join(', ')}, then ${labels[labels.length - 1]}. Stored as “${order.map((a) => a.initial).join('')}” and never sent to the browser.`
+      : `Day ${day}: the browser gets Block 1 to Block ${N} and their text. Which method wrote which block stays in the database. (The builder is also a participant and is never blinded.)`;
 
   return (
     <div ref={ref}>

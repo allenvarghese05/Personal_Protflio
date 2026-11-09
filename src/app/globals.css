@@ -1016,7 +1016,9 @@ html {
    opened from the résumé link (/projects?theme=light) or chosen with the
    toggle, which sets html[data-work-theme="light"] while the page is open
    and swaps the same token names for a clean white palette. Scoped to
-   .work-root, so the game and the case studies never change.
+   .work-root: /projects and the case studies opened from it (/projects/<id>,
+   whose colours are variables, see components/ui/case/tokens.js). The game
+   never changes.
    Light contrast: ink 16.8:1 on white, muted 10:1, subtle 5.5:1 (4.9:1 on
    surface-2), accent 5.3:1 (4.7:1 on surface-2).
    ============================================================ */
@@ -1050,6 +1052,7 @@ html[data-work-theme="light"] .work-root {
   --lilac: #6a55c2;
   --slate: #56607a;
   --live: #16804f;
+  --alert: #c0392b;
 }
 html[data-work-theme="light"] .work-root ::selection {
   color: #ffffff;
@@ -1085,6 +1088,49 @@ html[data-work-theme="light"] .work-root ::selection {
   }
 }
 /* touch rows open their band when scrolled to the middle of the screen (see FlowIndex) */
+/* Case studies (the game's briefs and /projects/<id>): body text a size up
+   and the greys a step stronger, in both themes, so long reads stay crisp.
+   Dark on #07080c: muted 13.4:1, subtle 7.8:1. Light on white: muted
+   13.6:1, subtle 7.3:1. */
+.case-article {
+  --ink-muted: #d6d1c7;
+  --ink-subtle: #a8a398;
+}
+html[data-work-theme="light"] .work-root .case-article {
+  --ink-muted: #2e2e31;
+  --ink-subtle: #57575c;
+}
+.case-article .text-body {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+}
+.case-article .text-sm {
+  font-size: 0.9375rem;
+}
+.case-article .text-label {
+  font-size: 0.8125rem;
+}
+/* One accent per case study: the project's own colour (the one it has on
+   /projects), set as --case-accent-dark / --case-accent-light on the case
+   study (shell.jsx caseAccentStyle) and turned into --accent here for the
+   theme in force. Without a project it falls back to the site's amber. */
+.case-accent {
+  --accent: var(--case-accent-dark, #ff9a3c);
+  --accent-hi: color-mix(in srgb, var(--accent) 75%, #ffffff);
+  --accent-lo: color-mix(in srgb, var(--accent) 75%, #000000);
+}
+html[data-work-theme="light"] .work-root.case-accent,
+html[data-work-theme="light"] .work-root .case-accent {
+  --accent: var(--case-accent-light, #a85410);
+}
+
+/* the frame around interactive figures (PanelFrame): a thin outline, no
+   fill, so the figure reads as an instrument without a grey slab behind it */
+.case-tray {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
 /* /projects index: the hover glow behind the list (FlowIndex). Faint on
    white, a touch stronger on the dark page, where colour reads quieter. */
 .work-glow-field {

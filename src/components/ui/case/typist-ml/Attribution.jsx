@@ -41,7 +41,7 @@
  */
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { GOLDEN, POOLING, ROW_FIELDS } from '@/data/studies/typist-ml';
 import { Choices, Glyph, IN_VIEW, PanelFrame, Readout } from '@/components/ui/case/kit';
 import { LABEL } from '@/components/ui/case/shell';
@@ -90,7 +90,7 @@ const WORDS = (() => {
 
 const RESULT = {
   counted: { glyph: 'tick', tone: P.jade, status: 'counted', words: (p) => `“${p.pair}” counts as an attempt, and its ${p.sample} ms gap is a timing sample.` },
-  error: { glyph: 'cross', tone: P.alert, status: 'error', words: (p) => `“${p.pair}” counts as an attempt and an error, its second letter was wrong on the first try.` },
+  error: { glyph: 'cross', tone: P.alert, status: 'error', words: (p) => `“${p.pair}” counts as an attempt and an error: its second letter was wrong on the first try.` },
   paused: { glyph: 'flag', tone: P.sand, status: 'no timing', words: (p) => `“${p.pair}” counts as an attempt, but its gap followed a pause, so it gives no timing sample.` },
   skipFirst: { glyph: 'undo', tone: P.inkSubtle, status: 'skipped', words: (p) => `“${p.pair}” is skipped: its first letter was wrong on the first try.` },
   skipBackspace: { glyph: 'undo', tone: P.inkSubtle, status: 'skipped', words: (p) => `“${p.pair}” is skipped: a Backspace came between its two letters.` },
@@ -142,16 +142,16 @@ const msOf = (n) => (Number.isInteger(n) ? `${n.toLocaleString('en-US')}` : `${n
 
 function keyWords(k, prev) {
   if (k.outcome === 'bs') {
-    return k.seq === 0 ? 'Backspace before anything is typed, nothing to erase.' : `Backspace, position ${k.pos} is erased and the cursor steps back.`;
+    return k.seq === 0 ? 'Backspace before anything is typed. There is nothing to erase.' : `Backspace: position ${k.pos} is erased and the cursor steps back.`;
   }
   const where = `at position ${k.pos}`;
   const expected = TEXT[k.pos];
-  const gap = prev ? ` ${msOf(k.t - prev.t)} ms after the last press` : '';
-  const pause = k.pause ? ', the first key after the window lost focus' : '';
+  const gap = prev ? `, ${msOf(k.t - prev.t)} ms after the last press` : '';
+  const pause = k.pause ? ' It is the first key after the window lost focus.' : '';
   if (k.outcome === 'err') {
-    return `“${show(k.key)}” ${where}, where “${show(expected)}” belongs, ${k.first ? 'wrong on the first try' : 'wrong again'}${pause}.`;
+    return `“${show(k.key)}” ${where}, where “${show(expected)}” belongs: ${k.first ? 'wrong on the first try' : 'wrong again'}.${pause}`;
   }
-  return `“${show(k.key)}” ${where}${gap}${pause}, ${k.first ? 'right on the first try' : 'a retype, not a first attempt'}.`;
+  return `“${show(k.key)}” ${where}${gap}: ${k.first ? 'right on the first try' : 'a retype, not a first attempt'}.${pause}`;
 }
 
 /* ── pieces ────────────────────────────────────────────────────────────── */
@@ -213,14 +213,14 @@ function PairChip({ pair, settled, current, accent }) {
 
 function Tally({ rows, changed, accent }) {
   return (
-    <ul className="grid grid-cols-2 gap-1.5 min-[420px]:grid-cols-3 sm:grid-cols-4 xl:grid-cols-5">
+    <ul className="grid grid-cols-2 gap-x-4 gap-y-1 min-[420px]:grid-cols-3 sm:grid-cols-4 xl:grid-cols-5">
       {rows.map((r) => {
         const seen = r.now.attempts > 0;
         const isChanged = changed.has(r.pair);
         return (
           <li
             key={r.pair}
-            className="flex min-w-0 items-baseline justify-between gap-2 rounded-md border px-2 py-1.5 font-mono text-micro transition-colors duration-200"
+            className="flex min-w-0 items-baseline justify-between gap-2 border-b py-1.5 font-mono text-micro transition-colors duration-200"
             style={{ borderColor: isChanged ? accent : P.line, opacity: seen ? 1 : 0.45 }}
           >
             <span className="text-label text-ink">{r.pair}</span>
@@ -229,7 +229,7 @@ function Tally({ rows, changed, accent }) {
               <span className="text-ink-subtle">·</span>
               <span style={{ color: r.now.errors ? P.alert : undefined }}>{r.now.errors}</span>
               <span className="text-ink-subtle"> · </span>
-              {r.median == null ? '—' : `${r.median}`}
+              {r.median == null ? 'n/a' : `${r.median}`}
             </span>
           </li>
         );
@@ -323,7 +323,7 @@ export default function Attribution({ accent }) {
             </p>
           )}
 
-          <div className="rounded-md border border-line bg-void px-3 py-4 sm:px-4">
+          <div className="py-1">
             <p className="sr-only">
               {`Target: “${TEXT}”. After keystroke ${step + 1} of ${KEYS.length}, the cursor is at position ${screen.cursor}.`}
             </p>
@@ -385,14 +385,14 @@ export default function Attribution({ accent }) {
             </div>
             <p className="mt-3 text-label text-ink-subtle">
               {atEnd
-                ? `The ${ROWS.length} rows the fixture expects, attribution must produce exactly these.`
-                : `Filling in toward the ${ROWS.length} rows the fixture expects.`}
+                ? `These are the ${ROWS.length} rows the fixture expects. Attribution must produce exactly these.`
+                : `Filling in the ${ROWS.length} rows the fixture expects.`}
             </p>
           </div>
         </PanelFrame>
         <p className="mt-3 max-w-[64ch] text-label text-ink-subtle">
-          Attribution runs once, in Python, when a session completes; the replay shows each pair at the keystroke that settles it. The browser only
-          ever computes display stats.
+          Attribution runs once, in Python, when a session completes. The replay shows each pair at the keystroke that settles it. The browser only
+          computes stats for display.
         </p>
       </div>
 

@@ -8,7 +8,7 @@
  * trace (TRACES) and its steps light in order while a path draws between
  * them; the first trace autoplays once the section is in view. Hover, tap or
  * tab to any part to read what it does. "Explore the full graph" swaps in the
- * existing force graph (project.architectureGraph) for every node and edge.
+ * system map (./SystemMap) of every part and link in project.architectureGraph.
  *
  * Node copy comes from the project's architectureGraph by id, LAYERS only
  * carries the parts that graph doesn't have. People in the Who column read
@@ -20,8 +20,8 @@
  */
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
-import ArchitectureGraph from '@/components/ui/ArchitectureGraph';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import SystemMap from '@/components/ui/case/SystemMap';
+import { HUES, P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 
 /* ── tuning ───────────────────────────────────────────────────────────────── */
@@ -51,17 +51,17 @@ const NO_STEPS = [];
 // the app) is plumbing like core, so it shares slate. The key merges entries
 // that share a hue; the Outside column says the rest by position.
 const ARCH_COLOR = {
-  core: P.slate,
-  infrastructure: P.slate,
-  ui: P.slate,
-  auth: P.jade,
-  workflow: P.sand,
-  audio: P.sand,
-  location: P.lilac,
-  ai: P.lilac,
-  data: P.ice,
-  storage: P.ice,
-  realtime: P.inkMuted,
+  core: HUES.slate,
+  infrastructure: HUES.slate,
+  ui: HUES.slate,
+  auth: HUES.jade,
+  workflow: HUES.sand,
+  audio: HUES.sand,
+  location: HUES.lilac,
+  ai: HUES.lilac,
+  data: HUES.ice,
+  storage: HUES.ice,
+  realtime: HUES.inkMuted,
 };
 
 // in key order: categories that share a hue sit next to each other, so a
@@ -254,9 +254,9 @@ function pillStyle({ lit, dim, pending, focused, accent }) {
     };
   }
   if (focused) return { background: P.surface2, borderColor: P.lineHi, color: P.ink };
-  if (dim) return { background: P.surface, borderColor: P.line, color: P.inkSubtle };
-  if (pending) return { background: P.surface, borderColor: P.line, color: P.inkMuted };
-  return { background: P.surface, borderColor: P.line, color: P.ink };
+  if (dim) return { background: 'transparent', borderColor: P.line, color: P.inkSubtle };
+  if (pending) return { background: 'transparent', borderColor: P.line, color: P.inkMuted };
+  return { background: 'transparent', borderColor: P.line, color: P.ink };
 }
 
 function Dot({ color, dim = false }) {
@@ -466,7 +466,7 @@ export default function Architecture({ project, layers: LAYERS = [], traces: TRA
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
         {explore ? (
           <p className="mc-label">
-            Full graph · {graphNodeCount} parts · {graphEdgeCount} links · drag, zoom, click a node
+            Full graph · {graphNodeCount} parts · {graphEdgeCount} links
           </p>
         ) : (
           <div role="group" aria-label="Trace a request" className="flex flex-wrap items-center gap-2">
@@ -524,16 +524,9 @@ export default function Architecture({ project, layers: LAYERS = [], traces: TRA
               animate={{ opacity: 1 }}
               exit={reduced ? undefined : { opacity: 0 }}
               transition={{ duration: 0.3, ease: EASE_OUT }}
-              className="h-[440px] overflow-hidden rounded-panel border border-line"
+              className="pt-2"
             >
-              {graph ? (
-                <ArchitectureGraph
-                  nodes={graph.nodes}
-                  edges={graph.edges}
-                  categoryColors={graphColors}
-                  accent={accent}
-                />
-              ) : null}
+              {graph ? <SystemMap nodes={graph.nodes} edges={graph.edges} accent={accent} /> : null}
             </motion.div>
           ) : (
             <motion.div
@@ -542,7 +535,7 @@ export default function Architecture({ project, layers: LAYERS = [], traces: TRA
               animate={{ opacity: 1 }}
               exit={reduced ? undefined : { opacity: 0 }}
               transition={{ duration: 0.3, ease: EASE_OUT }}
-              className="overflow-hidden rounded-panel border border-line px-4 pb-5 pt-5 sm:px-6 sm:pt-6"
+              className="pt-2"
             >
               {/* ── the layers; the trace path draws underneath the pills ── */}
               <div
@@ -680,13 +673,12 @@ export default function Architecture({ project, layers: LAYERS = [], traces: TRA
 
 /* ── the steps of the current trace, in words ─────────────────────────────── */
 function TraceCaption({ trace, shown, nodeById, accent }) {
-  const last = trace.steps.length - 1;
   return (
     <div className="min-w-0">
       <p className="mc-label mb-3">
         {trace.label} · {trace.steps.length} steps
       </p>
-      <ol aria-label={`${trace.label}, step by step`} className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
+      <ol aria-label={`${trace.label}, step by step`} className="flex flex-wrap items-center gap-x-5 gap-y-2">
         {trace.steps.map((id, i) => {
           const reached = i < shown;
           return (
@@ -700,11 +692,6 @@ function TraceCaption({ trace, shown, nodeById, accent }) {
               <span className={`transition-colors duration-300 ${reached ? 'text-ink' : 'text-ink-subtle'}`}>
                 {nodeById.get(id)?.label ?? id}
               </span>
-              {i < last ? (
-                <span aria-hidden="true" className="px-0.5 text-ink-subtle">
-                  →
-                </span>
-              ) : null}
             </li>
           );
         })}

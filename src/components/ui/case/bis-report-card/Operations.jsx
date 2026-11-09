@@ -29,7 +29,7 @@
  */
 import { useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { Choices, Glyph, IN_VIEW, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
 import { LABEL } from '@/components/ui/case/shell';
 import { OPS } from '@/data/studies/bis-report-card';
@@ -52,7 +52,7 @@ const SIMS = OPS.scenarios.map((s) => {
   const withWhy = runs.map((r, i) => {
     const prev = runs[i - 1];
     let why;
-    if (prev && !prev.ok) why = `retry, an hour after the failure · last success ${hrs(r.age)} old`;
+    if (prev && !prev.ok) why = `retry an hour after the failure · last success ${hrs(r.age)} old`;
     else if (r.catchUp) why = `catch-up · last success ${hrs(r.age)} old (over ${RULE.dueAfterH} h)`;
     else why = `${pad2(RULE.hour)}:00 run · last success ${hrs(r.age)} old (over ${RULE.atHourAfterH} h)`;
     return { ...r, why };
@@ -63,13 +63,13 @@ const SIMS = OPS.scenarios.map((s) => {
   if (s.off.length) {
     const boot = withWhy.find((r) => r.catchUp);
     const after = withWhy[withWhy.indexOf(boot) + 1];
-    summary = `The ${pad2(RULE.hour)}:00 run was missed while the server was off. At boot the last success was ${hrs(boot.age)} old, so it ran at once${after ? `; the next followed ${hrs(after.at - boot.at)} later, a fresh backup every day, not a fixed hour` : ''}.`;
+    summary = `The ${pad2(RULE.hour)}:00 run was missed while the server was off. When it came back on, the last success was ${hrs(boot.age)} old, so a backup ran straight away.${after ? ` The next one ran ${hrs(after.at - boot.at)} later. The rule keeps a fresh backup every day rather than sticking to a fixed hour.` : ''}`;
   } else if (failed) {
     const f = withWhy.find((r) => !r.ok);
     const retry = withWhy[withWhy.indexOf(f) + 1];
-    summary = `The upload at ${clockOf(f.at).split(' · ')[1]} failed, one alert email, and the retry ${retry ? `at ${clockOf(retry.at).split(' · ')[1]}` : 'an hour later'} succeeded. Success stays silent.`;
+    summary = `The upload at ${clockOf(f.at).split(' · ')[1]} failed and sent one alert email. The retry ${retry ? `at ${clockOf(retry.at).split(' · ')[1]}` : 'an hour later'} succeeded. Successful runs send nothing.`;
   } else {
-    summary = `${ok} backups, one a night at ${pad2(RULE.hour)}:00. Success sends nothing.`;
+    summary = `${ok} backups, one each night at ${pad2(RULE.hour)}:00. Successful runs send nothing.`;
   }
   return { ...s, runs: withWhy, ok, failed, summary };
 });
@@ -84,39 +84,32 @@ function Door() {
   const edge = OPS.services.find((s) => s.ports);
   const inside = OPS.services.filter((s) => !s.ports);
   return (
-    <div className="mc-panel min-w-0">
+    <div className="min-w-0 border-t border-line pt-5">
       <p className="mc-label">
         {OPS.services.length} services · only {edge.label} publishes a port
       </p>
-      <div className="mt-5 grid grid-cols-1 items-center gap-3 md:grid-cols-[minmax(0,9rem)_2rem_minmax(0,1fr)]">
-        <span className="rounded-md border border-line px-3 py-2.5 text-label text-ink-muted">School network · Tailscale from home</span>
-        <span aria-hidden="true" className="text-center font-mono text-label text-ink-subtle">
-          <span className="md:hidden">↓</span>
-          <span className="hidden md:inline">→</span>
-        </span>
-        <div className="relative rounded-md border border-dashed border-line-hi p-3 pt-4">
-          <span className={`${LABEL} absolute -top-2.5 left-3 bg-surface px-1.5 text-ink-subtle`}>the school’s server · Docker Compose</span>
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2.5" style={{ borderColor: P.inkMuted }}>
-              <span className="font-mono text-label font-medium text-ink">{edge.label}</span>
-              <span className="mc-chip">{edge.ports}</span>
-              <span className="text-label text-ink-muted">{edge.note}</span>
-            </div>
-            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {inside.map((s) => (
-                <li key={s.key} className="rounded-md border border-line px-3 py-2">
-                  <span className="font-mono text-label text-ink">{s.label}</span>
-                  <span className="mt-0.5 block text-label text-ink-subtle">{s.note}</span>
-                  <span className="sr-only">, publishes no port</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+      <p className="mt-4 text-label text-ink-muted">
+        <span className={`${LABEL} mr-2 text-ink-subtle`}>Reached from</span>
+        the school network, or from home over Tailscale
+      </p>
+      <p className={`${LABEL} mt-6 text-ink-subtle`}>On the school’s server · Docker Compose</p>
+      <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1.5 border-t border-line py-3">
+        <span className="font-mono text-label font-medium text-ink">{edge.label}</span>
+        <span className="mc-chip">{edge.ports}</span>
+        <span className="text-label text-ink-muted">{edge.note}</span>
       </div>
-      <p className="mt-4 flex items-center gap-2 text-label text-ink-muted">
+      <ul className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+        {inside.map((s) => (
+          <li key={s.key} className="border-t border-line py-3">
+            <span className="font-mono text-label text-ink">{s.label}</span>
+            <span className="mt-0.5 block text-label text-ink-subtle">{s.note}</span>
+            <span className="sr-only">, publishes no port</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 flex items-center gap-2 border-t border-line pt-4 text-label text-ink-muted">
         <Glyph kind="tick" />
-        CI fails the build if any service but caddy publishes a port.
+        CI fails the build if any service other than caddy publishes a port.
       </p>
     </div>
   );
@@ -201,8 +194,8 @@ function Schedule({ accent }) {
         }
       >
         <p className="max-w-[70ch] text-label text-ink-muted">
-          Every {RULE.checkMin} minutes it asks: is the last success over {RULE.dueAfterH} h old, or is it {pad2(RULE.hour)}:00 and over{' '}
-          {RULE.atHourAfterH} h old? After a failure it waits {RULE.retryMin} minutes.
+          Every {RULE.checkMin} minutes it checks whether a backup is due. One is due if the last success is more than {RULE.dueAfterH} h old,
+          or if it is {pad2(RULE.hour)}:00 and the last success is more than {RULE.atHourAfterH} h old. After a failure it waits {RULE.retryMin} minutes before trying again.
         </p>
         <div className="mt-5">
           <Timeline sim={sim} reduce={reduce} runKey={runKey} />
@@ -227,7 +220,7 @@ function Schedule({ accent }) {
           ))}
         </ol>
         <p className="mt-3 font-mono text-micro text-ink-subtle">
-          The window starts after a success on Day 0 at {pad2(RULE.hour)}:00; each run is taken to finish inside one check.
+          The simulation starts after a successful backup on Day 0 at {pad2(RULE.hour)}:00, and assumes each run finishes within one {RULE.checkMin}-minute check.
         </p>
       </PanelFrame>
     </div>
@@ -240,15 +233,11 @@ function Chain({ label, items }) {
   return (
     <div className="min-w-0">
       <p className={`${LABEL} text-ink-subtle`}>{label}</p>
-      <ol className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-2">
+      <ol className="mt-3 border-b border-line">
         {items.map((it, i) => (
-          <li key={it} className="flex items-center gap-1.5">
-            {i > 0 && (
-              <span aria-hidden="true" className="font-mono text-micro text-ink-faint">
-                →
-              </span>
-            )}
-            <span className="mc-chip">{it}</span>
+          <li key={it} className="flex items-baseline gap-3 border-t border-line py-2">
+            <span className="font-mono text-micro tabular-nums text-ink-subtle">{pad2(i + 1)}</span>
+            <span className="text-label text-ink-muted">{it}</span>
           </li>
         ))}
       </ol>

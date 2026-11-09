@@ -26,7 +26,7 @@
  */
 import { useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { MORNINGS, RULES } from '@/data/studies/chronos-ai';
 import { Choices, Glyph, IN_VIEW, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
 import { evaluateTick } from './score';
@@ -69,12 +69,12 @@ const unlockOf = (ev) => ev.breakdown.find((b) => b.id === 'unlocked');
 
 function outcome(gap, ev) {
   if (ev.decision === 'ignored_dedupe') {
-    return { tone: P.sand, glyph: 'undo', status: 'Ignored · duplicate', text: `${gap} min after the last tick is under ${DEDUPE}, a duplicate. It scores ${ev.score}, but is ignored: the streak holds at ${ev.consecutiveHigh}, no bonus.` };
+    return { tone: P.sand, glyph: 'undo', status: 'Ignored · duplicate', text: `${gap} min after the last tick is under ${DEDUPE} minutes, so it is a duplicate. It scores ${ev.score} but is ignored: the streak stays at ${ev.consecutiveHigh} and there is no bonus.` };
   }
   if (ev.decision === 'confirm') {
-    return { tone: P.jade, glyph: 'tick', status: 'Confirmed · two in a row', text: `${gap} min apart is within ${MAX_GAP}: unlocked on both ticks earns the +10 bonus, ${ev.score} is the second high in a row, confirmed.` };
+    return { tone: P.jade, glyph: 'tick', status: 'Confirmed · two in a row', text: `${gap} min apart is within ${MAX_GAP}. Unlocked on both ticks earns the +10 bonus, so ${ev.score} is the second high tick in a row: confirmed.` };
   }
-  return { tone: P.sand, glyph: 'flag', status: `High · ${ev.consecutiveHigh} of 2 again`, text: `${gap} min is over ${MAX_GAP}: not consecutive. No bonus, ${ev.score}, high, but the streak starts again at ${ev.consecutiveHigh}.` };
+  return { tone: P.sand, glyph: 'flag', status: `High · ${ev.consecutiveHigh} of 2 again`, text: `${gap} min is over ${MAX_GAP}, so the ticks are not consecutive. With no bonus it scores ${ev.score}. That is high, but the streak starts again at ${ev.consecutiveHigh}.` };
 }
 
 /* ── pieces ────────────────────────────────────────────────────────────── */
@@ -82,7 +82,7 @@ function outcome(gap, ev) {
 function TickCard({ title, tick, ev, glyph, tone, highlight, accent }) {
   const unlock = unlockOf(ev);
   return (
-    <li className="min-w-0 rounded-[6px] border p-4" style={{ borderColor: highlight ? alpha(accent, 0.45) : P.line }}>
+    <li className="min-w-0 border-t pt-4" style={{ borderColor: highlight ? alpha(accent, 0.6) : P.line }}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="mc-label">{title}</p>
@@ -184,7 +184,7 @@ export default function ConfirmGap({ accent = P.ice }) {
             {ZONES.map((z) => (
               <li key={z.key} className="inline-flex items-center gap-2">
                 <span className="h-2.5 w-3.5 rounded-[2px] border" style={{ borderColor: P.line, background: alpha(z.tone, z.key === 'far' ? 0.06 : 0.16) }} />
-                <span className="tabular-nums text-ink-muted">{{ dupe: `under ${z.to}`, ok: `${z.from}–${z.to}`, far: `over ${z.from}` }[z.key]} min</span> {z.label}
+                <span className="tabular-nums text-ink-muted">{{ dupe: `under ${z.to}`, ok: `${z.from}-${z.to}`, far: `over ${z.from}` }[z.key]} min</span> {z.label}
               </li>
             ))}
           </ul>
@@ -192,13 +192,13 @@ export default function ConfirmGap({ accent = P.ice }) {
             Zones: under {DEDUPE} minutes is a duplicate; {DEDUPE} to {MAX_GAP} minutes counts as in a row; over {MAX_GAP} starts again. The second tick is {gap} minutes after the first.
           </p>
 
-          <ul className="mt-6 grid gap-3 @min-[30rem]:grid-cols-2">
+          <ul className="mt-6 grid gap-x-8 gap-y-5 @min-[30rem]:grid-cols-2">
             <TickCard title="1st tick" tick={A} ev={EV_A} glyph="flag" tone={P.sand} accent={accent} />
             <TickCard title={`2nd tick · +${gap} min`} tick={tick} ev={ev} glyph={o.glyph} tone={o.tone} highlight accent={accent} />
           </ul>
 
           <p className="mt-4 max-w-[68ch] text-[13px] leading-relaxed text-ink-subtle">
-            Both ticks are the typical-weekday fixture’s ({BASE.ticks.map((t) => t.local).join(' and ')}, 5 minutes apart); only the gap moves. A first tick at {EV_A.score} is already ≥ {CONFIRM}, so everything rides on the second. The missed-ticks fixture pins the edge: exactly {MAX_GAP} minutes still confirms.
+            Both ticks come from the typical-weekday fixture ({BASE.ticks.map((t) => t.local).join(' and ')}, 5 minutes apart); only the gap changes. The first tick scores {EV_A.score}, which already counts as high ({CONFIRM} or more), so everything depends on the second. The missed-ticks fixture pins the edge: exactly {MAX_GAP} minutes still confirms.
           </p>
         </div>
       </PanelFrame>

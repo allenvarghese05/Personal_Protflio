@@ -29,7 +29,7 @@
  */
 import { useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { Choices, Glyph, IN_VIEW, PanelFrame, Readout, at, useRun } from '@/components/ui/case/kit';
 import { LABEL } from '@/components/ui/case/shell';
 import { GRADING } from '@/data/studies/bis-report-card';
@@ -76,7 +76,7 @@ function AbsentPanel({ accent }) {
         caption={`${ABSENT.subject} · one part absent`}
         controls={<Choices label="Absent policy" options={ABSENT.policies.map((p) => ({ key: p.key, label: p.label }))} value={key} onChoose={choose} accent={accent} />}
         footer={
-          <Readout runKey={runKey} reduce={reduce} tone={P.ice} status={`${r.total} / ${r.maxApplicable} → ${r.percentage}% → ${r.grade}`}>
+          <Readout runKey={runKey} reduce={reduce} tone={P.ice} status={`${r.total} / ${r.maxApplicable} = ${r.percentage}% · grade ${r.grade}`}>
             <span className="text-body text-ink-muted">{policy.note}</span>
           </Readout>
         }
@@ -143,8 +143,8 @@ function OverallPanel({ accent }) {
   const before = key === 'before';
   const runKey = active ? `${active.key}-${active.run}` : 'idle';
   const lines = [
-    { label: 'Grand Total row', value: GRAND, how: `Σ marks ÷ Σ applicable = ${SUM_T} / ${SUM_M}` },
-    { label: 'Result line', value: before ? MEAN : GRAND, how: before ? `mean of subject percentages` : 'the same grandTotalPercentage()' },
+    { label: 'Grand Total row', value: GRAND, how: `total marks ÷ total possible = ${SUM_T} / ${SUM_M}` },
+    { label: 'Result line', value: before ? MEAN : GRAND, how: before ? 'average of the subject percentages' : 'the same grandTotalPercentage()' },
   ];
 
   return (
@@ -156,8 +156,8 @@ function OverallPanel({ accent }) {
           <Readout runKey={runKey} reduce={reduce} tone={before ? P.sand : P.jade} status={before ? `${GRAND}% ≠ ${MEAN}%` : `${GRAND}% = ${GRAND}%`}>
             <span className="text-body text-ink-muted">
               {before
-                ? 'Two overall figures on one card, the mean ignores that the subjects are out of different maxima.'
-                : 'One shared helper for the standing and the renderer: the card can’t disagree with itself.'}
+                ? 'Two different overall figures on one card. The average ignores that the subjects have different maximum marks.'
+                : 'The standing and the printed card now use one shared helper, so the two lines always match.'}
             </span>
           </Readout>
         }
@@ -176,15 +176,11 @@ function OverallPanel({ accent }) {
           ))}
         </ul>
 
-        <ul className="mt-5 flex flex-col gap-2.5">
+        <ul className="mt-5 border-b border-line">
           {lines.map((l, i) => {
             const off = before && i === 1;
             return (
-              <li
-                key={l.label}
-                className="flex items-center gap-3 rounded-md border p-3"
-                style={off ? { borderColor: alpha(P.sand, 0.55), borderStyle: 'dashed' } : { borderColor: P.line }}
-              >
+              <li key={l.label} className="flex items-center gap-3 border-t border-line py-3">
                 <Glyph kind={off ? 'flag' : 'tick'} />
                 <span className="min-w-0 flex-1">
                   <span className="block text-label text-ink-muted">{l.label}</span>
@@ -234,13 +230,13 @@ function BandsPanel({ accent }) {
         caption="The bands · rounded half-up first"
         controls={<Choices label="Pick a percentage" options={PROBE_OPTIONS} value={key} onChoose={choose} accent={accent} />}
         footer={
-          <Readout runKey={runKey} reduce={reduce} tone={accent} status={`${probe.v}% → ${probe.rounded} → ${probe.grade}`}>
+          <Readout runKey={runKey} reduce={reduce} tone={accent} status={`${probe.v}% rounds to ${probe.rounded} · grade ${probe.grade}`}>
             <span className="text-body text-ink-muted">
               {below
                 ? `Below every band, so it falls into the lowest (${LOWEST.grade}) rather than getting no grade at all.`
                 : probe.v === probe.rounded
-                  ? `Already whole: ${probe.grade}.`
-                  : `Rounded half-up to ${probe.rounded} before the lookup, ${probe.grade}.`}
+                  ? `Already a whole number, so it gets ${probe.grade}.`
+                  : `Rounded half-up to ${probe.rounded} before the grade lookup, so it gets ${probe.grade}.`}
             </span>
           </Readout>
         }
@@ -255,7 +251,7 @@ function BandsPanel({ accent }) {
             animate={{ left: tagLeft }}
             transition={at(reduce, 0, GLIDE_S)}
           >
-            {probe.v}% → {probe.rounded}
+            {probe.v}% rounds to {probe.rounded}
           </motion.span>
           <div aria-hidden="true" className="relative flex h-9 overflow-hidden rounded-md border border-line">
             <span className="h-full border-r border-line" style={{ width: `${(LOWEST.min / SPAN) * 100}%`, background: alpha(P.ink, 0.03) }} />
@@ -292,7 +288,7 @@ function BandsPanel({ accent }) {
         <ul aria-label="The bands" className="mt-4 flex flex-wrap gap-1.5">
           {[...SCALE].map((b) => (
             <li key={b.grade} className="mc-chip" style={b.grade === probe.grade ? { color: accent, borderColor: alpha(accent, 0.45) } : undefined}>
-              {b.grade} · {b.min}–{b.max}
+              {b.grade} · {b.min}-{b.max}
             </li>
           ))}
         </ul>

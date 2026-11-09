@@ -8,7 +8,7 @@
  * does, and how many people sit on it (all from ROLES).
  *
  * Props
- *   active    tier indexes (0–4) to light — their front edge, connector and
+ *   active    tier indexes (0 to 4) to light: their front edge, marker and
  *             label turn amber; every other tier dims while anything is lit.
  *             Changes cross-fade (CSS transitions).
  *   climbing  hero mode — an amber token appears on the applicant level
@@ -30,7 +30,7 @@
  */
 import { useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { ACTORS, ROLES } from '@/data/studies/iet';
 
@@ -228,8 +228,6 @@ function fitLayout({ key, viewW: targetW, pitch }) {
       edgeX,
       labelX,
       anchor: left ? 'end' : 'start',
-      leadFrom: r2(edgeX + dir * 5),
-      leadTo: r2(labelX - dir * 4),
     };
   });
 
@@ -240,8 +238,6 @@ function fitLayout({ key, viewW: targetW, pitch }) {
     CX,
     apexY,
     pillY: r2(pillY),
-    inY: r2(cys[0] + halfW[0] * VR + DEPTH), // bottom slab's lowest point
-    outY: r2(cys[TOP] - halfW[TOP] * VR), // top slab's highest point
     baseCy: r2(cys[0]),
     tiers,
     climb: buildClimb(cys, apexY),
@@ -334,14 +330,6 @@ function Label({ tier, lit }) {
   const { labelX, cy, anchor } = tier;
   return (
     <>
-      <line
-        x1={tier.leadFrom}
-        y1={cy}
-        x2={tier.leadTo}
-        y2={cy}
-        strokeWidth="1"
-        style={{ stroke: lit ? alpha(P.accent, 0.7) : P.lineHi, transition: TRANSITION }}
-      />
       <rect
         x={tier.edgeX - 3}
         y={cy - 3}
@@ -439,20 +427,11 @@ function Apex({ layout, ring }) {
   );
 }
 
-/** Where an application comes in: an amber pill, dashed into the bottom slab. */
+/** Where an application comes in: an amber pill under the bottom slab. */
 function Entry({ layout }) {
-  const { CX, pillY, inY } = layout;
+  const { CX, pillY } = layout;
   return (
     <>
-      <line
-        x1={CX}
-        y1={pillY}
-        x2={CX}
-        y2={inY}
-        stroke={alpha(P.accent, 0.5)}
-        strokeWidth="1"
-        strokeDasharray="2 3"
-      />
       <rect
         x={r2(CX - PILL_W / 2)}
         y={pillY}
@@ -524,15 +503,6 @@ function StackSvg({ layout, lit, climbing }) {
     >
       <motion.g {...enter(0, {})}>
         <Entry layout={layout} />
-        {/* the way out, top slab up to the tick */}
-        <line
-          x1={layout.CX}
-          y1={layout.outY}
-          x2={layout.CX}
-          y2={layout.apexY + TICK_R}
-          stroke={alpha(P.jade, 0.55)}
-          strokeWidth="1"
-        />
       </motion.g>
 
       {layout.tiers.map((tier) => {

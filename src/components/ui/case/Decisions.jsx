@@ -7,7 +7,7 @@
  * lg, stacked below it, separated by a hairline. Each row reads the same way:
  *   text   — '01 · Money' kicker, display title, then Problem / Decision /
  *            Trade-off (the decision gets the accent rule and brighter ink);
- *   visual — a small interactive diagram in an .mc-panel with an aria-live
+ *   visual — a small interactive diagram in an open PanelFrame with an aria-live
  *            readout footer, and a 'Show the code' toggle that opens a CodeBlock.
  *
  * The diagrams:
@@ -41,7 +41,7 @@
  */
 import { Fragment, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 import { AUDIT, DECISIONS, STATUSES } from '@/data/studies/iet';
 import { Choices, DecisionList, Glyph, LegendItem, PanelFrame, Readout, at, softBreaks, useRun, useWidth } from '@/components/ui/case/kit';
@@ -287,31 +287,26 @@ function TxRow({ index, label, cue, reduce, compact }) {
 
   return (
     <motion.li
-      initial={{ opacity: 1, borderColor: P.line }}
-      animate={{ opacity, borderColor: failed ? alpha(P.alert, 0.45) : P.line }}
-      transition={
-        reduce
-          ? { duration: 0 }
-          : {
-              opacity: at(reduce, cue.dim ?? cue.revert ?? 0, 0.35),
-              borderColor: at(reduce, cue.fail ?? 0, 0.3),
-            }
-      }
-      className={`flex items-center rounded-md border bg-surface-2 ${compact ? 'gap-2.5 px-2.5 py-2' : 'gap-3 px-3 py-2.5'}`}
+      initial={{ opacity: 1 }}
+      animate={{ opacity }}
+      transition={at(reduce, cue.dim ?? cue.revert ?? 0, 0.35)}
+      className={`flex items-center border-t border-line first:border-t-0 ${compact ? 'gap-2.5 py-2' : 'gap-3 py-2.5'}`}
     >
       <span
-        className={`flex shrink-0 items-center justify-center rounded-chip border border-line-hi font-mono text-micro text-ink-subtle ${
-          compact ? 'h-5 w-5' : 'h-6 w-6'
-        }`}
+        className={`shrink-0 font-mono text-micro tabular-nums text-ink-subtle ${compact ? 'w-4' : 'w-5'}`}
       >
         {index + 1}
       </span>
       <motion.span
-        className={`min-w-0 flex-1 font-mono text-ink-muted [overflow-wrap:anywhere] ${compact ? 'text-micro' : 'text-label'}`}
+        className={`min-w-0 flex-1 font-mono [overflow-wrap:anywhere] ${compact ? 'text-micro' : 'text-label'}`}
         style={{ textDecorationLine: 'line-through', textDecorationThickness: '1px' }}
-        initial={{ textDecorationColor: alpha(P.inkSubtle, 0) }}
-        animate={{ textDecorationColor: alpha(P.inkSubtle, reverted ? 1 : 0) }}
-        transition={at(reduce, cue.revert ?? 0, 0.3)}
+        initial={{ color: P.inkMuted, textDecorationColor: alpha(P.inkSubtle, 0) }}
+        animate={{ color: failed ? P.alert : P.inkMuted, textDecorationColor: alpha(P.inkSubtle, reverted ? 1 : 0) }}
+        transition={
+          reduce
+            ? { duration: 0 }
+            : { color: at(reduce, cue.fail ?? 0, 0.3), textDecorationColor: at(reduce, cue.revert ?? 0, 0.3) }
+        }
       >
         {softBreaks(label)}
         {words && <span className="sr-only">, {words}</span>}
@@ -370,9 +365,9 @@ function TxLane({ lane, steps, reduce, compact }) {
   const waits = !reduce && matched != null && lane.matchAt > TX.lead;
   return (
     <motion.div
-      className="min-w-0 rounded-lg border p-3 sm:p-4"
+      className="min-w-0 border-t pt-3"
       initial={{ borderColor: P.line }}
-      animate={{ borderColor: result ? alpha(result.tone, 0.45) : P.line }}
+      animate={{ borderColor: result ? alpha(result.tone, 0.6) : P.line }}
       transition={at(reduce, lane.markAt, 0.4)}
     >
       <div className="flex items-center justify-between gap-3">
@@ -381,7 +376,7 @@ function TxLane({ lane, steps, reduce, compact }) {
       </div>
 
       {CAS_WHERE.length > 0 && (
-        <p className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 rounded-md border border-line bg-void px-2.5 py-2 font-mono text-micro leading-[1.6] text-ink-muted">
+        <p className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 rounded-md bg-surface px-2.5 py-2 font-mono text-micro leading-[1.6] text-ink-muted">
           {CAS_WHERE.map((clause, i) => (
             <Fragment key={clause}>
               <span className="text-right text-lilac">{i === 0 ? 'WHERE' : 'AND'}</span>
@@ -401,7 +396,7 @@ function TxLane({ lane, steps, reduce, compact }) {
             animate={{ opacity: 0 }}
             transition={at(reduce, lane.matchAt, 0.2)}
           >
-            → …
+            waiting…
           </motion.p>
         )}
         <motion.p
@@ -413,14 +408,13 @@ function TxLane({ lane, steps, reduce, compact }) {
         >
           {matched != null && (
             <>
-              <span aria-hidden="true">→ </span>
               {matched} {matched === 1 ? 'row' : 'rows'} matched
             </>
           )}
         </motion.p>
       </div>
 
-      <ol className="mt-2 flex flex-col gap-2">
+      <ol className="mt-1 flex flex-col">
         {steps.map((label, i) => (
           <TxRow key={label} index={i} label={label} cue={lane.rows[i]} reduce={reduce} compact={compact} />
         ))}
@@ -477,7 +471,7 @@ function TxVisual({ decision, inView, reduce, accent }) {
       }
     >
       <div className="@container">
-        <div key={runKey} className={pair ? 'grid gap-3 @min-[34rem]:grid-cols-2' : undefined}>
+        <div key={runKey} className={pair ? 'grid gap-x-8 gap-y-6 @min-[34rem]:grid-cols-2' : undefined}>
           {plan.lanes.map((lane) => (
             <TxLane key={lane.key} lane={lane} steps={steps} reduce={reduce} compact={pair} />
           ))}
@@ -513,10 +507,9 @@ function ValueFlip({ before, after, changed, flipAt, reduce }) {
           animate={{ opacity: 1, x: 0 }}
           transition={at(reduce, flipAt, 0.35)}
         >
-          <span aria-hidden="true" className="text-base text-ink-faint">
-            →
+          <span className="text-base font-normal text-ink-subtle">
+            <span className="sr-only">, changed</span> to
           </span>
-          <span className="sr-only">, changed to </span>
           <span className="text-ink">{after}</span>
         </motion.span>
       )}
@@ -619,7 +612,7 @@ function AppCard({ app, snapshot, field, shown, appearAt, placeholder, resubmitA
   const slots = Math.max(snapshot, app.photos);
   const resubmits = resubmitAt != null;
   return (
-    <li className="relative min-w-0 rounded-md border border-line bg-surface-2 p-3.5">
+    <li className="relative min-w-0 border-t border-line pt-3.5">
       <motion.div
         aria-hidden={shown ? undefined : true}
         initial={{ opacity: shown && appearAt === 0 ? 1 : 0 }}
@@ -662,7 +655,7 @@ function AppCard({ app, snapshot, field, shown, appearAt, placeholder, resubmitA
               animate={{ opacity: 1 }}
               transition={at(reduce, resubmitAt, 0.3)}
             >
-              <span aria-hidden="true">↺ </span>resubmits
+              resubmits
             </motion.span>
           )}
         </div>
@@ -692,7 +685,7 @@ function AppCard({ app, snapshot, field, shown, appearAt, placeholder, resubmitA
       {placeholder && (
         <motion.div
           aria-hidden={shown ? true : undefined}
-          className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md border border-dashed border-line-hi bg-surface px-3 text-center font-mono text-micro text-ink-subtle"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center px-3 text-center font-mono text-micro text-ink-subtle"
           initial={{ opacity: shown && appearAt === 0 ? 0 : 1 }}
           animate={{ opacity: shown ? 0 : 1 }}
           transition={at(reduce, appearAt, 0.3)}
@@ -737,9 +730,9 @@ function SnapshotVisual({ decision, inView, reduce, accent }) {
 
   let sentence = '';
   if (changed && early && late) {
-    sentence = `From ${sc.changedOn} the rule is ${sc.after}, yet ${early.id} is still judged by its snapshot of ${sc.before}; only ${late.id} is asked for ${sc.after}.`;
+    sentence = `From ${sc.changedOn} the rule is ${sc.after}. ${early.id} is still judged by its snapshot of ${sc.before}. Only ${late.id} is asked for ${sc.after}.`;
   } else if (early) {
-    sentence = `${early.id} froze the rule at ${sc.before} when it was submitted on ${early.submitted}, its ${early.photos} photos pass.`;
+    sentence = `${early.id} was submitted on ${early.submitted}, so its rule is frozen at ${sc.before}. Its ${early.photos} photos pass.`;
   }
 
   return (
@@ -764,12 +757,12 @@ function SnapshotVisual({ decision, inView, reduce, accent }) {
             delay={end}
             reduce={reduce}
             tone={changed ? P.sand : P.jade}
-            status={changed ? `Rule ${sc.before} → ${sc.after}` : `Judged by ${sc.before}`}
+            status={changed ? `Rule ${sc.before} to ${sc.after}` : `Judged by ${sc.before}`}
           >
             <span className="text-body text-ink-muted">{sentence}</span>
           </Readout>
         ) : (
-          <p className="text-body text-ink-subtle">Pick a moment.</p>
+          <p className="text-body text-ink-subtle">Pick before or after the change.</p>
         )
       }
     >
@@ -809,7 +802,7 @@ function SnapshotVisual({ decision, inView, reduce, accent }) {
         <p className="sr-only">{summary}</p>
 
         {/* the applications, each judged by its own snapshot */}
-        <ul className="mt-5 grid gap-3 @min-[30rem]:grid-cols-2">
+        <ul className="mt-6 grid gap-x-8 gap-y-6 @min-[30rem]:grid-cols-2">
           {sc.apps.map((app) => {
             const isEarly = app.when === 'before';
             return (
@@ -925,8 +918,8 @@ function RbacVisual({ decision, inView, reduce, accent }) {
           >
             <span className="text-body text-ink-muted">
               {forged
-                ? `It skipped the ${path[skipAt].label} and cleared ${listOf(passed)}, then ${path[blockAt].label} stopped it.`
-                : `Every station passed, ${lastStation.label} last, ${lastStation.note}.`}
+                ? `It went around the ${path[skipAt].label}, passed ${listOf(passed)}, and was stopped at ${path[blockAt].label}.`
+                : `Every check passed, ending at the ${lastStation.label} (${lastStation.note}).`}
             </span>
           </Readout>
         ) : (
@@ -937,19 +930,7 @@ function RbacVisual({ decision, inView, reduce, accent }) {
       <div ref={trackRef} className="relative min-w-0">
         {width > 0 && (
           <svg aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible">
-            {/* the wire */}
-            {points.slice(1).map((b, j) => (
-              <line
-                key={`wire-${j}`}
-                x1={points[j].x}
-                y1={points[j].y}
-                x2={b.x}
-                y2={b.y}
-                stroke={P.lineHi}
-                strokeWidth="1.5"
-              />
-            ))}
-            {/* the token's trail */}
+            {/* the token's trail: only the way it actually went */}
             {points.slice(1).map((b, j) => {
               const from = segLit(j);
               if (from == null) return null;

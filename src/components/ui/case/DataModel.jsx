@@ -2,7 +2,7 @@
 
 /**
  * DataModel — "N models across M domains." The Prisma schema as a calm grid:
- * one card per domain, one row per model (name + what it holds), then a small
+ * one open column per domain, one row per model (name + what it holds), then a small
  * step chart of how the schema grew, then the enums as a chip row with their
  * value counts. Everything renders from the `model` prop (e.g. DATA_MODEL in src/data/studies/iet.js)
  * — the summary line (model count, enum count, engine) and every count are
@@ -11,17 +11,17 @@
  * the lifecycle gives a status the server never writes.
  *
  * Layout: 1 column on mobile, 2 at md, 3 at lg, all five domains side by side
- * at xl. Each card carries a thin top rule in its domain's tone (ice for
+ * at xl. Each column opens under a thin top rule in its domain's tone (ice for
  * data, the project accent for Application, jade for Platform & audit). The
  * growth chart spaces its dated entries evenly (an entry per change, not a
  * time axis) and draws hairline steps from fixed data — the current count
- * alone in the accent. Cards, chart and enums fade up in a gentle stagger the
+ * alone in the accent. Columns, chart and enums fade up in a gentle stagger the
  * first time the block scrolls into view; with reduced motion everything is
  * simply there.
  */
 import { Fragment, useId, useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { P, alpha } from '@/components/ui/case/tokens';
 import { EASE_OUT } from '@/lib/motion';
 
 /* ── constants ─────────────────────────────────────────────────────────── */
@@ -34,7 +34,7 @@ const RISE_PX = 14;
 const IN_VIEW = { once: true, amount: 0.15 };
 
 // Matches "deprecated — " / "unused — " at the start of a note; the tag says it
-const UNUSED_PREFIX = /^(?:deprecated|unused)\s*[—–-]\s*/i;
+const UNUSED_PREFIX = /^(?:deprecated|unused)\s*[—–:,.-]\s*/i;
 const UNUSED_TAG = 'unused';
 // A parenthesised list of camelCase field names, e.g. "(isBanned, bannedUntil)"
 const FIELD_LIST = /\(([a-z][A-Za-z0-9]*(?:,\s*[a-z][A-Za-z0-9]*)*)\)/;
@@ -198,15 +198,14 @@ function DomainCard({ domain, tone, variants, order }) {
     <motion.li
       variants={variants}
       custom={order}
-      className="relative flex min-w-0 flex-col overflow-hidden rounded-panel border border-line bg-surface"
-      style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)' }}
+      className="relative flex min-w-0 flex-col"
     >
       <span
         aria-hidden="true"
         className="absolute inset-x-0 top-0"
         style={{ height: RULE_PX, background: alpha(tone, RULE_ALPHA) }}
       />
-      <header className="flex items-start justify-between gap-3 border-b border-line px-4 pb-3 pt-4">
+      <header className="flex items-start justify-between gap-3 pb-3 pt-4">
         {/* .mc-label sets its own colour; the inline style lifts it a step */}
         <h3 className="mc-label leading-normal xl:min-h-[3em]" style={{ color: P.inkMuted }}>
           {domain.label}
@@ -216,7 +215,7 @@ function DomainCard({ domain, tone, variants, order }) {
           <span className="sr-only"> {count === 1 ? 'model' : 'models'}</span>
         </span>
       </header>
-      <ul className="flex-1 divide-y divide-line px-4 py-4">
+      <ul className="flex-1 divide-y divide-line pt-1">
         {domain.models.map((model) => (
           <ModelRow key={model.name} model={model} />
         ))}
@@ -368,7 +367,7 @@ export default function DataModel({ model, accent = P.accent, className = '' }) 
 
       <ul
         aria-label={`${count} ${noun} in ${domains.length} domains`}
-        className={`mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 ${cols}`}
+        className={`mt-5 grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2 ${cols}`}
       >
         {domains.map((domain, i) => (
           <DomainCard
