@@ -5,7 +5,7 @@
  * the published source. Three changes, all marked "site:":
  *   1. colours can be CSS variables (e.g. 'var(--accent)'), read off the
  *      element, so the canvas follows the page's own tokens
- *   2. it redraws when /projects switches theme (data-work-theme on <html>)
+ *   2. it redraws when the site switches theme (data-theme on <html>)
  *   3. align 'left' insets a fixed 24px (not 5% of the width); /projects
  *      shifts the canvas left by 24px, so the word lines up with the list
  */
@@ -975,7 +975,7 @@ const TechText = ({
     intersectionObserver.observe(container);
     const themeObserver = new MutationObserver(wake);
     for (const node of [document.documentElement, document.body]) {
-      if (node) themeObserver.observe(node, { attributes: true, attributeFilter: ['class', 'style', 'data-theme', 'data-work-theme'] }); // site: + data-work-theme
+      if (node) themeObserver.observe(node, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] });
     }
     const schemeQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
     schemeQuery?.addEventListener?.('change', wake);

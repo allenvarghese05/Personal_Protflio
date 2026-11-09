@@ -3,8 +3,9 @@
  * A case study on its own page (/projects/<id>), outside Mission Control. It
  * keeps Mission Control's frame (a fixed nav over a [data-mc-scroll] stage)
  * so the case-study sections behave exactly as they do in the game, and it
- * hands NextSection a navigate function so "Up next" changes the URL. Its
- * theme follows /projects (./theme.jsx); in the game the same pages stay dark.
+ * hands NextSection a navigate function so "Up next" changes the URL. Like
+ * every page, it follows the site's theme (src/lib/theme.js), and so do the
+ * same pages in the game: their colours are CSS variables.
  */
 import { useRef } from 'react';
 import Link from 'next/link';
@@ -14,7 +15,7 @@ import { caseStudyFor } from '@/data/caseStudies';
 import { CASE_PAGES } from '@/components/ui/case/pages';
 import { CaseNavContext, caseAccentStyle } from '@/components/ui/case/shell';
 import { useSmoothScroll } from '@/lib/smoothScroll';
-import { useWorkTheme } from './theme';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 /** The stage the case study scrolls in, gliding under a wheel. */
 function Stage({ children }) {
@@ -29,9 +30,7 @@ function Stage({ children }) {
 
 export default function CaseStudyStandalone({ id }) {
   const router = useRouter();
-  // the same theme as /projects: light when it's light (the résumé link or the
-  // toggle), dark otherwise; the case-study colours are CSS variables
-  useWorkTheme();
+  // the site's theme (see src/lib/theme.js); the case-study colours are CSS variables
   const project = projectById(id);
   const Page = CASE_PAGES[id];
   if (!project || !Page) return null;
@@ -51,9 +50,12 @@ export default function CaseStudyStandalone({ id }) {
             <span className="text-ink-faint"> · </span>
             <span className="text-accent">{project.label}</span>
           </div>
-          <Link href="/" className="mc-ghost-btn uppercase">
-            Portfolio ↗
-          </Link>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Link href="/" className="mc-ghost-btn uppercase">
+              Portfolio ↗
+            </Link>
+          </div>
         </nav>
         {/* keyed by project, so moving to the next case study starts at the top */}
         <Stage key={id}>

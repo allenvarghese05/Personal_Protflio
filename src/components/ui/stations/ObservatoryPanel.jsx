@@ -7,6 +7,7 @@ import OverflowShowcase from '@/components/work/OverflowShowcase';
 import { ArrowDot, PILL_LINE, PILL_SOLID } from '@/components/work/parts';
 import MeetMe from './meet/MeetMe';
 import { Band, Chapter, ChapterHead, Lead, Reveal, TITLE_SIZE, useRoomLink } from './Story';
+import { PageLink } from '@/components/audio/SiteAudio';
 
 /**
  * The Observatory: who I am, told as a profile in six chapters (data:
@@ -120,13 +121,13 @@ function Next() {
       </Reveal>
       {/* the work, on this site: a quiet line, not another contact pill */}
       <Reveal delay={0.24} className="mt-8 flex flex-col gap-2 text-sm">
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full load drops the 3D scene on purpose */}
-        <a href="/projects" className="group w-fit font-medium text-ink-muted transition-colors duration-200 hover:text-ink">
+        {/* a full load drops the 3D scene on purpose (unless a beat is playing) */}
+        <PageLink href="/projects" className="group w-fit font-medium text-ink-muted transition-colors duration-200 hover:text-ink">
           Or see all {ENGINEERING_PROJECTS.length} projects{' '}
           <span aria-hidden className="inline-block transition-transform duration-200 group-hover:translate-x-1">
             →
           </span>
-        </a>
+        </PageLink>
         <span className="text-ink-subtle">{CONTACT.email}</span>
       </Reveal>
     </section>

@@ -6,7 +6,7 @@ import gsap from 'gsap';
 import { worldState } from '@/lib/worldState';
 import { ENTRY } from '@/lib/entrySequence';
 import { getAudio } from '@/lib/audio';
-import { PALETTE } from '@/lib/palette';
+import { usePalette, useThemeValue } from '@/lib/useTheme';
 
 /**
  * World-side beats of the arrival (mounted the moment the white flash hands
@@ -82,6 +82,10 @@ function thud() {
 }
 
 export default function LandingDirector() {
+  // the light theme's palette in daylight; the contrail is laid over a pale
+  // sky there, where additive light would vanish
+  const palette = usePalette();
+  const light = useThemeValue() === 'light';
   const streakRef = useRef();
   const rippleRef = useRef();
   const boltRef = useRef();
@@ -210,10 +214,10 @@ export default function LandingDirector() {
       <mesh ref={streakRef} visible={false}>
         <cylinderGeometry args={[0.02, 0.09, 8, 8, 1, true]} />
         <meshBasicMaterial
-          color={PALETTE.accentHi}
+          color={palette.accentHi}
           transparent
           opacity={0}
-          blending={THREE.AdditiveBlending}
+          blending={light ? THREE.NormalBlending : THREE.AdditiveBlending}
           depthWrite={false}
           side={THREE.DoubleSide}
         />
@@ -222,7 +226,7 @@ export default function LandingDirector() {
       {/* impact shockwave through the ground */}
       <mesh ref={rippleRef} visible={false} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.85, 1, 48]} />
-        <meshBasicMaterial color={PALETTE.sand} transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={palette.sand} transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
 
       {/* hemisphere dust burst — two clusters for varied grain */}

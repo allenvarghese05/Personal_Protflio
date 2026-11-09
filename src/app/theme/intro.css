@@ -1,0 +1,25 @@
+/* Light mode for the galaxy intro, the solar-system dive, the Big Bang transition and the intro overlay. Every rule is scoped under html[data-theme="light"]. */
+
+/* The primary pill is ink on paper in light; its dark-mode hover (pure
+   white) would erase it, so it deepens to black instead. */
+html[data-theme="light"] .hero-cta:hover {
+  background: #000000;
+}
+
+/* The loader's star: a white core vanishes on paper, so it charges in amber. */
+html[data-theme="light"] .loader-star {
+  background: radial-gradient(circle, var(--accent-hi) 0%, var(--accent) 70%);
+}
+
+/* Planet tags: a paper halo instead of the black glow that lifts them off space. */
+html[data-theme="light"] .planet-label {
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.95), 0 0 2px rgba(255, 255, 255, 0.9);
+}
+html[data-theme="light"] .world-label__name {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+/* The loader footer is readable copy; ink-faint is too light on paper. */
+html[data-theme="light"] .loader-foot {
+  color: var(--ink-subtle);
+}

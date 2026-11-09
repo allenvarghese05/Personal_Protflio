@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/lib/store';
 import { zones } from '@/data/world';
 import { travelTo } from '@/lib/worldNav';
+import { PageLink } from '@/components/audio/SiteAudio';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -13,7 +15,8 @@ const EASE = [0.16, 1, 0.3, 1];
  *
  * On a phone the districts don't fit in one row, so the dock scrolls
  * sideways and "All projects" moves to its own button in the top-right
- * corner, where it is always in view.
+ * corner, where it is always in view. The light / dark switch sits beside
+ * "All projects" in both places.
  */
 export default function WorldDock() {
   const journeyPhase = useStore((s) => s.journeyPhase);
@@ -27,7 +30,7 @@ export default function WorldDock() {
         <motion.nav
           key="dock"
           aria-label="Travel"
-          className="world-dock fixed bottom-6 left-1/2 z-30 -translate-x-1/2"
+          className="world-dock world-dock--travel fixed bottom-6 left-1/2 z-30 -translate-x-1/2"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.3, ease: EASE } }}
           exit={{ opacity: 0, y: 12, transition: { duration: 0.25 } }}
@@ -44,25 +47,35 @@ export default function WorldDock() {
             </button>
           ))}
           <span className="world-dock__sep" aria-hidden />
-          {/* the projects page, outside the game (a full load drops the 3D scene) */}
-          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full load on purpose */}
-          <a href="/projects" className="world-dock__item world-dock__item--cta">
+          {/* the projects page, outside the game (a full load drops the 3D scene,
+              unless a beat is playing) */}
+          <PageLink href="/projects" className="world-dock__item world-dock__item--cta">
             All projects <span aria-hidden>→</span>
-          </a>
+          </PageLink>
+          {/* desktop only; phones get it beside the top-right button */}
+          <span className="hidden sm:inline-flex">
+            <ThemeToggle />
+          </span>
         </motion.nav>
       )}
       {show && (
         // phones: the same link, pinned top-right so it never scrolls out of view
-        <motion.a
+        <motion.div
           key="dock-cta"
-          href="/projects"
-          className="world-dock world-dock__item world-dock__item--cta world-dock__float fixed right-3 top-3 z-30"
+          className="world-dock__float fixed right-3 top-3 z-30"
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.3, ease: EASE } }}
           exit={{ opacity: 0, y: -8, transition: { duration: 0.25 } }}
         >
-          All projects <span aria-hidden>→</span>
-        </motion.a>
+          <div className="world-dock world-dock--travel">
+            <ThemeToggle />
+            {/* display set inline: inside a .world-dock, the phone rule that
+                hides the dock's own "All projects" would otherwise match it */}
+            <PageLink href="/projects" className="world-dock__item world-dock__item--cta" style={{ display: 'inline-flex' }}>
+              All projects <span aria-hidden>→</span>
+            </PageLink>
+          </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

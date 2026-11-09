@@ -1,14 +1,15 @@
 /**
  * Colours for the case studies, as CSS variables, so a case study follows the
- * page's theme. In the game, and on /projects/<id> by default, the variables
- * hold the dark Signal Amber values (:root in globals.css). When /projects is
- * light (the résumé link, or the toggle), html[data-work-theme="light"]
- * .work-root swaps the same names for the light palette, and every case-study
- * colour follows without a second code path.
+ * site's theme, in the game and on /projects/<id> alike. In dark mode the
+ * variables hold the Signal Amber values (:root in globals.css); in light mode
+ * html[data-theme="light"] swaps the same names for the light palette, and
+ * every case-study colour follows without a second code path.
  *
  * Same keys as PALETTE in src/lib/palette.js (which stays hex for the 3D
  * scenes). alpha() mixes a colour with transparent, so it works on variables.
  */
+import { PALETTE, PALETTE_LIGHT } from '@/lib/palette';
+
 const ACCENT = 'var(--accent)';
 
 /**
@@ -70,3 +71,14 @@ export const KIND_ACCENT = {
   project: P.accent,
   classified: P.accent,
 };
+
+/* Hex colours for the theme in force, for the generic brief's figures
+   (BentoPanels, ArchitectureGraph, DeploymentStatusStrip), which draw with
+   hex values because d3 and alpha() from lib/palette need them. A colour
+   handed in from the dark palette (a project's accent, a category hue) maps
+   to the same key in the light palette; any other colour is left alone. */
+const DARK_TO_LIGHT = new Map(Object.keys(PALETTE).map((k) => [PALETTE[k].toLowerCase(), PALETTE_LIGHT[k]]));
+
+/** `color` for `theme`: a dark-palette hex becomes its light twin in light mode. */
+export const forTheme = (color, theme) =>
+  theme === 'light' && typeof color === 'string' ? DARK_TO_LIGHT.get(color.toLowerCase()) ?? color : color;

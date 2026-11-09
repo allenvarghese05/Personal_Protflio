@@ -1,18 +1,21 @@
 'use client';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/lib/store';
 import { zoneById } from '@/data/world';
-import { ENGINEERING_PROJECTS, projectById } from '@/data/projects';
+import { projectById } from '@/data/projects';
 import { caseStudyFor } from '@/data/caseStudies';
-import { PALETTE } from '@/lib/palette';
 import { ACCENTS, DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
 import { jumpTo, useSmoothScroll } from '@/lib/smoothScroll';
 import CommsPanel from './stations/CommsPanel';
+import ThemeToggle from './ThemeToggle';
+import { keepWorldInHistory } from '@/components/audio/SiteAudio';
 import { CASE_PAGES } from './case/pages';
 
-const P_INK_FAINT = PALETTE.inkSubtle;
+// a CSS variable, so it follows the theme
+const P_INK_FAINT = 'var(--ink-subtle)';
 /** The stage: Mission Control's one scroll container (every room scrolls in it). */
 const SCROLLER = '[data-mc-scroll]';
 
@@ -31,10 +34,13 @@ const DeploymentStatusStrip = dynamic(() => import('./DeploymentStatusStrip'), {
 // Station rooms share the Mission Control shell (nav, backdrop, motion).
 const STATION_ROOMS = { observatory: ObservatoryPanel, studio: StudioPanel, comms: CommsPanel };
 
+/** A kind's accent as a dark-palette hex: BentoPanels and ArchitectureGraph
+ *  map it to its light twin themselves (forTheme), and need a real colour. */
 const accentFor = (kind) => ACCENTS[kind] || ACCENTS.project;
-const badgeWord = (p) =>
-  p.cardBadge || { signature: 'SIGNATURE', current: 'CURRENT', award: 'AWARD', project: 'PROJECT' }[p.kind] || 'PROJECT';
-const railGradient = (accent) => `linear-gradient(90deg, ${accent} 0%, transparent 70%)`;
+/** The same accent as a CSS variable, for this file's own parts, so it
+ *  follows the theme (same values as ACCENTS in dark). */
+const KIND_VAR = { signature: 'var(--accent)', award: 'var(--accent)', current: 'var(--ice)', project: 'var(--sand)', classified: 'var(--slate)' };
+const toneFor = (kind) => KIND_VAR[kind] || KIND_VAR.project;
 
 /* ───────────────────────────── TOP NAV BAR ────────────────────────────── */
 
@@ -62,20 +68,17 @@ function NavBar({ zone, project, onBack, onExit }) {
         )}
       </div>
 
-      <button onClick={onExit} className="mc-ghost-btn uppercase">
-        Exit <span className="ml-1 rounded-[3px] border border-line px-1.5 py-0.5 text-micro tracking-normal">ESC</span>
-      </button>
+      <div className="flex items-center gap-2 sm:gap-3">
+        <ThemeToggle />
+        <button onClick={onExit} className="mc-ghost-btn h-9 uppercase leading-9">
+          Exit <span className="ml-1 rounded-[3px] border border-line px-1.5 py-0.5 text-micro tracking-normal">ESC</span>
+        </button>
+      </div>
     </nav>
   );
 }
 
-/* ───────────────────────────── PROJECT WALL ───────────────────────────── */
-
-const wallContainer = { hidden: {}, show: { transition: { staggerChildren: DUR.cardStagger } } };
-const cardVariant = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: DUR.cardFade, ease: EASE_STD } },
-};
+/* ───────────────────────────── PROJECT BRIEF ──────────────────────────── */
 
 function Badge({ accent, children, className = '' }) {
   return (
@@ -87,74 +90,6 @@ function Badge({ accent, children, className = '' }) {
     </span>
   );
 }
-
-function ProjectCard({ project, onSelect }) {
-  const accent = accentFor(project.kind);
-  return (
-    <motion.button
-      variants={cardVariant}
-      onClick={() => onSelect(project.id)}
-      data-return-key={`wall-${project.id}`}
-      aria-label={`Open brief: ${project.label}`}
-      className="mc-card group relative flex cursor-pointer flex-col p-6 text-left"
-      style={{ '--card-accent': accent }}
-    >
-      {/* accent rail */}
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-[3px]" style={{ background: railGradient(accent) }} />
-
-      <Badge accent={accent}>{badgeWord(project)}</Badge>
-
-      <div className="font-display mt-4 text-xl font-semibold leading-snug text-ink">{project.label}</div>
-
-      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-muted">{project.subtitle}</p>
-
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        {(project.tags || project.secondaryStack || []).slice(0, 5).map((t) => (
-          <span key={t} className="mc-chip">
-            {t}
-          </span>
-        ))}
-      </div>
-
-      <span className="mt-auto pt-6 font-mono text-micro uppercase tracking-[0.14em] text-ink-subtle transition-colors duration-200 group-hover:text-[var(--card-accent)]">
-        Open brief →
-      </span>
-    </motion.button>
-  );
-}
-
-function Wall({ projects, onSelect }) {
-  return (
-    <motion.div
-      key="wall"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.2 } }}
-      className="w-full max-w-[1200px]"
-    >
-      <div className="mb-6 flex items-end justify-between gap-4">
-        <div>
-          <div className="mc-label">Engineering District</div>
-          <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Selected work</h1>
-        </div>
-        <div className="mc-label hidden sm:block">{String(projects.length).padStart(2, '0')} projects</div>
-      </div>
-
-      <motion.div
-        variants={wallContainer}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-1 gap-px overflow-hidden rounded-panel border border-line bg-line sm:grid-cols-2 lg:grid-cols-3"
-      >
-        {projects.map((p) => (
-          <ProjectCard key={p.id} project={p} onSelect={onSelect} />
-        ))}
-      </motion.div>
-    </motion.div>
-  );
-}
-
-/* ───────────────────────────── PROJECT BRIEF ──────────────────────────── */
 
 function MetricStrip({ metrics, accent }) {
   if (!metrics?.length) return null;
@@ -316,7 +251,8 @@ function Decisions({ items, accent }) {
 }
 
 function Brief({ project }) {
-  const accent = accentFor(project.kind);
+  const accentHex = accentFor(project.kind);
+  const accent = toneFor(project.kind);
   const study = caseStudyFor(project.id);
   // every project with a case-study page renders it (see case/pages.js)
   const Page = CASE_PAGES[project.id];
@@ -412,7 +348,7 @@ function Brief({ project }) {
       {/* UNDER THE HOOD */}
       <div className="mx-auto max-w-6xl px-6 pb-16 sm:px-12">
         <Section label="Under the hood">
-          <BentoPanels project={project} accent={accent} />
+          <BentoPanels project={project} accent={accentHex} />
           {project.deployment && (
             <div className="mt-6">
               <DeploymentStatusStrip deployment={project.deployment} />
@@ -426,7 +362,7 @@ function Brief({ project }) {
                   nodes={project.architectureGraph.nodes}
                   edges={project.architectureGraph.edges}
                   categoryColors={project.graphColors}
-                  accent={accent}
+                  accent={accentHex}
                 />
               ) : (
                 <div className="mc-label flex h-full items-center justify-center">No diagram</div>
@@ -446,7 +382,7 @@ function Brief({ project }) {
 /* ──────────────────────────── MISSION CONTROL ─────────────────────────── */
 
 /**
- * Each view the stage swaps in (a room, the wall, a brief) starts at its top,
+ * Each view the stage swaps in (a room, a case study) starts at its top,
  * or, coming Back, where you left it. Done after the new view commits and
  * before it paints, so the old one never flashes at the top.
  *
@@ -534,33 +470,39 @@ export default function MissionControl() {
   const setEnteredZone = useStore((s) => s.setEnteredZone);
   const selected = useStore((s) => s.selectedProject);
 
-  const open = !!enteredZone;
+  const open = !!enteredZone && !(enteredZone === 'engineering' && !selected);
   // the stage glides under a wheel (see lib/smoothScroll) while it's open
   const stageRef = useRef(null);
   useSmoothScroll(stageRef, open);
   const zone = enteredZone ? zoneById(enteredZone) : null;
   const Room = STATION_ROOMS[enteredZone];
-  const projects = ENGINEERING_PROJECTS;
   const project = selected ? projectById(selected) : null;
+  const router = useRouter();
 
-  // Back: to the room a link came from (About), else from a brief to the
-  // wall, else out of Mission Control
+  // Every project lives on /projects; there's no project list in here. The
+  // world is kept one step back in history (/?world=1), so the browser's
+  // Back from /projects lands on the surface rather than replaying the intro.
+  const toProjects = useCallback(() => {
+    keepWorldInHistory();
+    router.push('/projects');
+  }, [router]);
+
+  // Back: to the room a link came from (About), else from a case study to
+  // /projects, else out of Mission Control
   const onBack = useCallback(() => {
     const st = useStore.getState();
     if (st.returnTo) {
       const { zone, scrollTop, key } = st.returnTo;
       useStore.setState({ enteredZone: zone, selectedProject: null, restoreScroll: scrollTop, focusOnEnter: true, returnFocus: key, returnTo: null });
-    } else if (st.selectedProject) {
-      const back = st.wallReturn;
-      useStore.setState({ selectedProject: null, focusOnEnter: true, restoreScroll: back?.scrollTop ?? null, returnFocus: back?.key ?? null, wallReturn: null });
-    } else st.setEnteredZone(null);
-  }, []);
-  // picking a card replaces the wall (and the focused card with it); Back
-  // returns to the same card at the same scroll
-  const onSelect = useCallback((id) => {
-    const scroller = document.querySelector(SCROLLER);
-    useStore.setState({ selectedProject: id, focusOnEnter: true, wallReturn: { scrollTop: scroller?.scrollTop ?? 0, key: `wall-${id}` } });
-  }, []);
+    } else if (st.selectedProject) toProjects();
+    else st.setEnteredZone(null);
+  }, [toProjects]);
+
+  // a link to the old project list (/?room=engineering) opens /projects
+  const listOnly = enteredZone === 'engineering' && !selected;
+  useEffect(() => {
+    if (listOnly) toProjects();
+  }, [listOnly, toProjects]);
 
   // the About room (the helmet and its portrait) is the heaviest room: fetch
   // its code a few seconds after the world is up, so it opens without a gap
@@ -605,19 +547,13 @@ export default function MissionControl() {
           <NavBar zone={zone} project={project} onBack={onBack} onExit={() => setEnteredZone(null)} />
 
           {/* Stage */}
-          <div ref={stageRef} data-mc-scroll className="relative flex-1 overflow-y-auto">
+          <div ref={stageRef} data-mc-scroll className="relative flex-1 overflow-y-auto overflow-x-clip">
             <AnimatePresence mode="wait">
               {Room ? (
                 <Fresh key={enteredZone}>
                   <Room />
                 </Fresh>
-              ) : !project ? (
-                <Fresh key="wall">
-                  <div className="flex min-h-full items-center justify-center p-6 sm:p-12">
-                    <Wall projects={projects} onSelect={onSelect} />
-                  </div>
-                </Fresh>
-              ) : (
+              ) : !project ? null : (
                 <Fresh key="brief">
                   <Brief project={project} />
                 </Fresh>

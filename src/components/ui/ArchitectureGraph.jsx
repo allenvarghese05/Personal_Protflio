@@ -1,6 +1,8 @@
 'use client';
-import { PALETTE as P, alpha, CATEGORY_COLOR } from '@/lib/palette';
+import { alpha, CATEGORY_COLOR } from '@/lib/palette';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePalette, useThemeValue } from '@/lib/useTheme';
+import { forTheme } from '@/components/ui/case/tokens';
 import * as d3 from 'd3';
 import { GRAPH } from '@/lib/motion';
 
@@ -12,6 +14,11 @@ import { GRAPH } from '@/lib/motion';
  * trackpad pan, drag nodes, click a node for FOCUS MODE (dims everything else
  * and shows a tooltip with its connections). Reads the rich node schema
  * (category / importance / x,y% / edge direction).
+ *
+ * Colours follow the site's theme: the palette in force (usePalette), with
+ * dark-palette hues handed in (accent, category colours) mapped to their
+ * light twins (forTheme). A theme change recolours the drawn graph in place;
+ * the simulation keeps running. The glow on the active node is dark-only.
  */
 
 // Category hues come from the one palette (lib/palette.js).
@@ -40,22 +47,35 @@ const ZOOM_BUTTONS = [
   { k: '⊡', label: 'Reset view', by: null },
 ];
 
-export default function ArchitectureGraph({ nodes, edges, categoryColors, accent = P.accent }) {
+export default function ArchitectureGraph({ nodes, edges, categoryColors, accent: accentIn }) {
+  const P = usePalette();
+  const theme = useThemeValue();
+  const light = theme === 'light';
+  const accent = forTheme(accentIn ?? P.accent, theme);
   const colorOf = (n) =>
-    n.color || categoryColors?.[n.category] || COLOR_BY_CATEGORY[n.category] || P.slate;
+    forTheme(n.color || categoryColors?.[n.category] || COLOR_BY_CATEGORY[n.category] || P.slate, theme);
   const wrapRef = useRef(null);
   const svgRef = useRef(null);
   const zoomApi = useRef(null);
   const focusApi = useRef(null);
+  // what the d3 code draws with, kept current for it (it lives outside React)
+  const look = useRef({ P, light, colorOf });
+  const recolorApi = useRef(null);
+  useEffect(() => {
+    look.current = { P, light, colorOf };
+    recolorApi.current?.();
+    // colorOf is rebuilt every render from the props listed here
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [P, light, categoryColors]);
   const [tip, setTip] = useState(null); // { x, y, label, desc, category, connected[] }
   // Legend: the categories present, derived from the nodes (no state needed)
   const legendItems = useMemo(
     () =>
       [...new Set((nodes || []).map((n) => n.category).filter(Boolean))].map((c) => ({
-        color: categoryColors?.[c] || COLOR_BY_CATEGORY[c] || P.slate,
+        color: forTheme(categoryColors?.[c] || COLOR_BY_CATEGORY[c] || P.slate, theme),
         label: CATEGORY_LABEL[c] || c,
       })),
-    [nodes, categoryColors],
+    [nodes, categoryColors, P, theme],
   );
   const [showHint, setShowHint] = useState(true);
   const [zoomPct, setZoomPct] = useState(100);
@@ -65,6 +85,7 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
     const wrap = wrapRef.current;
     const svgEl = svgRef.current;
     const svg = d3.select(svgEl);
+    const { P, colorOf } = look.current;
 
     const simNodes = nodes.map((n) => ({
       ...n,
@@ -215,11 +236,11 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
       scaleG
         .select('circle')
         .attr('stroke-width', (d) => (d.id === active ? 3 : 1.5))
-        .style('filter', (d) => (d.id === active ? `drop-shadow(0 0 8px ${d._c})` : 'none'));
+        .style('filter', (d) => (d.id === active && !look.current.light ? `drop-shadow(0 0 8px ${d._c})` : 'none'));
       link
         .style('stroke', (l) => {
           if (active && (l.source.id === active || l.target.id === active)) return byId.get(active)._c;
-          return alpha(P.ink, 0.08);
+          return alpha(look.current.P.ink, 0.08);
         })
         .style('stroke-opacity', (l) => {
           if (!active) return 1;
@@ -252,6 +273,18 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
       }
     }
     focusApi.current = () => setFocus(null);
+
+    // the theme changed: the same graph, in the new palette
+    recolorApi.current = () => {
+      const { P: pal, colorOf: hue } = look.current;
+      simNodes.forEach((n) => {
+        n._c = hue(n);
+      });
+      link.attr('stroke', alpha(pal.ink, 0.08));
+      scaleG.select('circle').attr('fill', pal.surface).attr('stroke', (d) => d._c);
+      scaleG.select('text').attr('fill', (d) => d._c).style('stroke', pal.surface);
+      applyState();
+    };
 
     /* ---- drag (suppresses pan via isDraggingNode) --------------------- */
     let isDraggingNode = false;
@@ -364,10 +397,11 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
       ro.disconnect();
       svgEl.removeEventListener('wheel', preventWheel);
       window.removeEventListener('keydown', onKey);
+      recolorApi.current = null;
       svg.on('.zoom', null).on('click', null).on('dblclick', null);
     };
-    // the simulation rebuilds only when the graph itself changes; colours ride along
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // the simulation rebuilds only when the graph itself changes; colours ride
+    // along through `look` and recolorApi
   }, [nodes, edges]);
 
   // the zoom buttons: a factor, or null to reset (the ref is read on click only)
@@ -402,7 +436,7 @@ export default function ArchitectureGraph({ nodes, edges, categoryColors, accent
             left: tip.flipX ? tip.x - 256 : tip.x + 16,
             top: tip.flipY ? tip.y - 8 - 130 : tip.y - 8,
             border: `1px solid ${alpha(accent, 0.5)}`,
-            boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
+            boxShadow: light ? '0 8px 24px rgba(0,0,0,0.08)' : '0 8px 28px rgba(0,0,0,0.55)',
           }}
         >
           <div className="mb-1.5 text-sm font-semibold" style={{ color: accent }}>

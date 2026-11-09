@@ -1,5 +1,7 @@
 'use client';
-import { PALETTE as P, alpha } from '@/lib/palette';
+import { alpha } from '@/lib/palette';
+import { usePalette, useThemeValue } from '@/lib/useTheme';
+import { forTheme } from '@/components/ui/case/tokens';
 
 /**
  * "Under the hood" — two bespoke visuals per project that show how it works
@@ -7,12 +9,24 @@ import { PALETTE as P, alpha } from '@/lib/palette';
  * engine, a battle, the live map …). A new project without its own visuals
  * falls back to a generic flow + supporting-systems pair. Metrics live in
  * the brief header and key decisions in the case study, not here.
+ *
+ * Colours follow the site's theme: each part reads the palette in force
+ * (usePalette), and the accent handed in is mapped to its light twin in light
+ * mode (forTheme). The soft glows are a dark-mode thing; on white they read
+ * as smudges, so light mode draws the same lines without them.
  */
 
-function Panel({ heading, accent = P.accent, children }) {
+/** A drop-shadow glow in dark mode, nothing in light. */
+function useGlow() {
+  const light = useThemeValue() === 'light';
+  return (color, r) => (light ? undefined : `drop-shadow(0 0 ${r}px ${color})`);
+}
+
+function Panel({ heading, accent, children }) {
+  const P = usePalette();
   return (
     <div className="mc-panel flex min-w-0 flex-col">
-      <div className="mc-label mb-4 font-semibold" style={{ color: accent }}>{heading}</div>
+      <div className="mc-label mb-4 font-semibold" style={{ color: accent ?? P.accent }}>{heading}</div>
       <div className="relative min-w-0 flex-1">{children}</div>
     </div>
   );
@@ -21,6 +35,7 @@ function Panel({ heading, accent = P.accent, children }) {
 /* ── PANEL 1 — 5-tier approval flowchart ─────────────────────────────────── */
 
 function EndPill({ text, color, check }) {
+  const P = usePalette();
   return (
     <div
       className="mx-auto text-center font-mono"
@@ -49,6 +64,7 @@ function StaircaseChain() {
   const stepY = (i) => 224 - i * 44; // y grows downward; higher i → higher up
   const cx = (i) => stepX(i) + W / 2;
   const cy = (i) => stepY(i) + H / 2;
+  const P = usePalette();
 
   // path the travelling dot follows: entry → each step centre → exit
   const dotPath =
@@ -110,17 +126,25 @@ function StaircaseChain() {
 /* Isometric 3D stacked layers — widest/grassroots (Pastor) at the bottom,
    narrowing up to the single point of authority (Finance) at the top. */
 const ISO_LAYERS = [
-  { w: 200, cy: 300, top: P.raised, left: P.surface, right: P.void, accent: P.accent, num: '01', role: 'PASTOR', sub: '3,000+ pastors · submits', side: 'L' },
-  { w: 175, cy: 248, top: P.raised, left: P.surface, right: P.void, accent: P.accentLo, num: '02', role: 'DIVISION LEADER', sub: '~150 leaders · reviews', side: 'R' },
-  { w: 150, cy: 196, top: P.raised, left: P.surface, right: P.void, accent: P.accent, num: '03', role: 'HQ TEAM', sub: 'national HQ · checks', side: 'L' },
-  { w: 125, cy: 144, top: P.raised, left: P.surface, right: P.void, accent: P.accentLo, num: '04', role: 'PRESIDENT', sub: '1 president · approves', side: 'R' },
-  { w: 100, cy: 92, top: P.raised, left: P.surface, right: P.void, accent: P.jade, num: '05', role: 'FINANCE DEPT', sub: 'finance board · releases', side: 'L' },
+  { w: 200, cy: 300, accent: 'accent', num: '01', role: 'PASTOR', sub: '3,000+ pastors · submits', side: 'L' },
+  { w: 175, cy: 248, accent: 'accentLo', num: '02', role: 'DIVISION LEADER', sub: '~150 leaders · reviews', side: 'R' },
+  { w: 150, cy: 196, accent: 'accent', num: '03', role: 'HQ TEAM', sub: 'national HQ · checks', side: 'L' },
+  { w: 125, cy: 144, accent: 'accentLo', num: '04', role: 'PRESIDENT', sub: '1 president · approves', side: 'R' },
+  { w: 100, cy: 92, accent: 'jade', num: '05', role: 'FINANCE DEPT', sub: 'finance board · releases', side: 'L' },
 ];
+// the slab faces, by key: lit top, shaded sides (in light, the top is the white)
+const ISO_FACES = {
+  dark: { top: 'raised', left: 'surface', right: 'void' },
+  light: { top: 'void', left: 'raised', right: 'lineHi' },
+};
 const CX = 260;
 const DEPTH = 18;
 const VR = 0.32; // vertical:horizontal ratio (flatter than 0.5 so slabs read as platforms)
 
 function IsoStack() {
+  const P = usePalette();
+  const glow = useGlow();
+  const faces = ISO_FACES[useThemeValue()];
   const top4 = ISO_LAYERS[4];
   const topApex = top4.cy - top4.w * VR;
   return (
@@ -137,19 +161,20 @@ function IsoStack() {
         const edgeX = onLeft ? Lx : Rx;
         const labelX = onLeft ? Lx - 18 : Rx + 18;
         const anchor = onLeft ? 'end' : 'start';
+        const accent = P[L.accent];
         return (
           <g key={L.num}>
-            <polygon points={leftF} fill={L.left} />
-            <polygon points={rightF} fill={L.right} />
-            <polygon points={top} fill={L.top} stroke={P.line} strokeWidth="0.5" />
+            <polygon points={leftF} fill={P[faces.left]} />
+            <polygon points={rightF} fill={P[faces.right]} />
+            <polygon points={top} fill={P[faces.top]} stroke={P.line} strokeWidth="0.5" />
             {/* accent glow on the front V edge */}
-            <path d={accentD} fill="none" stroke={L.accent} strokeWidth="1.5" style={{ filter: `drop-shadow(0 0 3px ${L.accent})` }} />
+            <path d={accentD} fill="none" stroke={accent} strokeWidth="1.5" style={{ filter: glow(accent, 3) }} />
             {/* label connector + diamond */}
             <line x1={edgeX} y1={L.cy} x2={labelX} y2={L.cy} stroke={P.line} strokeWidth="0.5" />
-            <rect x={edgeX - 3} y={L.cy - 3} width="6" height="6" fill={L.accent} transform={`rotate(45 ${edgeX} ${L.cy})`} />
+            <rect x={edgeX - 3} y={L.cy - 3} width="6" height="6" fill={accent} transform={`rotate(45 ${edgeX} ${L.cy})`} />
             {/* tier + role */}
             <text x={labelX} y={L.cy - 4} textAnchor={anchor} fontSize="10" fontWeight="700" fontFamily="monospace">
-              <tspan fill={L.accent}>{L.num}</tspan>
+              <tspan fill={accent}>{L.num}</tspan>
               <tspan fill={P.inkMuted}>{`  ${L.role}`}</tspan>
             </text>
             {/* sublabel */}
@@ -159,8 +184,8 @@ function IsoStack() {
       })}
 
       {/* top — permit approved */}
-      <line x1={CX} y1={topApex} x2={CX} y2={topApex - 20} stroke={P.jade} strokeWidth="1" style={{ filter: `drop-shadow(0 0 3px ${P.jade})` }} />
-      <text x={CX - 6} y={topApex - 24} textAnchor="middle" fontSize="11" fill={P.jade} style={{ filter: `drop-shadow(0 0 4px ${P.jade})` }}>✦</text>
+      <line x1={CX} y1={topApex} x2={CX} y2={topApex - 20} stroke={P.jade} strokeWidth="1" style={{ filter: glow(P.jade, 3) }} />
+      <text x={CX - 6} y={topApex - 24} textAnchor="middle" fontSize="11" fill={P.jade} style={{ filter: glow(P.jade, 4) }}>✦</text>
       <text x={CX + 8} y={topApex - 21} textAnchor="start" fontSize="9" fill={P.jade} fontFamily="monospace" letterSpacing="0.5">PERMIT APPROVED</text>
 
       {/* bottom — application submitted pill */}
@@ -170,7 +195,7 @@ function IsoStack() {
       </g>
 
       {/* travelling orb bottom → top */}
-      <circle r="6" fill={P.accent} style={{ filter: `blur(1.5px) drop-shadow(0 0 4px ${P.accent})` }}>
+      <circle r="6" fill={P.accent} style={{ filter: ['blur(1.5px)', glow(P.accent, 4)].filter(Boolean).join(' ') }}>
         <animateMotion dur="3s" repeatCount="indefinite" path={`M ${CX},${ISO_LAYERS[0].cy} L ${CX},${topApex}`} />
       </circle>
     </svg>
@@ -180,14 +205,18 @@ function IsoStack() {
 /* ── LearnFlow Panel 1 — 5-pipeline context assembly ─────────────────────── */
 
 const PIPELINES = [
-  { name: 'TRANSCRIPT', sub: 'live audio → text', color: P.jade },
-  { name: 'LECTURE SLIDES', sub: 'OCR extracted', color: P.ice },
-  { name: 'STUDENT NOTES', sub: 'indexed notes', color: P.lilac },
-  { name: 'SYLLABUS', sub: 'course structure', color: P.accent },
-  { name: 'ASSIGNMENTS', sub: 'rubrics & briefs', color: P.slate },
+  { name: 'TRANSCRIPT', sub: 'live audio → text', color: 'jade' },
+  { name: 'LECTURE SLIDES', sub: 'OCR extracted', color: 'ice' },
+  { name: 'STUDENT NOTES', sub: 'indexed notes', color: 'lilac' },
+  { name: 'SYLLABUS', sub: 'course structure', color: 'accent' },
+  { name: 'ASSIGNMENTS', sub: 'rubrics & briefs', color: 'slate' },
 ];
 
 function PipelineFlowPanel({ accent }) {
+  const P = usePalette();
+  // light: the raised grey is too dark for 9px accent labels (4.36:1); surface2 clears 4.5:1
+  const hub = useThemeValue() === 'light' ? P.surface2 : P.raised;
+  const glow = useGlow();
   // viewBox coords: 5 inputs on the left flow into the centre, then to GPT-4o.
   const rowY = (i) => 26 + i * 42;
   const CXc = 300;
@@ -199,24 +228,25 @@ function PipelineFlowPanel({ accent }) {
           {/* input pipelines + flowing arrows */}
           {PIPELINES.map((p, i) => {
             const y = rowY(i);
+            const color = P[p.color];
             return (
               <g key={p.name}>
                 <line
                   className="pipe-dash"
                   x1="128" y1={y + 14} x2={CXc - 34} y2={CYc}
-                  stroke={p.color} strokeOpacity="0.4" strokeWidth="0.75"
+                  stroke={color} strokeOpacity="0.4" strokeWidth="0.75"
                   style={{ animationDelay: `${i * 0.4}s` }}
                 />
                 <rect x="6" y={y} width="122" height="28" rx="4" fill={P.surface2} />
-                <rect x="6" y={y} width="2" height="28" fill={p.color} />
-                <text x="16" y={y + 12} dominantBaseline="middle" fontSize="9" fontWeight="600" fill={p.color} fontFamily="monospace">{p.name}</text>
+                <rect x="6" y={y} width="2" height="28" fill={color} />
+                <text x="16" y={y + 12} dominantBaseline="middle" fontSize="9" fontWeight="600" fill={color} fontFamily="monospace">{p.name}</text>
                 <text x="16" y={y + 21} dominantBaseline="middle" fontSize="8" fill={P.inkSubtle} fontStyle="italic" fontFamily="monospace">{p.sub}</text>
               </g>
             );
           })}
 
           {/* centre — context assembly */}
-          <circle cx={CXc} cy={CYc} r="32" fill={P.raised} stroke={accent} strokeWidth="1.5" style={{ filter: `drop-shadow(0 0 5px ${accent})` }} />
+          <circle cx={CXc} cy={CYc} r="32" fill={hub} stroke={accent} strokeWidth="1.5" style={{ filter: glow(accent, 5) }} />
           <text x={CXc} y={CYc - 4} textAnchor="middle" dominantBaseline="middle" fontSize="8" fontWeight="700" fill={accent} fontFamily="monospace">CONTEXT</text>
           <text x={CXc} y={CYc + 7} textAnchor="middle" dominantBaseline="middle" fontSize="8" fontWeight="700" fill={accent} fontFamily="monospace">ASSEMBLY</text>
 
@@ -245,6 +275,7 @@ function PlatformBadge({ children, label }) {
 }
 
 function PlatformReachPanel({ accent }) {
+  const P = usePalette();
   return (
     <Panel heading="Platform Reach · Performance" accent={accent}>
       {/* TOP — cross-platform */}
@@ -277,13 +308,16 @@ function PlatformReachPanel({ accent }) {
 /* ── AirCast Panel 1 — space-to-street data fusion ─────────────────────── */
 
 const AIRCAST_SOURCES = [
-  { name: 'NASA TEMPO', sub: 'satellite · 35,786 km', color: P.ice },
-  { name: 'OPENAQ', sub: 'ground sensors · 25 km', color: P.sand },
-  { name: 'OPENWEATHER', sub: 'live meteorology', color: P.jade },
+  { name: 'NASA TEMPO', sub: 'satellite · 35,786 km', color: 'ice' },
+  { name: 'OPENAQ', sub: 'ground sensors · 25 km', color: 'sand' },
+  { name: 'OPENWEATHER', sub: 'live meteorology', color: 'jade' },
 ];
 const AIRCAST_OUTPUTS = ['6-HR FORECAST', 'AI BRIEF · A–F', '5 SAFETY PROFILES'];
 
 function FusionPanel({ accent }) {
+  const P = usePalette();
+  const hub = useThemeValue() === 'light' ? P.surface2 : P.raised;
+  const glow = useGlow();
   const rowY = (i) => 30 + i * 62;
   const CXc = 214;
   const CYc = 92;
@@ -292,18 +326,19 @@ function FusionPanel({ accent }) {
       <svg viewBox="0 0 420 236" width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
         {AIRCAST_SOURCES.map((src, i) => {
           const y = rowY(i);
+          const color = P[src.color];
           return (
             <g key={src.name}>
-              <line className="pipe-dash" x1="130" y1={y + 14} x2={CXc - 30} y2={CYc} stroke={src.color} strokeOpacity="0.45" strokeWidth="0.75" style={{ animationDelay: `${i * 0.4}s` }} />
+              <line className="pipe-dash" x1="130" y1={y + 14} x2={CXc - 30} y2={CYc} stroke={color} strokeOpacity="0.45" strokeWidth="0.75" style={{ animationDelay: `${i * 0.4}s` }} />
               <rect x="4" y={y} width="126" height="30" rx="4" fill={P.surface2} />
-              <rect x="4" y={y} width="2" height="30" fill={src.color} />
-              <text x="14" y={y + 12} dominantBaseline="middle" fontSize="9.5" fontWeight="600" fill={src.color} fontFamily="monospace">{src.name}</text>
+              <rect x="4" y={y} width="2" height="30" fill={color} />
+              <text x="14" y={y + 12} dominantBaseline="middle" fontSize="9.5" fontWeight="600" fill={color} fontFamily="monospace">{src.name}</text>
               <text x="14" y={y + 23} dominantBaseline="middle" fontSize="8.5" fill={P.inkSubtle} fontFamily="monospace">{src.sub}</text>
             </g>
           );
         })}
 
-        <circle cx={CXc} cy={CYc} r="30" fill={P.raised} stroke={accent} strokeWidth="1.5" style={{ filter: `drop-shadow(0 0 5px ${accent})` }} />
+        <circle cx={CXc} cy={CYc} r="30" fill={hub} stroke={accent} strokeWidth="1.5" style={{ filter: glow(accent, 5) }} />
         <text x={CXc} y={CYc} textAnchor="middle" dominantBaseline="middle" fontSize="9" fontWeight="700" fill={accent} fontFamily="monospace">FUSION</text>
 
         {AIRCAST_OUTPUTS.map((o, i) => {
@@ -337,6 +372,7 @@ const FORECAST_DRIVERS = [
 ];
 
 function ForecastDriversPanel({ accent }) {
+  const P = usePalette();
   return (
     <Panel heading="Forecast Drivers" accent={accent}>
       <SubHeading>AQI multiplier per hour</SubHeading>
@@ -382,6 +418,7 @@ const MATCH_FACTORS = [
 ];
 
 function MatchEnginePanel({ accent }) {
+  const P = usePalette();
   const R = 38;
   const C = 2 * Math.PI * R;
   return (
@@ -417,6 +454,7 @@ function MatchEnginePanel({ accent }) {
 }
 
 function VoiceCounselorPanel({ accent }) {
+  const P = usePalette();
   const bars = [4, 9, 14, 7, 18, 11, 22, 15, 9, 17, 24, 12, 8, 16, 20, 10, 6, 13, 19, 9, 5];
   return (
     <Panel heading="AI Voice Counselor" accent={accent}>
@@ -446,6 +484,7 @@ function VoiceCounselorPanel({ accent }) {
 /* ── Jam Duel — a battle + where the recommendations come from ─────────── */
 
 function BattleSide({ label, pct, lead, accent }) {
+  const P = usePalette();
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
       <div
@@ -464,6 +503,7 @@ function BattleSide({ label, pct, lead, accent }) {
 }
 
 function BattlePanel({ accent }) {
+  const P = usePalette();
   return (
     <Panel heading="Head-to-Head" accent={accent}>
       <div className="flex items-center gap-3">
@@ -489,6 +529,7 @@ function BattlePanel({ accent }) {
 }
 
 function FlowBox({ title, sub, color }) {
+  const P = usePalette();
   return (
     <div className="rounded-md px-3 py-2" style={{ background: P.surface2, borderLeft: `2px solid ${color}` }}>
       <div className="font-mono text-micro font-semibold" style={{ color }}>{title}</div>
@@ -498,6 +539,7 @@ function FlowBox({ title, sub, color }) {
 }
 
 function RecFlowPanel({ accent }) {
+  const P = usePalette();
   return (
     <Panel heading="How Recommendations Work" accent={accent}>
       <div className="grid items-center gap-3" style={{ gridTemplateColumns: '1fr auto 1fr' }}>
@@ -527,6 +569,7 @@ function RecFlowPanel({ accent }) {
 /* ── StreetSpot — the live map + levels & roadmap ───────────────────────── */
 
 function LiveMapPanel({ accent }) {
+  const P = usePalette();
   const pins = [
     { x: 62, y: 70, open: true },
     { x: 150, y: 58, open: true },
@@ -571,6 +614,7 @@ const ROADMAP = [
 ];
 
 function LevelsRoadmapPanel({ accent }) {
+  const P = usePalette();
   return (
     <Panel heading="Contributors & Roadmap" accent={accent}>
       <SubHeading>Earn your way up</SubHeading>
@@ -612,6 +656,7 @@ function LevelsRoadmapPanel({ accent }) {
 }
 
 function ApprovalChainPanel({ project, accent }) {
+  const P = usePalette();
   if (project.id === 'learnflow-ai') return <PipelineFlowPanel accent={accent} />;
   if (project.id === 'aircast') return <FusionPanel accent={accent} />;
   if (project.id === 'college-matcher') return <MatchEnginePanel accent={accent} />;
@@ -660,6 +705,7 @@ function SubHeading({ children }) {
 }
 
 function GpsPhasePanel({ project, accent }) {
+  const P = usePalette();
   if (project.id === 'learnflow-ai') return <PlatformReachPanel accent={accent} />;
   if (project.id === 'aircast') return <ForecastDriversPanel accent={accent} />;
   if (project.id === 'college-matcher') return <VoiceCounselorPanel accent={accent} />;
@@ -732,7 +778,9 @@ function GpsPhasePanel({ project, accent }) {
   );
 }
 
-export default function BentoPanels({ project, accent = P.accent }) {
+export default function BentoPanels({ project, accent: accentIn }) {
+  const P = usePalette();
+  const accent = forTheme(accentIn ?? P.accent, useThemeValue());
   return (
     <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
       <ApprovalChainPanel project={project} accent={accent} />

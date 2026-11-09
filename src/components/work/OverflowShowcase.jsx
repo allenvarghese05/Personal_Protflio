@@ -355,7 +355,7 @@ export default function OverflowShowcase({ job, variant }) {
   return (
     // in the About room the text accents take the room's one amber; the logo
     // and the sketch keep Overflow's own colour
-    <div className="ov-scope @container" style={{ '--ov-dark': about ? 'var(--accent)' : job.colors.accent.dark, '--ov-light': job.colors.accent.light }}>
+    <div className="ov-scope @container" style={{ '--ov-dark': about ? 'var(--accent)' : job.colors.accent.dark, '--ov-light': about ? 'var(--accent)' : job.colors.accent.light }}>
       <article className="grid grid-cols-1 gap-x-14 gap-y-10 @[60rem]:grid-cols-12">
         {/* the picture holds while the story scrolls past it */}
         <div className="@[60rem]:col-span-7">

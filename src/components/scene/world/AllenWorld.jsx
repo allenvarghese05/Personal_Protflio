@@ -7,6 +7,7 @@ import { worldState } from '@/lib/worldState';
 import { MESAS, CAUSEWAYS, MONOLITHS, mesaById } from '@/data/world';
 import { causewaySegments } from '@/lib/worldNav';
 import { PALETTE } from '@/lib/palette';
+import { usePalette, useThemeValue } from '@/lib/useTheme';
 import Monoliths from './Monoliths';
 import Landmarks from './Landmarks';
 import { labelVisibility } from '@/lib/worldLabels';
@@ -27,6 +28,80 @@ export const SKY = {
 // The low sun — its direction drives the key light AND the glow in the sky.
 export const SUN_DIR = new THREE.Vector3(0.62, 0.2, 0.52).normalize();
 
+/* ── Two looks: dusk (dark theme) and daylight (light theme) ─────────────────
+   `dark` holds the original dusk values exactly. `light` is the same world at
+   midday: a high sun, a pale sky, white haze, sunlit sandstone, and the
+   darker amber of the light palette on the light strips. Components read
+   the look in force from useWorldLook() and update colours in place, so the
+   theme toggle switches the world live without rebuilding geometry. */
+const LOOK = {
+  dark: {
+    light: false,
+    sky: SKY,
+    sunDir: SUN_DIR,
+    stars: 1,
+    band: 0.22,
+    glow: 0.28,
+    fog: SKY.horizon,
+    fogDensity: 0.0085,
+    cloudLit: '#b08d74',
+    cloudShade: '#232838',
+    bankWarm: '#b8957c',
+    bankCool: '#3a4058',
+    rockTint: [1, 1, 1],
+    cap: '#b9aa94',
+    capFar: '#8f826f',
+    boulder: '#6d6152',
+    causeway: '#a89985',
+    pier: '#4f463d',
+    strip: 1,
+    hemiSky: '#5a6a9a',
+    hemiGround: '#6b5a48',
+    hemi: 0.85,
+    sun: 2.6,
+    sunColor: PALETTE.accentHi,
+    rim: 0.55,
+    rimColor: PALETTE.ice,
+    amb: 0.12,
+    ambColor: '#8a8070',
+  },
+  light: {
+    light: true,
+    sky: { top: '#d9e5f2', mid: '#ebf0f6', horizon: '#f6f1ea' },
+    sunDir: new THREE.Vector3(0.5, 0.74, 0.44).normalize(),
+    stars: 0,
+    band: 0.04,
+    glow: 0.1,
+    fog: '#f3eee7',
+    fogDensity: 0.0075,
+    cloudLit: '#ffffff',
+    cloudShade: '#cdd3dd',
+    bankWarm: '#fbf4ea',
+    bankCool: '#d6dce6',
+    rockTint: [1.75, 1.6, 1.45],
+    cap: '#f1e9dc',
+    capFar: '#ddd1bd',
+    boulder: '#b6a78f',
+    causeway: '#ece2d2',
+    pier: '#a3967f',
+    strip: 0.22,
+    hemiSky: '#e3ecf8',
+    hemiGround: '#dccbb0',
+    hemi: 2.1,
+    sun: 2.7,
+    sunColor: '#fff3e2',
+    rim: 0.35,
+    rimColor: '#dfe8ff',
+    amb: 0.35,
+    ambColor: '#ffffff',
+  },
+};
+
+/** The world's look for the theme in force (re-renders on a toggle). */
+export function useWorldLook() {
+  return LOOK[useThemeValue()];
+}
+
 /* ── Sky dome ─────────────────────────────────────────────────────────────── */
 
 const SkyMaterial = shaderMaterial(
@@ -35,6 +110,9 @@ const SkyMaterial = shaderMaterial(
     uMid: new THREE.Color(SKY.mid),
     uHorizon: new THREE.Color(SKY.horizon),
     uSunDir: SUN_DIR,
+    uStars: 1,
+    uBand: 0.22,
+    uGlow: 0.28,
   },
   /* vertex */ `
     varying vec3 vWorld;
@@ -45,6 +123,7 @@ const SkyMaterial = shaderMaterial(
   `,
   /* fragment */ `
     uniform vec3 uTop; uniform vec3 uMid; uniform vec3 uHorizon; uniform vec3 uSunDir;
+    uniform float uStars; uniform float uBand; uniform float uGlow;
     varying vec3 vWorld;
     float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453); }
     void main() {
@@ -53,13 +132,13 @@ const SkyMaterial = shaderMaterial(
       vec3 col = mix(uHorizon, uMid, smoothstep(0.48, 0.64, h));
       col = mix(col, uTop, smoothstep(0.62, 0.92, h));
       // amber band on the horizon line
-      col += vec3(1.0, 0.6, 0.24) * 0.22 * exp(-pow((h - 0.5) * 22.0, 2.0));
+      col += vec3(1.0, 0.6, 0.24) * uBand * exp(-pow((h - 0.5) * 22.0, 2.0));
       // the low sun: a tight core + a wide warm bloom
       float s = max(dot(dir, uSunDir), 0.0);
-      col += vec3(1.0, 0.72, 0.42) * (pow(s, 900.0) * 3.0 + pow(s, 12.0) * 0.28);
+      col += vec3(1.0, 0.72, 0.42) * (pow(s, 900.0) * 3.0 + pow(s, 12.0) * uGlow);
       // stars overhead — the same sky we flew through
       vec3 cell = floor(dir * 380.0);
-      float star = step(0.9975, hash(cell)) * smoothstep(0.62, 0.86, h);
+      float star = step(0.9975, hash(cell)) * smoothstep(0.62, 0.86, h) * uStars;
       col += vec3(0.95, 0.93, 0.88) * star * (0.5 + 0.5 * hash(cell + 7.0));
       gl_FragColor = vec4(col, 1.0);
     }
@@ -68,10 +147,23 @@ const SkyMaterial = shaderMaterial(
 extend({ SkyMaterial });
 
 function SkyDome() {
+  const look = useWorldLook();
+  const mat = useRef();
+  useEffect(() => {
+    const m = mat.current;
+    if (!m) return;
+    m.uTop = new THREE.Color(look.sky.top);
+    m.uMid = new THREE.Color(look.sky.mid);
+    m.uHorizon = new THREE.Color(look.sky.horizon);
+    m.uSunDir = look.sunDir;
+    m.uStars = look.stars;
+    m.uBand = look.band;
+    m.uGlow = look.glow;
+  }, [look]);
   return (
     <mesh>
       <sphereGeometry args={[480, 48, 24]} />
-      <skyMaterial side={THREE.BackSide} depthWrite={false} />
+      <skyMaterial ref={mat} side={THREE.BackSide} depthWrite={false} />
     </mesh>
   );
 }
@@ -129,8 +221,18 @@ const CloudSeaMaterial = shaderMaterial(
 extend({ CloudSeaMaterial });
 
 function CloudSea() {
+  const look = useWorldLook();
   const floor = useRef();
   const wisps = useRef();
+  useEffect(() => {
+    [floor.current, wisps.current].forEach((m) => {
+      if (!m) return;
+      m.uLit = new THREE.Color(look.cloudLit);
+      m.uShade = new THREE.Color(look.cloudShade);
+      m.uHorizon = new THREE.Color(look.sky.horizon);
+      m.uSunDir = look.sunDir;
+    });
+  }, [look]);
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     if (floor.current) floor.current.uTime = t;
@@ -157,10 +259,9 @@ function CloudSea() {
 function CloudBanks() {
   const tex = useLoader(THREE.TextureLoader, '/cosmic/smoke.png');
   const group = useRef();
+  const look = useWorldLook();
   const puffs = useMemo(() => {
     const arr = [];
-    const warm = new THREE.Color('#b8957c');
-    const cool = new THREE.Color('#3a4058');
     for (let i = 0; i < 80; i++) {
       const m = MESAS[i % MESAS.length];
       const a = Math.random() * Math.PI * 2;
@@ -168,13 +269,19 @@ function CloudBanks() {
       arr.push({
         pos: [m.center[0] + Math.cos(a) * r, -7 + Math.random() * 4.5, m.center[1] + Math.sin(a) * r],
         s: 14 + Math.random() * 22,
-        color: cool.clone().lerp(warm, Math.random() * 0.7),
+        tint: Math.random() * 0.7,
         drift: (Math.random() - 0.5) * 0.25,
         op: 0.22 + Math.random() * 0.2,
       });
     }
     return arr;
   }, []);
+  // each puff's colour sits somewhere between the cool shade and the warm lit side
+  const colors = useMemo(() => {
+    const warm = new THREE.Color(look.bankWarm);
+    const cool = new THREE.Color(look.bankCool);
+    return puffs.map((p) => cool.clone().lerp(warm, p.tint));
+  }, [puffs, look]);
   useFrame((_, dt) => {
     const g = group.current;
     if (!g) return;
@@ -186,7 +293,7 @@ function CloudBanks() {
     <group ref={group}>
       {puffs.map((p, i) => (
         <sprite key={i} position={p.pos} scale={[p.s, p.s * 0.55, 1]}>
-          <spriteMaterial map={tex} color={p.color} transparent opacity={p.op} depthWrite={false} fog />
+          <spriteMaterial map={tex} color={colors[i]} transparent opacity={p.op} depthWrite={false} fog />
         </sprite>
       ))}
     </group>
@@ -195,20 +302,27 @@ function CloudBanks() {
 
 /* ── Stone ────────────────────────────────────────────────────────────────── */
 
-// Procedural sandstone ground texture (no image to load).
-let _groundTex = null;
-function groundTexture() {
-  if (_groundTex) return _groundTex;
+// Procedural sandstone ground texture (no image to load). The light theme
+// gets its own, paler sand (sunlit), drawn the same way.
+const _groundTex = {};
+const GROUND_TONES = {
+  dark: { base: '#7d6e5d', a: '96,84,70', b: '140,124,104' },
+  light: { base: '#d9cab0', a: '196,181,154', b: '236,226,206' },
+};
+function groundTexture(light = false) {
+  const key = light ? 'light' : 'dark';
+  if (_groundTex[key]) return _groundTex[key];
+  const tones = GROUND_TONES[key];
   const s = 512;
   const c = document.createElement('canvas');
   c.width = c.height = s;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#7d6e5d';
+  ctx.fillStyle = tones.base;
   ctx.fillRect(0, 0, s, s);
   for (let i = 0; i < 900; i++) {
     const r = 6 + Math.random() * 40;
     const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-    const tone = Math.random() < 0.5 ? '96,84,70' : '140,124,104';
+    const tone = Math.random() < 0.5 ? tones.a : tones.b;
     g.addColorStop(0, `rgba(${tone},0.18)`);
     g.addColorStop(1, `rgba(${tone},0)`);
     ctx.save();
@@ -229,7 +343,7 @@ function groundTexture() {
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 8;
-  _groundTex = tex;
+  _groundTex[key] = tex;
   return tex;
 }
 
@@ -278,6 +392,7 @@ function rockGeometry(rTop, height, seed) {
 const rockMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.96, metalness: 0 });
 
 function Mesa({ center, r, top = 0, height = 34, seed = 1, walkable = true }) {
+  const look = useWorldLook();
   const geo = useMemo(() => rockGeometry(r + 0.8, height, seed), [r, height, seed]);
   const rock = useRef();
   const cap = useRef();
@@ -290,17 +405,19 @@ function Mesa({ center, r, top = 0, height = 34, seed = 1, walkable = true }) {
     };
   }, []);
   const ground = useMemo(() => {
-    const t = groundTexture().clone();
+    const t = groundTexture(look.light).clone();
     t.needsUpdate = true;
     t.repeat.set((r + 0.8) / 6, (r + 0.8) / 6);
     return t;
-  }, [r]);
+  }, [r, look.light]);
+  // a theme switch clones the other sand; free the old copy
+  useEffect(() => () => ground.dispose(), [ground]);
   return (
     <group position={[center[0], top, center[1]]}>
       <mesh ref={rock} geometry={geo} material={rockMaterial} castShadow receiveShadow />
       <mesh ref={cap} rotation-x={-Math.PI / 2} receiveShadow>
         <circleGeometry args={[r + 0.8, 72]} />
-        <meshStandardMaterial map={ground} color={walkable ? '#b9aa94' : '#8f826f'} roughness={0.95} />
+        <meshStandardMaterial map={ground} color={walkable ? look.cap : look.capFar} roughness={0.95} />
       </mesh>
     </group>
   );
@@ -308,6 +425,7 @@ function Mesa({ center, r, top = 0, height = 34, seed = 1, walkable = true }) {
 
 /** Boulders along the lip — outside the walkable margin, never in the way. */
 function RimBoulders({ mesa, count, avoid = [] }) {
+  const look = useWorldLook();
   const items = useMemo(() => {
     const arr = [];
     let guard = 0;
@@ -338,7 +456,7 @@ function RimBoulders({ mesa, count, avoid = [] }) {
     <group>
       {items.map((it, i) => (
         <mesh key={i} geometry={geo} position={it.pos} scale={it.s} rotation={it.rot} castShadow receiveShadow>
-          <meshStandardMaterial color="#6d6152" roughness={0.95} />
+          <meshStandardMaterial color={look.boulder} roughness={0.95} />
         </mesh>
       ))}
     </group>
@@ -347,6 +465,8 @@ function RimBoulders({ mesa, count, avoid = [] }) {
 
 /** Stone causeway with amber light strips along both edges. */
 function Causeway({ seg }) {
+  const look = useWorldLook();
+  const palette = usePalette();
   const [ax, az] = seg.start;
   const [bx, bz] = seg.end;
   const len = Math.hypot(bx - ax, bz - az);
@@ -354,29 +474,31 @@ function Causeway({ seg }) {
   const w = seg.w + 0.5;
   const mid = [(ax + bx) / 2, (az + bz) / 2];
   const tex = useMemo(() => {
-    const t = groundTexture().clone();
+    const t = groundTexture(look.light).clone();
     t.needsUpdate = true;
     t.repeat.set(w / 6, len / 6);
     return t;
-  }, [w, len]);
+  }, [w, len, look.light]);
+  useEffect(() => () => tex.dispose(), [tex]);
   const strips = useRef([]);
   useFrame((state) => {
-    const k = 0.8 + Math.sin(state.clock.elapsedTime * 1.2) * 0.12;
+    // in daylight the strips stay a deep amber line instead of glowing
+    const k = (0.8 + Math.sin(state.clock.elapsedTime * 1.2) * 0.12) * look.strip;
     strips.current.forEach((m) => m && (m.emissiveIntensity = 1.4 * k * worldState.reveal));
   });
   return (
     <group position={[mid[0], 0, mid[1]]} rotation-y={rotY}>
       <mesh position-y={-0.45} castShadow receiveShadow>
         <boxGeometry args={[w, 0.9, len]} />
-        <meshStandardMaterial map={tex} color="#a89985" roughness={0.95} />
+        <meshStandardMaterial map={tex} color={look.causeway} roughness={0.95} />
       </mesh>
       {[-1, 1].map((side, i) => (
         <mesh key={side} position={[side * (w / 2 - 0.12), 0.02, 0]}>
           <boxGeometry args={[0.06, 0.04, len]} />
           <meshStandardMaterial
             ref={(el) => (strips.current[i] = el)}
-            color={PALETTE.accent}
-            emissive={PALETTE.accent}
+            color={palette.accent}
+            emissive={palette.accent}
             emissiveIntensity={1.4}
             toneMapped={false}
           />
@@ -386,7 +508,7 @@ function Causeway({ seg }) {
       {[-0.28, 0.28].map((t) => (
         <mesh key={t} position={[0, -9, t * len]} castShadow>
           <boxGeometry args={[w * 0.55, 16, 1.4]} />
-          <meshStandardMaterial color="#4f463d" roughness={0.97} />
+          <meshStandardMaterial color={look.pier} roughness={0.97} />
         </mesh>
       ))}
     </group>
@@ -420,6 +542,7 @@ function DistantPillars() {
 
 /** Where you touched down — a faint inset ring in the stone. */
 function LandingMark() {
+  const palette = usePalette();
   const ref = useRef();
   useFrame(() => {
     if (ref.current) ref.current.opacity = 0.45 * worldState.reveal;
@@ -428,7 +551,7 @@ function LandingMark() {
     <group position={[0, 0.015, 6]} rotation-x={-Math.PI / 2}>
       <mesh>
         <ringGeometry args={[2.1, 2.16, 96]} />
-        <meshBasicMaterial ref={ref} color={PALETTE.accent} transparent opacity={0.45} toneMapped={false} />
+        <meshBasicMaterial ref={ref} color={palette.accent} transparent opacity={0.45} toneMapped={false} />
       </mesh>
     </group>
   );
@@ -439,6 +562,7 @@ function LandingMark() {
 function WorldLighting() {
   // Base intensities scaled by worldState.reveal — 1 in normal play, tweened
   // 0 → 1 while the world materialises out of the arrival flash.
+  const look = useWorldLook();
   const hemi = useRef();
   const sun = useRef();
   const rim = useRef();
@@ -450,24 +574,24 @@ function WorldLighting() {
   }, []);
   useFrame(() => {
     const r = worldState.reveal;
-    if (hemi.current) hemi.current.intensity = 0.85 * r;
-    if (sun.current) sun.current.intensity = 2.6 * r;
-    if (rim.current) rim.current.intensity = 0.55 * r;
-    if (amb.current) amb.current.intensity = 0.12 * r;
+    if (hemi.current) hemi.current.intensity = look.hemi * r;
+    if (sun.current) sun.current.intensity = look.sun * r;
+    if (rim.current) rim.current.intensity = look.rim * r;
+    if (amb.current) amb.current.intensity = look.amb * r;
   });
-  const sunPos = SUN_DIR.clone().multiplyScalar(80).add(target.position);
+  const sunPos = look.sunDir.clone().multiplyScalar(80).add(target.position);
   return (
     <>
       <primitive object={target} />
       {/* cool sky above, warm stone bounce below */}
-      <hemisphereLight ref={hemi} args={['#5a6a9a', '#6b5a48', 0.85]} />
+      <hemisphereLight ref={hemi} color={look.hemiSky} groundColor={look.hemiGround} intensity={look.hemi} />
       {/* the low amber sun — long, soft shadows across the mesas */}
       <directionalLight
         ref={sun}
         position={sunPos.toArray()}
         target={target}
-        intensity={2.6}
-        color={PALETTE.accentHi}
+        intensity={look.sun}
+        color={look.sunColor}
         castShadow
         shadow-mapSize={[3072, 3072]}
         shadow-bias={-0.0004}
@@ -480,13 +604,18 @@ function WorldLighting() {
         shadow-camera-far={220}
       />
       {/* ice rim from the opposite side — separates forms from the dusk */}
-      <directionalLight ref={rim} position={[-50, 18, -70]} intensity={0.55} color={PALETTE.ice} />
-      <ambientLight ref={amb} intensity={0.12} color="#8a8070" />
+      <directionalLight ref={rim} position={[-50, 18, -70]} intensity={look.rim} color={look.rimColor} />
+      <ambientLight ref={amb} intensity={look.amb} color={look.ambColor} />
     </>
   );
 }
 
 export default function AllenWorld() {
+  const look = useWorldLook();
+  // the rock flanks keep their baked strata; daylight lifts them as a whole
+  useEffect(() => {
+    rockMaterial.color.setRGB(...look.rockTint);
+  }, [look]);
   // keep rim boulders clear of each causeway's mouth
   const mouth = (m) =>
     CAUSEWAYS.filter((c) => c.a === m.id || c.b === m.id).map((c) => {
