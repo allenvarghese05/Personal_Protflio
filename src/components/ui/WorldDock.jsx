@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/lib/store';
 import { zones } from '@/data/world';
 import { travelTo } from '@/lib/worldNav';
+import { PageLink } from '@/components/audio/SiteAudio';
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -44,25 +45,26 @@ export default function WorldDock() {
             </button>
           ))}
           <span className="world-dock__sep" aria-hidden />
-          {/* the projects page, outside the game (a full load drops the 3D scene) */}
-          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full load on purpose */}
-          <a href="/projects" className="world-dock__item world-dock__item--cta">
+          {/* the projects page, outside the game (a full load drops the 3D scene,
+              unless a beat is playing) */}
+          <PageLink href="/projects" className="world-dock__item world-dock__item--cta">
             All projects <span aria-hidden>→</span>
-          </a>
+          </PageLink>
         </motion.nav>
       )}
       {show && (
         // phones: the same link, pinned top-right so it never scrolls out of view
-        <motion.a
+        <motion.div
           key="dock-cta"
-          href="/projects"
-          className="world-dock world-dock__item world-dock__item--cta world-dock__float fixed right-3 top-3 z-30"
+          className="world-dock__float fixed right-3 top-3 z-30"
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.3, ease: EASE } }}
           exit={{ opacity: 0, y: -8, transition: { duration: 0.25 } }}
         >
-          All projects <span aria-hidden>→</span>
-        </motion.a>
+          <PageLink href="/projects" className="world-dock world-dock__item world-dock__item--cta">
+            All projects <span aria-hidden>→</span>
+          </PageLink>
+        </motion.div>
       )}
     </AnimatePresence>
   );

@@ -897,63 +897,213 @@ html[data-work-theme="light"] .ov-scope {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
-/* Sound — the beats as sleeves, two sides of a record */
-.studio-sleeve {
-  display: block;
-  width: 100%;
-  text-align: left;
+/* Sound — the beat tape: an immersive header (the cover, blurred and huge,
+   bleeding to the edges), then the track list */
+.studio-album {
+  position: relative;
+  isolation: isolate;
 }
-.studio-sleeve__art {
+.studio-album__glow {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: -2.5rem;
+  bottom: -4rem;
+  width: 100vw;
+  transform: translateX(-50%);
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 45%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 45%, transparent);
+}
+.studio-album__glow > * {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, 900px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  filter: blur(80px) saturate(1.4);
+  opacity: 0.55;
+}
+.studio-album__art {
   position: relative;
   display: block;
   aspect-ratio: 1;
   overflow: hidden;
-  border-radius: 12px;
-  box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease;
+  border-radius: 16px;
+  box-shadow: 0 40px 100px -40px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.07);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.studio-sleeve:hover .studio-sleeve__art,
-.studio-sleeve:focus-visible .studio-sleeve__art {
-  transform: translateY(-4px);
-  box-shadow: 0 34px 70px -30px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.12);
+.studio-album__art:hover {
+  transform: translateY(-4px) scale(1.01);
 }
-.studio-sleeve.is-current .studio-sleeve__art {
-  box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.9), 0 0 0 1.5px var(--accent);
-}
-.studio-sleeve:focus-visible {
-  outline: none;
-}
-.studio-sleeve:focus-visible .studio-sleeve__art {
+.studio-album__art:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 3px;
+  outline-offset: 4px;
 }
-/* the play disc sits on the cover's dark core, shown on hover or while playing */
-.studio-sleeve__play {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  display: flex;
-  width: min(26%, 64px);
-  aspect-ratio: 1;
+.studio-round {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
+  color: var(--ink-muted);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.studio-round:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 14%, transparent);
+}
+.studio-round[aria-pressed='true'] {
+  color: var(--accent);
+}
+.studio-round:active {
+  transform: scale(0.95);
+}
+.studio-round:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+/* a track: number (or the equaliser), cover, title, length */
+.studio-tr {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+.studio-tr:hover {
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+.studio-tr.is-current {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.studio-tr:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.studio-tr__num {
+  display: flex;
+  width: 22px;
+  flex-shrink: 0;
+  justify-content: center;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-subtle);
+}
+
+/* the mini player — the beat that's playing, waiting in the corner */
+.mini-player {
+  position: fixed;
+  z-index: 50;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  display: flex;
+  width: min(380px, calc(100vw - 1.5rem));
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px 9px 7px;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  background: color-mix(in srgb, var(--void) 78%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.85);
+  transition: bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mini-player.is-raised {
+  bottom: 5.25rem;
+}
+@media (max-width: 639px) {
+  .mini-player {
+    right: 0.75rem;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+  .mini-player.is-raised {
+    bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  }
+  .mini-player .mini-player__btn--prev {
+    display: none;
+  }
+}
+.mini-player__open {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 11px;
+  padding: 2px;
+  border-radius: 12px;
+}
+.mini-player__open:focus-visible,
+.mini-player__btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.mini-player__art {
+  display: block;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 9px;
+}
+.mini-player__btn {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--ink-muted);
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+.mini-player__btn:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+.mini-player__btn:active {
+  transform: scale(0.94);
+}
+.mini-player__btn--main {
+  width: 40px;
+  height: 40px;
   color: var(--void);
   background: var(--ink);
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.85);
-  transition: opacity 0.25s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.studio-sleeve:hover .studio-sleeve__play,
-.studio-sleeve:focus-visible .studio-sleeve__play,
-.studio-sleeve.is-current .studio-sleeve__play {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
+.mini-player__btn--main:hover {
+  color: var(--void);
+  background: #fff;
 }
-.studio-sleeve.is-current .studio-sleeve__play {
-  color: var(--ink);
-  background: color-mix(in srgb, var(--void) 70%, transparent);
+.mini-player__btn--close {
+  width: 30px;
+  color: var(--ink-subtle);
 }
+.mini-player__bar {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 3px;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+.mini-player__bar > span {
+  display: block;
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
 .studio-playall {
   display: inline-flex;
   align-items: center;

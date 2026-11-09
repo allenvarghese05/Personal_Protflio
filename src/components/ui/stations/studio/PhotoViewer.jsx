@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatShotDate, formatCoords } from '@/data/studio';
+import { useStore } from '@/lib/store';
 import DitherBackdrop from './DitherBackdrop';
 
 const EASE = [0.16, 1, 0.3, 1];
@@ -114,6 +115,11 @@ export default function PhotoViewer({ photos, index, openedFrom, onClose, onGo }
   const [info, setInfo] = useState(true);
   const p = photos[index];
   const tint = p.color || '#3a3a44';
+  // the mini player steps aside while the viewer is up
+  useEffect(() => {
+    useStore.setState({ viewerOpen: true });
+    return () => useStore.setState({ viewerOpen: false });
+  }, []);
   const go = (d) => {
     setDir(d);
     onGo((index + d + photos.length) % photos.length);

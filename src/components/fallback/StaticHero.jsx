@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { identity } from '@/data/timeline';
 import { useStore } from '@/lib/store';
+import { PageLink } from '@/components/audio/SiteAudio';
 
 // set when "About me" opens the room, so focus comes back to it on the way out
 let cameFromAbout = false;
@@ -52,11 +53,11 @@ export default function StaticHero() {
         <p className="mt-6 font-mono text-micro uppercase tracking-[0.2em] text-accent">{identity.badge}</p>
         {/* the work, without the 3D journey, and the About room as a page */}
         <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-4">
-          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full load, like the hero's */}
-          <a href="/projects" className="hero-cta group inline-flex">
+          {/* a full load, like the hero's (unless a beat is playing) */}
+          <PageLink href="/projects" className="hero-cta group inline-flex">
             See the projects
             <span aria-hidden className="hero-cta__arrow">→</span>
-          </a>
+          </PageLink>
           {/* the About room, as a plain page (no 3D journey on this tier) */}
           <button ref={about} type="button" onClick={openAbout} className="hero-link text-[0.9375rem] font-medium text-ink-muted">
             About me

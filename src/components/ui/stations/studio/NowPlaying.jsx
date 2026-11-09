@@ -1,9 +1,11 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
+import { holdSmoothScroll } from '@/lib/smoothScroll';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { usePlayer, readEnergy } from './player';
 import Cover, { COVER_THEMES } from './Cover';
-import { STUDIO, formatTime } from '@/data/studio';
+import { ARTIST, formatTime } from '@/data/beats';
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -241,6 +243,9 @@ export default function NowPlaying() {
   const { tracks, index, playing, open, setOpen, toggle, step, seek, audio, graph } = usePlayer();
   const reduced = useReducedMotion();
   const coverWrap = useRef(null);
+  const root = useRef(null);
+  const closeBtn = useRef(null);
+  const pathname = usePathname();
   const track = index !== null ? tracks[index] : null;
   const theme = track ? COVER_THEMES[track.mood] || COVER_THEMES.warm : COVER_THEMES.warm;
 
@@ -259,18 +264,70 @@ export default function NowPlaying() {
     return () => cancelAnimationFrame(raf);
   }, [open, reduced, graph]);
 
-  // Keys — capture phase so Esc closes this view, not the whole room
+  // A new page closes the view (the browser's Back while it's open). Only a
+  // real change: this view mounts lazily, on the first play, already open.
+  const lastPath = useRef(pathname);
+  useEffect(() => {
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
+    setOpen(false);
+  }, [pathname, setOpen]);
+
+  const isOpen = useRef(open);
+  useEffect(() => {
+    isOpen.current = open;
+  }, [open]);
+
+  // While open: focus moves in (to Close) and comes back out to whatever
+  // opened it (or the mini player, which reappears), and the page behind
+  // stops scrolling under the wheel
+  useEffect(() => {
+    if (!open) return undefined;
+    const opener = document.activeElement;
+    holdSmoothScroll(true);
+    const t = setTimeout(() => closeBtn.current?.focus({ preventScroll: true }), 60);
+    return () => {
+      clearTimeout(t);
+      holdSmoothScroll(false);
+      setTimeout(() => {
+        if (isOpen.current) return; // still open (an effect re-run)
+        const back = opener?.isConnected && opener !== document.body ? opener : document.querySelector('.mini-player__open');
+        back?.focus?.({ preventScroll: true });
+      }, 320);
+    };
+  }, [open]);
+
+  // Keys — capture phase, so they belong to this view, not the page behind
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
       const a = audio.current;
+      const onControl = e.target instanceof Element && e.target.closest('button, a, input, [role="slider"]');
+      if (e.key === 'Tab') {
+        // keep Tab inside the view
+        const items = [...(root.current?.querySelectorAll('button, [href], [tabindex]:not([tabindex="-1"])') || [])];
+        if (!items.length) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          last.focus();
+          e.preventDefault();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          first.focus();
+          e.preventDefault();
+        }
+        return;
+      }
       if (e.key === 'Escape') setOpen(false);
-      else if (e.key === ' ') toggle();
+      else if (e.key === ' ' && !onControl) toggle();
       else if (e.key === 'ArrowRight' && a) seek(a.currentTime + 5);
       else if (e.key === 'ArrowLeft' && a) seek(a.currentTime - 5);
       else if (e.key === 'n' || e.key === 'N') step(1);
       else if (e.key === 'p' || e.key === 'P') step(-1);
-      else return;
+      else {
+        e.stopPropagation(); // other keys don't reach the page behind
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
     };
@@ -282,7 +339,9 @@ export default function NowPlaying() {
     <AnimatePresence>
       {open && track && (
         <motion.div
-          className="fixed inset-0 z-[60] overflow-hidden bg-void"
+          ref={root}
+          data-lenis-prevent
+          className="fixed inset-0 z-[60] overflow-hidden overscroll-contain bg-void"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, transition: { duration: 0.5, ease: EASE } }}
           exit={{ opacity: 0, transition: { duration: 0.45, ease: EASE, delay: 0.1 } }}
@@ -296,7 +355,7 @@ export default function NowPlaying() {
 
           {/* top bar */}
           <div className="relative z-10 flex items-center justify-between px-6 pt-6 sm:px-10">
-            <button onClick={() => setOpen(false)} className="skip-btn" style={{ paddingRight: '1rem' }}>
+            <button ref={closeBtn} onClick={() => setOpen(false)} className="skip-btn" style={{ paddingRight: '1rem' }}>
               ↓ Close <span className="skip-btn__key">Esc</span>
             </button>
             <span className="font-mono text-micro uppercase tracking-[0.22em] text-ink-subtle">
@@ -326,7 +385,7 @@ export default function NowPlaying() {
                   AV — {String(index + 1).padStart(2, '0')}
                 </span>
                 <h2 className="font-display mt-3 text-5xl font-semibold leading-[1] tracking-[-0.04em] text-ink sm:text-7xl">{track.title}</h2>
-                <span className="mt-3 text-lg text-ink-muted">{STUDIO.artist}</span>
+                <span className="mt-3 text-lg text-ink-muted">{ARTIST}</span>
 
                 <div className="mt-8">
                   <FrequencyLine color={theme.ring} still={reduced || !playing} />

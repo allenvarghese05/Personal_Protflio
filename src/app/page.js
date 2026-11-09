@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { MotionConfig } from 'framer-motion';
 import { useStore } from '@/lib/store';
+import { usePlayer } from '@/components/ui/stations/studio/player';
 import StaticHero from '@/components/fallback/StaticHero';
 import IntroExperience from '@/components/intro/IntroExperience';
 import IntroOverlay, { SkipIntro } from '@/components/intro/IntroOverlay';
@@ -60,6 +61,7 @@ export default function Home() {
   const journeyPhase = useStore((s) => s.journeyPhase);
   const setJourneyPhase = useStore((s) => s.setJourneyPhase);
   const enteredZone = useStore((s) => s.enteredZone);
+  const { audio } = usePlayer();
 
   // Client-only facts (WebGL, the query string) decide the first render, so
   // they are read once after mount — setting state here is the point.
@@ -69,7 +71,10 @@ export default function Home() {
     // /?room=observatory (or studio, comms, engineering) opens that room on
     // the surface directly: a shareable link to the About page, for example
     const room = params.get('room');
-    const isWorld = params.has('world') || ROOMS.has(room);
+    // coming back with a beat playing (from /projects) skips the intro too,
+    // so it doesn't play over the music
+    const musicOn = !!audio.current && !audio.current.paused;
+    const isWorld = params.has('world') || ROOMS.has(room) || musicOn;
     /* eslint-disable react-hooks/set-state-in-effect -- one-time mount detection */
     setIsWorldRoute(isWorld);
     setJourneyPhase(isWorld ? 'world' : 'intro');
@@ -77,7 +82,7 @@ export default function Home() {
     /* eslint-enable react-hooks/set-state-in-effect */
     // (and coming Back to the surface from /projects, nothing is left open)
     useStore.getState().setEnteredZone(ROOMS.has(room) ? room : null);
-  }, [setTier, setJourneyPhase]);
+  }, [setTier, setJourneyPhase, audio]);
 
   // a link straight to the About room: its code and portrait start loading
   // now, alongside the world, not when the room opens

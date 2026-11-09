@@ -1,5 +1,6 @@
 import { Geist, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import SiteAudio from "@/components/audio/SiteAudio";
 
 // Display face — Geist: tight, editorial, not the default "tech" grotesk
 const geist = Geist({
@@ -56,7 +57,8 @@ export default function RootLayout({ children }) {
       <body
         className={`${geist.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        {children}
+        {/* the Studio's music plays on across the site (and its mini player) */}
+        <SiteAudio>{children}</SiteAudio>
       </body>
     </html>
   );

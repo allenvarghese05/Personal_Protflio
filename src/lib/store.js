@@ -41,6 +41,9 @@ export const useStore = create((set) => ({
   // another view: Back returns to { zone, scrollTop, key } instead of the
   // case study's usual Back to /projects.
   returnTo: null,
+  // A full-screen viewer inside a room (the Studio's photo viewer) is open:
+  // the mini player steps out of its way.
+  viewerOpen: false,
   // The next view's arrival (see Fresh in MissionControl.jsx): the scroll it
   // mounts at, whether it takes focus (it replaced the focused control), and
   // which control to focus (its data-return-key) when coming Back.

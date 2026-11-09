@@ -213,7 +213,10 @@ if __name__ == '__main__':
     if len(sys.argv) != 3:
         sys.exit(__doc__)
     pictures, beats = sys.argv[1], sys.argv[2]
-    manifest = {'photos': process_photos(pictures), 'tracks': process_beats(beats)}
+    manifest = {'photos': process_photos(pictures)}
+    tracks = process_beats(beats)
+    with open('src/data/studioBeats.json', 'w') as fh:
+        json.dump(tracks, fh, ensure_ascii=False, indent=1)
     with open(MANIFEST, 'w') as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=1)
-    print(f"{len(manifest['photos'])} photos, {len(manifest['tracks'])} beats → {MANIFEST}")
+    print(f"{len(manifest['photos'])} photos → {MANIFEST}, {len(tracks)} beats → src/data/studioBeats.json")

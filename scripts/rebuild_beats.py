@@ -6,7 +6,7 @@ BEATS below lists each beat's title and its source file in <beats_dir>, in
 the order the Studio shows them. Every source (mp3, wav, even a video) is
 decoded with ffmpeg and encoded to AAC 192 kbps → public/studio/sound/NN.m4a,
 with the same waveform (for the cover) as process_studio_media.py.
-The titles themselves live in src/data/studio.js, in the same order.
+The titles themselves live in src/data/beats.js, in the same order.
 """
 import json
 import os
@@ -17,7 +17,9 @@ import wave
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from process_studio_media import MANIFEST, OUT_SOUND, envelope  # noqa: E402
+from process_studio_media import OUT_SOUND, envelope  # noqa: E402
+
+BEATS_JSON = 'src/data/studioBeats.json'
 
 BEATS = [
     ('Moonlight', 'MOONLIGHT THE CHILLEST BEAT (PROD.XLEN).mp3'),
@@ -58,9 +60,6 @@ if __name__ == '__main__':
                 duration = w.getnframes() / w.getframerate()
             tracks.append({'src': f'/studio/sound/{name}.m4a', 'file': f, 'duration': round(duration, 2),
                            'peaks': envelope(pcm)})
-    with open(MANIFEST) as fh:
-        manifest = json.load(fh)
-    manifest['tracks'] = tracks
-    with open(MANIFEST, 'w') as fh:
-        json.dump(manifest, fh, ensure_ascii=False, indent=1)
-    print(f'{len(tracks)} beats → {OUT_SOUND}, {MANIFEST}')
+    with open(BEATS_JSON, 'w') as fh:
+        json.dump(tracks, fh, ensure_ascii=False, indent=1)
+    print(f'{len(tracks)} beats → {OUT_SOUND}, {BEATS_JSON}')

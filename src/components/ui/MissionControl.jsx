@@ -11,6 +11,7 @@ import { PALETTE } from '@/lib/palette';
 import { ACCENTS, DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
 import { jumpTo, useSmoothScroll } from '@/lib/smoothScroll';
 import CommsPanel from './stations/CommsPanel';
+import { keepWorldInHistory } from '@/components/audio/SiteAudio';
 import { CASE_PAGES } from './case/pages';
 
 const P_INK_FAINT = PALETTE.inkSubtle;
@@ -471,7 +472,7 @@ export default function MissionControl() {
   // world is kept one step back in history (/?world=1), so the browser's
   // Back from /projects lands on the surface rather than replaying the intro.
   const toProjects = useCallback(() => {
-    if (window.location.pathname === '/') window.history.replaceState(window.history.state, '', '/?world=1');
+    keepWorldInHistory();
     router.push('/projects');
   }, [router]);
 
@@ -535,7 +536,7 @@ export default function MissionControl() {
           <NavBar zone={zone} project={project} onBack={onBack} onExit={() => setEnteredZone(null)} />
 
           {/* Stage */}
-          <div ref={stageRef} data-mc-scroll className="relative flex-1 overflow-y-auto">
+          <div ref={stageRef} data-mc-scroll className="relative flex-1 overflow-y-auto overflow-x-clip">
             <AnimatePresence mode="wait">
               {Room ? (
                 <Fresh key={enteredZone}>

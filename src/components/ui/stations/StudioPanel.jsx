@@ -1,12 +1,11 @@
 'use client';
-import { useState } from 'react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { STUDIO, PLACEHOLDER_COUNT, formatTime } from '@/data/studio';
 import { StationHeader, stagger, rise } from './shared';
 import PhotoViewer from './studio/PhotoViewer';
-import NowPlaying from './studio/NowPlaying';
 import Cover from './studio/Cover';
-import { PlayerProvider, usePlayer } from './studio/player';
+import { usePlayer } from './studio/player';
 
 /**
  * The Studio — photography, film and sound. Photos open into an immersive
@@ -128,45 +127,18 @@ function PlayingBars() {
   );
 }
 
-/** One sleeve (the beats are a wall of covers, newest first): the beat's cover (its ring is the beat's own waveform), then
- *  its number, title and length. Opening it grows the cover into Now Playing. */
-function Sleeve({ track, i }) {
-  const { index, playing, openTrack } = usePlayer();
-  const current = i === index;
-  return (
-    // the newest beat leads, twice the size, on wide screens
-    <motion.li variants={rise} className={i === 0 ? 'lg:col-span-2 lg:row-span-2' : ''}>
-      <button onClick={() => openTrack(i)} className={`studio-sleeve group ${current ? 'is-current' : ''}`} aria-label={`Play ${track.title}`}>
-        <motion.span layoutId={`cover-${i}`} className="studio-sleeve__art" transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
-          <Cover track={track} index={i} className="block h-full w-full" showText={false} />
-          <span className="studio-sleeve__play" aria-hidden>
-            {current && playing ? (
-              <PlayingBars />
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            )}
-          </span>
-        </motion.span>
-        <span className="mt-4 flex items-baseline gap-3 text-left">
-          <span className="font-mono text-micro tabular-nums text-ink-subtle">{String(i + 1).padStart(2, '0')}</span>
-          <span className="min-w-0 flex-1">
-            <span className={`block truncate font-display text-lg font-semibold tracking-[-0.01em] transition-colors duration-200 ${current ? 'text-accent' : 'text-ink'}`}>
-              {track.title}
-            </span>
-            <span className="mt-0.5 block truncate font-mono text-micro uppercase tracking-[0.14em] text-ink-subtle">
-              {formatTime(track.duration)}
-            </span>
-          </span>
-        </span>
-      </button>
-    </motion.li>
-  );
-}
+const PLAY = <path d="M8 5v14l11-7z" />;
+const PAUSE = <path d="M7 5h4v14H7zM13 5h4v14h-4z" />;
 
+/**
+ * The beat tape, like an album page: the cover of the beat that's playing (or
+ * the newest), big, with its colours blurred across the whole width behind
+ * it; the tape's title, Play and Shuffle; then every beat as a row. Starting
+ * a beat opens the full-screen player; closing it leaves the mini player.
+ */
 function Tracks() {
-  const { tracks, index, playing, openTrack } = usePlayer();
+  const { tracks, index, playing, shuffle, openTrack, playAll, toggle, toggleShuffle } = usePlayer();
+  const reduced = useReducedMotion();
   if (!tracks.length) {
     return (
       <div className="flex max-w-3xl flex-col gap-3">
@@ -178,52 +150,125 @@ function Tracks() {
       </div>
     );
   }
+  const lead = index ?? 0;
+  const t = tracks[lead];
   const total = tracks.reduce((s, x) => s + (x.duration || 0), 0);
-  const now = index != null && playing ? tracks[index] : null;
+  const fade = reduced ? { duration: 0 } : { duration: 0.8, ease: [0.16, 1, 0.3, 1] };
+  const status = index === null ? 'Beat tape · newest first' : `${playing ? 'Now playing' : 'Paused'} · ${t.title}`;
+
   return (
     <div>
-      <motion.div variants={rise} className="flex flex-wrap items-center justify-between gap-4">
-        <span className="font-mono text-micro uppercase tracking-[0.16em] text-ink-subtle">
-          {now ? (
-            <>
-              Now playing · <span className="text-accent">{now.title}</span>
-            </>
-          ) : (
-            <>
-              {tracks.length} beats · {formatTime(total)} · made by me
-            </>
-          )}
-        </span>
-        <button onClick={() => openTrack(index ?? 0)} className="studio-playall group">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-            <path d="M8 5v14l11-7z" />
-          </svg>
-          {now ? 'Open player' : 'Play from the top'}
-        </button>
-      </motion.div>
+      <motion.section variants={rise} className="studio-album" aria-label={STUDIO.tape.title}>
+        {/* the cover's colours, blurred and bled to the edges */}
+        <div className="studio-album__glow" aria-hidden>
+          <AnimatePresence initial={false}>
+            <motion.div key={lead} initial={{ opacity: 0 }} animate={{ opacity: 0.55, transition: fade }} exit={{ opacity: 0, transition: fade }}>
+              <Cover track={t} index={lead} className="block h-full w-full" showText={false} />
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-      <ol className="mt-8 grid grid-cols-2 gap-x-5 gap-y-9 border-t border-line pt-8 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4">
-        {tracks.map((t, i) => (
-          <Sleeve key={t.src} track={t} i={i} />
-        ))}
+        <div className="grid grid-cols-1 items-end gap-8 md:grid-cols-[minmax(0,300px)_minmax(0,1fr)] md:gap-10 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)] lg:gap-14">
+          <button onClick={() => openTrack(lead)} className="studio-album__art mx-auto w-[min(72vw,320px)] md:w-full" aria-label={`Open the player: ${t.title}`}>
+            <AnimatePresence initial={false}>
+              <motion.span
+                key={lead}
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: fade }}
+                exit={{ opacity: 0, transition: fade }}
+              >
+                <Cover track={t} index={lead} className="block h-full w-full" />
+              </motion.span>
+            </AnimatePresence>
+          </button>
+
+          <div className="flex flex-col items-center text-center md:items-start md:text-left">
+            <span className="font-mono text-micro uppercase tracking-[0.2em] text-ink-subtle">{status}</span>
+            <h3 className="font-display mt-3 text-5xl font-semibold leading-[0.95] tracking-[-0.045em] text-ink sm:text-6xl lg:text-7xl">
+              {STUDIO.tape.title}
+            </h3>
+            <span className="mt-3 text-lg text-ink-muted">{STUDIO.artist}</span>
+            <span className="mt-1 font-mono text-micro uppercase tracking-[0.16em] text-ink-subtle">
+              {tracks.length} beats · {Math.round(total / 60)} min
+            </span>
+
+            <div className="mt-7 flex items-center gap-3">
+              {/* before anything plays it starts the tape shuffled; after, it's an on/off switch */}
+              <button
+                onClick={() => (index === null ? playAll({ shuffled: true }) : toggleShuffle())}
+                className="studio-round"
+                aria-pressed={shuffle}
+                aria-label="Shuffle"
+                title={shuffle ? 'Shuffle is on' : 'Shuffle'}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
+                </svg>
+              </button>
+              <button
+                onClick={() => (index === null ? playAll() : playing ? toggle() : openTrack(index))}
+                className="studio-playall"
+                style={{ padding: '12px 30px' }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  {playing ? PAUSE : PLAY}
+                </svg>
+                {playing ? 'Pause' : index === null ? 'Play' : 'Resume'}
+              </button>
+            </div>
+
+            <p className="mt-7 max-w-md text-[0.95rem] leading-relaxed text-ink-muted">{STUDIO.tape.blurb}</p>
+          </div>
+        </div>
+      </motion.section>
+
+      <ol className="mt-14 border-t border-line pt-3">
+        {tracks.map((tr, i) => {
+          const current = i === index;
+          return (
+            <motion.li key={tr.src} variants={rise}>
+              <button onClick={() => openTrack(i)} className={`studio-tr group ${current ? 'is-current' : ''}`} aria-label={`Play ${tr.title}`}>
+                <span className="studio-tr__num">
+                  {current && playing ? (
+                    <PlayingBars />
+                  ) : (
+                    <>
+                      <span className="group-hover:hidden">{String(i + 1).padStart(2, '0')}</span>
+                      <svg className="hidden text-ink group-hover:block" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                        {PLAY}
+                      </svg>
+                    </>
+                  )}
+                </span>
+                {/* grows into the full-screen player's cover */}
+                <motion.span layoutId={`cover-${i}`} className="block h-11 w-11 shrink-0 overflow-hidden rounded-[8px]" transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
+                  <Cover track={tr} index={i} className="block h-full w-full" showText={false} />
+                </motion.span>
+                <span className="min-w-0 flex-1">
+                  <span className={`block truncate font-display text-[1.02rem] font-semibold ${current ? 'text-accent' : 'text-ink'}`}>{tr.title}</span>
+                  <span className="block truncate text-xs text-ink-subtle">{STUDIO.artist}</span>
+                </span>
+                <span className="shrink-0 font-mono text-micro tabular-nums text-ink-subtle">{formatTime(tr.duration)}</span>
+              </button>
+            </motion.li>
+          );
+        })}
       </ol>
     </div>
   );
 }
 
+// The player itself (and the full-screen view, and the mini player) lives at
+// the root of the site — see components/audio/SiteAudio — so music carries on
+// when you leave this room.
 export default function StudioPanel() {
-  return (
-    <PlayerProvider>
-      <LayoutGroup>
-        <StudioRoom />
-        <NowPlaying />
-      </LayoutGroup>
-    </PlayerProvider>
-  );
-}
-
-function StudioRoom() {
   const [tab, setTab] = useState('photos');
+  // the full-screen player loads on the first play; fetch it now, so the
+  // first beat opens without a gap
+  useEffect(() => {
+    import('./studio/NowPlaying').catch(() => {});
+  }, []);
   return (
     <motion.article variants={stagger} initial="hidden" animate="show" className="w-full">
       <StationHeader kicker="Studio" title={STUDIO.intro}>

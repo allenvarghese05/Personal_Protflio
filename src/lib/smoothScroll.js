@@ -51,6 +51,12 @@ export function useSmoothScroll(ref, on = true) {
   }, [ref, on]);
 }
 
+/** Freeze every smooth scroller while something full-screen sits on top (the
+ *  wheel shouldn't scroll the page behind it), and let them go again. */
+export function holdSmoothScroll(hold) {
+  live.forEach((lenis) => (hold ? lenis.stop() : lenis.start()));
+}
+
 const scrollerOf = (el) => el?.closest?.('[data-mc-scroll]') ?? window;
 const inOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
