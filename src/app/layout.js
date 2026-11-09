@@ -1,6 +1,12 @@
 import { Geist, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+// light mode, one stylesheet per area of the site (loaded after the base styles)
+import "./theme/intro.css";
+import "./theme/world.css";
+import "./theme/rooms.css";
+import "./theme/work.css";
 import SiteAudio from "@/components/audio/SiteAudio";
+import { THEME_SCRIPT } from "@/lib/theme";
 
 // Display face — Geist: tight, editorial, not the default "tech" grotesk
 const geist = Geist({
@@ -46,14 +52,21 @@ export const metadata = {
 };
 
 export const viewport = {
-  themeColor: "#07080c",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#07080c" },
+  ],
 };
 
 export default function RootLayout({ children }) {
   return (
-    // /projects sets data-work-theme on <html> before React loads (its theme
-    // script); that one attribute is expected to differ from the server's
+    // the theme script sets data-theme on <html> before React loads, so that
+    // one attribute is expected to differ from the server's
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* before anything paints: light for anyone whose device or choice says so */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body
         className={`${geist.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >

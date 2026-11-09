@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { STUDIO, PLACEHOLDER_COUNT, formatTime } from '@/data/studio';
-import { StationHeader, stagger, rise } from './shared';
+import { stagger, rise } from './shared';
 import PhotoViewer from './studio/PhotoViewer';
 import Cover from './studio/Cover';
 import { usePlayer } from './studio/player';
@@ -271,8 +271,13 @@ export default function StudioPanel() {
   }, []);
   return (
     <motion.article variants={stagger} initial="hidden" animate="show" className="w-full">
-      <StationHeader kicker="Studio" title={STUDIO.intro}>
-        <div role="tablist" aria-label="Studio sections" className="world-dock w-fit">
+      {/* a compact header: the work is the point, so it starts above the fold */}
+      <header className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-x-8 gap-y-5 px-6 pb-8 pt-10 sm:px-12">
+        <motion.div variants={rise}>
+          <h2 className="font-display text-3xl font-semibold tracking-[-0.03em] text-ink sm:text-4xl">Studio</h2>
+          <p className="mt-1.5 text-[0.95rem] text-ink-muted">{STUDIO.intro}</p>
+        </motion.div>
+        <motion.div variants={rise} role="tablist" aria-label="Studio sections" className="world-dock w-fit">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -285,10 +290,10 @@ export default function StudioPanel() {
               {t.label}
             </button>
           ))}
-        </div>
-      </StationHeader>
+        </motion.div>
+      </header>
 
-      <div className="mx-auto max-w-6xl border-t border-line px-6 pb-16 pt-10 sm:px-12">
+      <div className="mx-auto max-w-6xl px-6 pb-16 sm:px-12">
         <AnimatePresence mode="wait">
           <motion.div key={tab} variants={stagger} initial="hidden" animate="show" exit={{ opacity: 0, transition: { duration: 0.15 } }}>
             {tab === 'photos' && <Photos />}

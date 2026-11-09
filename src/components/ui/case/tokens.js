@@ -1,10 +1,9 @@
 /**
  * Colours for the case studies, as CSS variables, so a case study follows the
  * page's theme. In the game, and on /projects/<id> by default, the variables
- * hold the dark Signal Amber values (:root in globals.css). When /projects is
- * light (the résumé link, or the toggle), html[data-work-theme="light"]
- * .work-root swaps the same names for the light palette, and every case-study
- * colour follows without a second code path.
+ * hold the dark Signal Amber values (:root in globals.css). In light mode,
+ * html[data-theme="light"] swaps the same names for the light palette, and
+ * every case-study colour follows without a second code path.
  *
  * Same keys as PALETTE in src/lib/palette.js (which stays hex for the 3D
  * scenes). alpha() mixes a colour with transparent, so it works on variables.

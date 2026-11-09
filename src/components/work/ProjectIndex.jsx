@@ -16,7 +16,7 @@
  *   footer     contact again (with copy-email), the playful version
  *
  * J / K move between projects. Content: src/data/showcase.js. Light / dark:
- * ./theme.jsx. Pictures: ./Stage.jsx.
+ * components/ui/ThemeToggle.jsx. Pictures: ./Stage.jsx.
  */
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -75,7 +75,8 @@ function NameField({ theme }) {
 }
 import Stage from './Stage';
 import { ArrowDot, Chip, HowItWorks, Mark, PILL, PILL_LINE, PILL_SOLID, Stats, Steps, TONE } from './parts';
-import { ThemeToggle, useWorkTheme } from './theme';
+import ThemeToggle from '@/components/ui/ThemeToggle';
+import { useThemeValue } from '@/lib/useTheme';
 
 const EASE_OUT = [0.16, 1, 0.3, 1];
 const WRAP = 'mx-auto w-full max-w-[1240px] px-5 sm:px-8';
@@ -477,7 +478,7 @@ function TierHead({ id, title, line }) {
 /* ── the page ──────────────────────────────────────────────────────────── */
 
 export default function ProjectIndex() {
-  const [theme, toggleTheme] = useWorkTheme();
+  const theme = useThemeValue();
   const reduce = useReducedMotion();
   const jump = useJump();
   // the page glides under a wheel (see lib/smoothScroll)
@@ -524,7 +525,7 @@ export default function ProjectIndex() {
                 GitHub
               </a>
             </span>
-            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            <ThemeToggle />
             <Link
               href="/"
               className="ml-1 inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium text-ink ring-1 ring-inset ring-line-hi transition-[background-color,box-shadow] hover:bg-surface-2 hover:ring-ink-subtle"
