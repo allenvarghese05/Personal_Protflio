@@ -24,7 +24,10 @@ import wave
 import array
 from fractions import Fraction
 
-from PIL import Image, ImageOps
+try:
+    from PIL import Image, ImageOps  # photos only; the beats don't need it
+except ImportError:
+    Image = ImageOps = None
 
 FALLBACK_CAMERA = 'Sony α7 III'
 CAMERAS = {

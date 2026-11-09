@@ -75,7 +75,8 @@ export default function Home() {
     setJourneyPhase(isWorld ? 'world' : 'intro');
     setMounted(true);
     /* eslint-enable react-hooks/set-state-in-effect */
-    if (ROOMS.has(room)) useStore.getState().setEnteredZone(room);
+    // (and coming Back to the surface from /projects, nothing is left open)
+    useStore.getState().setEnteredZone(ROOMS.has(room) ? room : null);
   }, [setTier, setJourneyPhase]);
 
   // a link straight to the About room: its code and portrait start loading

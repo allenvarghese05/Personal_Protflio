@@ -35,14 +35,12 @@ export const useStore = create((set) => ({
       selectedProject: enteredZone ? s.selectedProject : null,
       // leaving Mission Control forgets where Back would have gone
       returnTo: enteredZone ? s.returnTo : null,
-      wallReturn: enteredZone ? s.wallReturn : null,
     })),
 
   // A link in one room (About's case-study and Studio links) that opened
   // another view: Back returns to { zone, scrollTop, key } instead of the
-  // wall. wallReturn is the same for a card picked on the wall.
+  // case study's usual Back to /projects.
   returnTo: null,
-  wallReturn: null,
   // The next view's arrival (see Fresh in MissionControl.jsx): the scroll it
   // mounts at, whether it takes focus (it replaced the focused control), and
   // which control to focus (its data-return-key) when coming Back.
@@ -50,8 +48,8 @@ export const useStore = create((set) => ({
   focusOnEnter: false,
   returnFocus: null,
 
-  // The project brief open inside Mission Control (null = the project wall).
-  // Set directly by walking up to a monolith, or by picking a card.
+  // The case study open inside Mission Control (null = none).
+  // Set by walking up to a monolith, or by a link in a room.
   selectedProject: null,
   setSelectedProject: (selectedProject) => set({ selectedProject }),
   /** Open Mission Control straight onto one project's brief. */

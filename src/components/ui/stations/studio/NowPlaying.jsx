@@ -323,7 +323,7 @@ export default function NowPlaying() {
                 exit={{ opacity: 0, y: -10, transition: { duration: 0.25 } }}
               >
                 <span className="font-mono text-micro uppercase tracking-[0.22em]" style={{ color: theme.ring }}>
-                  {track.genre}
+                  AV — {String(index + 1).padStart(2, '0')}
                 </span>
                 <h2 className="font-display mt-3 text-5xl font-semibold leading-[1] tracking-[-0.04em] text-ink sm:text-7xl">{track.title}</h2>
                 <span className="mt-3 text-lg text-ink-muted">{STUDIO.artist}</span>

@@ -15,17 +15,23 @@ import media from './studioMedia.json';
  *         (Drive files must be shared "Anyone with the link").
  */
 
-// One entry per beat, in the same (filename) order as the manifest.
-// `mood` picks the cover palette: 'cold' (drill) or 'warm' (guitar).
+// One entry per beat, in the manifest's order (BEATS in scripts/rebuild_beats.py).
+// `mood` picks the cover palette, 'cold' (ice) or 'warm' (amber), so the
+// wall alternates; no genres are shown.
 const TRACK_INFO = [
-  { title: 'Extravegate', genre: 'UK drill', mood: 'cold' },
-  { title: 'Rebel', genre: 'UK drill', mood: 'cold' },
-  { title: 'Revolution', genre: 'Drill', mood: 'cold' },
-  { title: 'Slither', genre: 'Guitar beat · Kid LAROI type', mood: 'warm' },
-  { title: 'Snow', genre: 'Guitar trap', mood: 'warm' },
-  { title: 'Wild Anthem', genre: 'UK drill', mood: 'cold' },
-  // TODO(allen): real title/genre for this one (the file was "trytry.mp3")
-  { title: 'Trytry', genre: 'Beat', mood: 'warm' },
+  { title: 'Moonlight', mood: 'cold' },
+  { title: 'Daydream', mood: 'warm' },
+  { title: 'Deep Era', mood: 'warm' },
+  { title: 'Cold', mood: 'cold' },
+  { title: 'Snow', mood: 'cold' },
+  { title: 'Dusk', mood: 'warm' },
+  { title: 'Afterhours', mood: 'cold' },
+  { title: 'Hometown', mood: 'warm' },
+  { title: 'Slither', mood: 'warm' },
+  { title: 'Wild Anthem', mood: 'cold' },
+  { title: 'Revolution', mood: 'cold' },
+  { title: 'Rebel', mood: 'cold' },
+  { title: 'Try Again', mood: 'warm' },
 ];
 
 export const STUDIO = {
@@ -37,7 +43,7 @@ export const STUDIO = {
     { title: 'Film 01', embed: 'https://www.youtube.com/embed/RFSHbN9bihI', meta: 'YouTube · worked on' },
     { title: 'Film 02', embed: 'https://drive.google.com/file/d/1Ut1YaweNFZFMH5mKmb5dn2lmDaGH7LKk/preview', meta: 'Worked on' },
   ],
-  tracks: media.tracks.map((t, i) => ({ ...t, ...(TRACK_INFO[i] || { title: `Track ${i + 1}`, genre: 'Beat', mood: 'warm' }) })),
+  tracks: media.tracks.map((t, i) => ({ ...t, ...(TRACK_INFO[i] || { title: `Track ${i + 1}`, mood: 'warm' }) })),
 };
 
 // How many placeholder frames to show while a section is empty
