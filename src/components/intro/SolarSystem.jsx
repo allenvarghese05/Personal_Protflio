@@ -7,6 +7,7 @@ import { ASSETS, SUN, PLANETS, ALLENS_WORLD, STARS, NEBULA, cosmos } from './cos
 import { ENTRY, entryState } from '@/lib/entrySequence';
 import { PALETTE_LIGHT } from '@/lib/palette';
 import { usePalette, useThemeValue } from '@/lib/useTheme';
+import { DAWN } from './dawn';
 import {
   sunVertexShaderSurface,
   sunFragmentShaderSurface,
@@ -32,8 +33,8 @@ import {
 
 // the corona's colours per theme (dark: the original fire; light: deep amber)
 const CORONA_LIGHT = {
-  INNER: new THREE.Color(PALETTE_LIGHT.accentLo),
-  OUTER: new THREE.Color(PALETTE_LIGHT.accentHi),
+  INNER: new THREE.Color(DAWN.warm),
+  OUTER: new THREE.Color(DAWN.glow),
 };
 
 function Sun() {
@@ -71,7 +72,7 @@ function Sun() {
   useEffect(() => {
     corona.uniforms.coronaColor1.value = light ? CORONA_LIGHT.INNER : SUN.CORONA.INNER;
     corona.uniforms.coronaColor2.value = light ? CORONA_LIGHT.OUTER : SUN.CORONA.OUTER;
-    corona.uniforms.uAlpha.value = light ? 0.45 : 1;
+    corona.uniforms.uAlpha.value = light ? 0.75 : 1;
     corona.blending = light ? THREE.NormalBlending : THREE.AdditiveBlending;
   }, [corona, light]);
   useFrame((state) => {

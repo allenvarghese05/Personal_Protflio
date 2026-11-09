@@ -4,7 +4,8 @@ import { useFrame, useLoader } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { ASSETS, GALAXY, cosmos } from './cosmos';
-import { PALETTE, PALETTE_LIGHT } from '@/lib/palette';
+import { PALETTE } from '@/lib/palette';
+import { DAWN, makeGlowTexture } from './dawn';
 import { useThemeValue } from '@/lib/useTheme';
 
 /**
@@ -20,9 +21,12 @@ export default function Galaxy() {
   const starTex = useLoader(THREE.TextureLoader, ASSETS.disc);
   const { nodes } = useGLTF(ASSETS.galaxy);
   const light = useThemeValue() === 'light';
+  // light only: the soft gold glow of the core, the dawn's stand-in for bloom
+  const glowTex = useMemo(() => (light ? makeGlowTexture() : null), [light]);
+  useEffect(() => () => glowTex?.dispose(), [glowTex]);
 
   // Both colourings are built once; the theme only swaps which one is bound.
-  const { geometry, darkColors, lightColors } = useMemo(() => {
+  const { geometry, darkColors, lightColors, radius } = useMemo(() => {
     const src = nodes.Object_2.geometry.clone();
     src.center();
     const positions = src.attributes.position.array;
@@ -38,15 +42,15 @@ export default function Galaxy() {
     const mid = new THREE.Color(PALETTE.lilac);
     const arm = new THREE.Color(PALETTE.ice);
     const c = new THREE.Color();
-    // Light: the same grading in ink on paper — a deep amber core, violet
-    // through to ice-blue arms, each star eased toward the paper by a random
-    // amount so the disc reads as density, not a solid blot.
+    // Light: the galaxy at dawn — the same grading, luminous on the sunrise
+    // sky (see ./dawn.js): a gold core, amber cooling through lilac to blue
+    // arms, a few stars catching the light (eased toward white).
     const lightColors = new Float32Array(positions.length);
-    const lCore = new THREE.Color(PALETTE_LIGHT.accentLo);
-    const lWarm = new THREE.Color(PALETTE_LIGHT.accent);
-    const lMid = new THREE.Color(PALETTE_LIGHT.lilac);
-    const lArm = new THREE.Color(PALETTE_LIGHT.ice);
-    const paper = new THREE.Color(PALETTE_LIGHT.void);
+    const lCore = new THREE.Color(DAWN.core);
+    const lWarm = new THREE.Color(DAWN.warm);
+    const lMid = new THREE.Color(DAWN.mid);
+    const lArm = new THREE.Color(DAWN.arm);
+    const paper = new THREE.Color('#ffffff');
     const lc = new THREE.Color();
     for (let i = 0; i < positions.length; i += 3) {
       const d = Math.hypot(positions[i], positions[i + 1], positions[i + 2]) / maxD;
@@ -64,14 +68,14 @@ export default function Galaxy() {
       else if (d < 0.4) lc.copy(lWarm).lerp(lMid, (d - 0.12) / 0.28);
       else lc.copy(lMid).lerp(lArm, Math.min(1, (d - 0.4) / 0.4));
       if (warmStar) lc.copy(lWarm);
-      lc.lerp(paper, (1 - jitter) * 0.18);
+      lc.lerp(paper, jitter > 0.88 ? 0.4 : 0);
       lc.toArray(lightColors, i);
     }
     const g = new THREE.BufferGeometry();
     const darkAttr = new THREE.Float32BufferAttribute(colors, 3);
     g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     g.setAttribute('color', darkAttr);
-    return { geometry: g, darkColors: darkAttr, lightColors: new THREE.Float32BufferAttribute(lightColors, 3) };
+    return { geometry: g, darkColors: darkAttr, lightColors: new THREE.Float32BufferAttribute(lightColors, 3), radius: maxD * 0.05 };
   }, [nodes]);
 
   useEffect(() => {
@@ -118,21 +122,31 @@ export default function Galaxy() {
           alphaMap={light ? starTex : null}
           vertexColors
           transparent
-          // light: normal blending on paper, eased back so overlaps build up
-          // as soft density rather than a solid core
-          opacity={light ? 0.9 : 1}
+          // light: normal blending on the dawn sky
+          opacity={1}
           depthWrite={false}
-          size={light ? 0.016 : 0.01}
+          size={light ? 0.022 : 0.01}
           sizeAttenuation
         />
       </points>
+      {light && glowTex && (
+        <>
+          {/* the core's glow: a wide warm haze and a brighter heart */}
+          <sprite scale={[radius * 1.5, radius * 1.5, 1]} renderOrder={-1}>
+            <spriteMaterial map={glowTex} color={DAWN.glow} transparent opacity={0.85} depthWrite={false} toneMapped={false} />
+          </sprite>
+          <sprite scale={[radius * 0.45, radius * 0.45, 1]} renderOrder={-1}>
+            <spriteMaterial map={glowTex} color="#fff3dc" transparent opacity={0.9} depthWrite={false} toneMapped={false} />
+          </sprite>
+        </>
+      )}
       <mesh ref={star} position={GALAXY.STAR_POSITION}>
         <sphereGeometry args={[0.01, 32, 32]} />
         <meshBasicMaterial
           ref={starMat}
           map={light ? null : starTex}
           alphaMap={light ? starTex : null}
-          color={light ? PALETTE_LIGHT.accentHi : GALAXY.STAR_COLOR}
+          color={light ? DAWN.warm : GALAXY.STAR_COLOR}
           transparent
           toneMapped={false}
         />

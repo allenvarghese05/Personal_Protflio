@@ -9,6 +9,7 @@ import { worldState } from '@/lib/worldState';
 import { unlockAudio } from '@/lib/audio';
 import { useThemeValue } from '@/lib/useTheme';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import { DAWN } from './dawn';
 
 const EASE = [0.16, 1, 0.3, 1];
 const MIN_LOADER_MS = 1400;
@@ -281,7 +282,7 @@ const CAPTIONS = [
 // The star flash: white-gold glare on the void; on paper, a clean flash to
 // white with only a warm breath at the edges.
 const FLASH_DARK = 'radial-gradient(circle at 50% 50%, #fffdf5 0%, #fff3d6 45%, var(--accent-hi) 100%)';
-const FLASH_LIGHT = 'radial-gradient(circle at 50% 50%, var(--void) 0%, var(--void) 55%, color-mix(in srgb, var(--accent-hi) 10%, var(--void)) 100%)';
+const FLASH_LIGHT = DAWN.flash; // a sunrise
 
 function DiveLayer() {
   const phase = useStore((s) => s.phase);

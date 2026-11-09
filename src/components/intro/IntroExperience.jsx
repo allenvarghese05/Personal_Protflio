@@ -11,6 +11,7 @@ import { GALAXY, ALLENS_WORLD, SYSTEM_START, FRAME_ALL, SYSTEM_LOOK, WORLD_ENTRY
 import Galaxy from './Galaxy';
 import SolarSystem from './SolarSystem';
 import { EntryDistortion } from './EntryDistortion';
+import { DAWN, makeDawnTexture } from './dawn';
 
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
 const smooth = (x) => x * x * (3 - 2 * x);
@@ -115,13 +116,25 @@ function IntroCamera() {
   return null;
 }
 
-/** The clear colour follows the theme (paper in light, the void in dark). */
+/** The sky follows the theme: the void in dark, a dawn gradient in light. */
 function ThemeClear() {
   const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
   const palette = usePalette();
+  const light = useThemeValue() === 'light';
   useEffect(() => {
-    gl.setClearColor(palette.void, 1);
-  }, [gl, palette]);
+    gl.setClearColor(light ? DAWN.middle : palette.void, 1);
+    if (!light) {
+      scene.background = null;
+      return undefined;
+    }
+    const sky = makeDawnTexture();
+    scene.background = sky;
+    return () => {
+      if (scene.background === sky) scene.background = null;
+      sky.dispose();
+    };
+  }, [gl, scene, palette, light]);
   return null;
 }
 

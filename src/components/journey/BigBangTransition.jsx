@@ -6,6 +6,7 @@ import { worldState } from '@/lib/worldState';
 import { ENTRY, resetEntryState } from '@/lib/entrySequence';
 import { getAudio } from '@/lib/audio';
 import { useThemeValue } from '@/lib/useTheme';
+import { DAWN } from '@/components/intro/dawn';
 
 const MONO = { fontFamily: 'var(--font-jetbrains-mono), monospace' };
 
@@ -220,7 +221,8 @@ export default function BigBangTransition() {
         style={{ opacity: 0, background: 'radial-gradient(ellipse at center, transparent 46%, rgba(200,80,20,0.55) 86%, rgba(255,120,30,0.85) 100%)' }}
       />
       {/* THE FLASH */}
-      <div ref={flashRef} className="pointer-events-none fixed inset-0 z-[210] bg-white" style={{ opacity: 0 }} />
+      {/* the flash: white in dark; in light, the dawn intro's sunrise */}
+      <div ref={flashRef} className="pointer-events-none fixed inset-0 z-[210] bg-white" style={{ opacity: 0, background: light ? DAWN.flash : undefined }} />
       {/* shockwaves */}
       <div
         ref={shockRef}
