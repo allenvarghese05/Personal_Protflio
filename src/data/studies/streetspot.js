@@ -154,6 +154,6 @@ export const TRACES = [
 export const OVERVIEW = [
   { label: 'What it is', text: 'A crowdsourced street-parking app: drop a pin for an open spot, see available spots within 1 km on a map, claim one, and earn points for detailed reports.' },
   { label: 'Why it exists', text: 'In dense cities like Philadelphia, drivers circle the block looking for parking. The driver leaving a spot is the one person who knows it’s free, and has no reason to say so.' },
-  { label: 'What Allen did', text: 'Solo: a React Native + Expo app with seven screens, an offline fallback, Haversine “nearby”, the points system, and a small Socket.IO server that shares spots between phones.' },
+  { label: 'What I did', text: 'Solo: a React Native + Expo app with seven screens, an offline fallback, Haversine “nearby”, the points system, and a small Socket.IO server that shares spots between phones.' },
   { label: 'Where it stands', text: 'A one-evening prototype, never deployed. The realtime round-trip has an open bug, spots live in memory, and the leaderboard is mock data. This page covers all of it.' },
 ];

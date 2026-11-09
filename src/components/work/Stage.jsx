@@ -89,12 +89,20 @@ function Spectrum() {
   const reduce = useReducedMotion();
   const inView = useInView(ref, { amount: 0.4 });
   const [beat, setBeat] = useState(0);
+  // reduced motion shows the finished frame, set just after mount: the server
+  // can't know the setting, so the first render must match what it sent
+  const [still, setStill] = useState(false);
+  useEffect(() => {
+    if (!reduce) return undefined;
+    const t = setTimeout(() => setStill(true), 0);
+    return () => clearTimeout(t);
+  }, [reduce]);
   useEffect(() => {
     if (reduce || !inView) return undefined;
     const id = setInterval(() => setBeat((b) => b + 1), 1300);
     return () => clearInterval(id);
   }, [reduce, inView]);
-  const phase = reduce ? PHASES[3] : PHASES[beat % PHASES.length];
+  const phase = still ? PHASES[3] : PHASES[beat % PHASES.length];
   const caught = phase.ring > 0.9;
 
   return (

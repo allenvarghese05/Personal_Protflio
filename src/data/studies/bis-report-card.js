@@ -570,7 +570,7 @@ export const COPY = {
 export const OVERVIEW = [
   { label: 'What it is', text: 'The school’s own report card system. Subject teachers enter marks, class teachers consolidate, division heads approve and lock, and the office prints CBSE-format report cards. Every card format comes from one template engine.' },
   { label: 'Why it exists', text: 'Report cards were prepared by hand and in Excel. Student data should stay at the school, the internet there is unreliable, and nobody on site should have to run a cloud service. So it runs on one server inside the school, on the school’s own network.' },
-  { label: 'What Allen built', text: 'Solo (AI-assisted): the specs, a NestJS API, a Next.js app, the template engine and the template console, PDF printing, Excel import, the locking review, device controls for shared lab computers, encrypted backups, Docker ops and CI.' },
+  { label: 'What I built', text: 'Solo: the specs, a NestJS API, a Next.js app, the template engine and the template console, PDF printing, Excel import, the locking review, device controls for shared lab computers, encrypted backups, Docker ops and CI.' },
   { label: 'Where it stands', text: 'Built and tested: phases 1 to 20 are done. The rollout with the school is being discussed now. Next is installing it on the school’s server and a first pilot with real teachers.' },
 ];
 

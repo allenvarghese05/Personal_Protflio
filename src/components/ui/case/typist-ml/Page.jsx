@@ -19,7 +19,7 @@
  *   07 decisions  the three hard problems                   <Decisions />
  *   08 arch       browser · API · worker · SQLite           <Architecture />
  *   09 data       the eleven tables                         <DataModel />
- *   10 build      the git history, the pipeline, CI         <BuildRuler /> <Pipeline /> <Quality />
+ *   10 build      the git history and CI                    <BuildRuler /> <Quality />
  *   next          the honest roadmap, then the next case study
  *
  * Honest status, said in the hero and again at the end: milestones M0–M3
@@ -44,7 +44,6 @@ import Gate from '@/components/ui/case/typist-ml/Gate';
 import Measured from '@/components/ui/case/typist-ml/Measured';
 import PracticeDay from '@/components/ui/case/typist-ml/PracticeDay';
 import Decisions from '@/components/ui/case/typist-ml/Decisions';
-import Pipeline from '@/components/ui/case/typist-ml/Pipeline';
 import PilotResults from '@/components/ui/case/typist-ml/PilotResults';
 
 const SCOPE = 'typist-ml';
@@ -81,7 +80,7 @@ function headlines() {
     architecture: `A browser, an API and a separate worker share one SQLite file, in ${word(LAYERS.length)} layers that all run on one laptop.`,
     data: `${capWord(TABLE_COUNT)} tables. Keystrokes are append-only, a trigger freezes the weak-pair map, and every generation attempt is kept.`,
     build: TASKS
-      ? `${TASKS} design-doc tasks in ${BUILD.days} days. Coding agents briefed, planned, built and reviewed each one, and Allen merged it.`
+      ? `I wrote the design doc first, then built it one task at a time: ${TASKS} tasks in ${BUILD.days} days, each one a reviewed pull request.`
       : 'Design doc first, then one task at a time.',
     results: RESULTS.headline,
     next: 'The code is done, the pilot has run, and the results are reported as they came out.',
@@ -211,9 +210,6 @@ export default function Page({ project, study }) {
 
         <Section {...sec('build')}>
           <BuildRuler timeline={project.timeline} primary={project.primaryStack} secondary={project.secondaryStack} accent={accent} />
-          <div className="mt-20">
-            <Pipeline accent={accent} />
-          </div>
           <div className="mt-20">
             <Quality build={BUILD} accent={accent} />
           </div>

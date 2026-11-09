@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-/* wide frames (landscape): the Meet Me helmet sits left, text right.
-   Keep in step with restingLayout() in HelmetScene. */
-@custom-variant wide (@media (min-aspect-ratio: 23/20));
+/* split: wide and tall enough for the About opener's name and helmet side
+   by side. Keep in step with SPLIT in src/components/ui/stations/meet/MeetMe.jsx. */
+@custom-variant split (@media (min-aspect-ratio: 23/20) and (min-width: 768px) and (min-height: 480px));
 
 /* ============================================================
    MISSION ALLEN — Space Odyssey Design System
@@ -121,6 +121,22 @@ html {
 }
 ::-webkit-scrollbar {
   display: none;
+}
+
+/* Smooth scrolling (src/lib/smoothScroll.js): the glide does the easing, so
+   the browser's own smooth scroll stays out of its way */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+.lenis.lenis-stopped {
+  overflow: clip;
 }
 
 ::selection {
@@ -496,6 +512,49 @@ html {
 }
 .world-dock__item--cta {
   color: var(--ink);
+}
+/* The phone-only "All projects" button (top-right; see WorldDock). Set here,
+   not with Tailwind's hidden/sm: utilities, because .world-dock__item's
+   display above would override them. */
+.world-dock__float {
+  display: none;
+}
+/* Phones: the districts scroll sideways inside the screen, and "All projects"
+   moves out of the dock to its own button in the top-right corner */
+@media (max-width: 639px) {
+  .world-dock .world-dock__item--cta,
+  .world-dock .world-dock__sep {
+    display: none;
+  }
+  .world-dock__float {
+    display: inline-flex;
+  }
+  .world-dock {
+    max-width: calc(100vw - 1.5rem);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .world-dock::-webkit-scrollbar {
+    display: none;
+  }
+  .world-dock__item {
+    flex-shrink: 0;
+    padding: 0 0.7rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* The featured role (Overflow, see OverflowShowcase): its own accent, from
+   the company's colour, swapped for the darker one on the light /projects */
+.ov-scope {
+  --ov: var(--ov-dark);
+}
+html[data-work-theme="light"] .ov-scope {
+  --ov: var(--ov-light);
+}
+.ov-accent {
+  color: var(--ov);
 }
 
 /* Preview tag above a project stone when you walk up to it */
@@ -977,24 +1036,82 @@ html {
 }
 
 /* ============================================================
-   Meet Me — the helmet reveal
+   Meet Me — the About opener
    ============================================================ */
-/* the suit dissolves into the page below */
+/* the stage: the viewport under the Mission Control nav */
+.meet {
+  --meet-stage: calc(100dvh - 3.5rem);
+}
+/* the figure falls off into the room the way a studio portrait does: an
+   oval mask on the helmet (its centre and size set by MeetMe from the
+   helmet's slot), so the shoulders fade out on every side and nothing ends
+   on a hard edge; on wide screens the near shoulder also dissolves before
+   the text column (--meet-side-*) */
 .meet-canvas {
-  -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent 97%);
-  mask-image: linear-gradient(to bottom, #000 62%, transparent 97%);
+  --meet-oval: radial-gradient(var(--meet-r, 60%) var(--meet-r, 60%) at var(--meet-mx, 50%) var(--meet-my, 45%), #000 48%, rgb(0 0 0 / 0.55) 70%, transparent 100%);
+  --meet-floor: linear-gradient(to bottom, #000 var(--meet-fade-a, 60%), transparent var(--meet-fade-b, 95%));
+  --meet-side: linear-gradient(to right, transparent var(--meet-side-a, 0px), #000 var(--meet-side-b, 0px));
+  -webkit-mask-image: var(--meet-oval), var(--meet-floor), var(--meet-side);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--meet-oval), var(--meet-floor), var(--meet-side);
+  mask-composite: intersect;
 }
-.meet-cue {
-  width: 1px;
-  height: 36px;
-  background: linear-gradient(var(--ink-muted), transparent);
-  animation: meet-cue 2.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-  transform-origin: top;
+
+/* ============================================================
+   Figures — numbers that settle into place (src/components/work/Figure.jsx)
+   ============================================================ */
+.fig {
+  display: inline-block;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
-@keyframes meet-cue {
-  0% { transform: scaleY(0); opacity: 1; }
-  60% { transform: scaleY(1); opacity: 1; }
-  100% { transform: scaleY(1); opacity: 0; }
+.fig-row {
+  display: inline-flex;
+  align-items: flex-start;
+  line-height: 1.1;
+  /* copying a figure copies the screen-reader value, not the strips */
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* one digit: a window one cell tall over a strip of cells, clipped top and
+   bottom only, so the widest digits (8, 4, 0) keep their right edge */
+.fig-d {
+  position: relative;
+  display: inline-block;
+  height: 1.1em;
+  overflow-x: visible;
+  overflow-y: clip;
+}
+.fig-ghost {
+  visibility: hidden;
+}
+.fig-strip {
+  position: absolute;
+  inset: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(calc(var(--k) * -1.1em));
+}
+.fig-strip > span {
+  display: block;
+  height: 1.1em;
+}
+/* rewound (below the fold at mount), waiting to be seen */
+.fig[data-state="armed"] .fig-row {
+  opacity: 0;
+}
+.fig[data-state="armed"] .fig-strip {
+  transform: none;
+}
+/* the roll: each column a beat after the one to its left, easing out the
+   way a count does (half the travel in the first fifth, then landing), so
+   the figure is seen to settle while it's still coming up the screen */
+.fig[data-state="run"] .fig-row {
+  transition: opacity 0.3s linear var(--delay, 0ms);
+}
+.fig[data-state="run"] .fig-strip {
+  transition: transform 0.9s cubic-bezier(0.33, 1, 0.68, 1);
+  transition-delay: calc(var(--delay, 0ms) + var(--i) * 40ms);
 }
 
 /* ============================================================

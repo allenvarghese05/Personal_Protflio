@@ -19,7 +19,7 @@
  *   07 decisions  the three hard problems                     <Decisions />
  *   08 arch       five layers, real paths traced              <Architecture />
  *   09 data       nine tables, by domain                      <DataModel />
- *   10 build      the git history, the agent pipeline, CI     <BuildRuler /> <AgentPipeline /> <Quality />
+ *   10 build      the git history and CI                      <BuildRuler /> <Quality />
  *   next          the honest roadmap, then the next case study
  *
  * Facts come from data/studies/chronos-ai.js and data/projects/chronos-ai.js;
@@ -44,7 +44,6 @@ import ConfirmGap from './ConfirmGap';
 import IngestProbe from './IngestProbe';
 import DayLoop from './DayLoop';
 import Decisions from './Decisions';
-import AgentPipeline from './AgentPipeline';
 
 const SCOPE = 'chronos-ai';
 const DAY_MS = 86_400_000;
@@ -80,8 +79,8 @@ function headlines(project) {
     architecture: `One FastAPI service on a MacBook, in ${word(LAYERS.length)} layers. Follow a snapshot through it.`,
     data: `${capWord(TABLES)} tables in ${word(DATA_MODEL.migrations)} migrations, and every score is stored with the rules that made it.`,
     build: days
-      ? `${BUILD.prs.allen} pull requests in ${days} days, written by an AI-agent pipeline. Its one owner approved and merged every one.`
-      : 'Written by an AI-agent pipeline. Its one owner approved and merged every pull request.',
+      ? `${BUILD.prs.allen} pull requests in ${days} days, each one through the tests and CI before it merged.`
+      : 'One task at a time, each one through the tests and CI before it merged.',
     next: 'Next comes the phone app, then the Morning Reel the engine was built to trigger.',
   };
 }
@@ -212,9 +211,6 @@ export default function Page({ project, study }) {
 
         <Section {...sec('build')}>
           <BuildRuler timeline={project.timeline} primary={project.primaryStack} secondary={project.secondaryStack} accent={accent} />
-          <div className="mt-20">
-            <AgentPipeline />
-          </div>
           <div className="mt-20">
             <Quality build={BUILD} accent={accent} />
           </div>

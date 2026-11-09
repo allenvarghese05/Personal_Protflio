@@ -1,21 +1,32 @@
 'use client';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/lib/store';
 import { zoneById } from '@/data/world';
 import { ENGINEERING_PROJECTS, projectById } from '@/data/projects';
 import { caseStudyFor } from '@/data/caseStudies';
 import { PALETTE } from '@/lib/palette';
-
-const P_INK_FAINT = PALETTE.inkSubtle;
 import { ACCENTS, DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
-import ArchitectureGraph from './ArchitectureGraph';
-import BentoPanels from './BentoPanels';
-import DeploymentStatusStrip from './DeploymentStatusStrip';
-import ObservatoryPanel from './stations/ObservatoryPanel';
-import StudioPanel from './stations/StudioPanel';
+import { jumpTo, useSmoothScroll } from '@/lib/smoothScroll';
 import CommsPanel from './stations/CommsPanel';
 import { CASE_PAGES } from './case/pages';
+
+const P_INK_FAINT = PALETTE.inkSubtle;
+/** The stage: Mission Control's one scroll container (every room scrolls in it). */
+const SCROLLER = '[data-mc-scroll]';
+
+// The Observatory (the helmet scene) and the Studio (photos, sound) load when
+// their room opens, so the world doesn't carry them in its first download.
+const ObservatoryPanel = dynamic(() => import('./stations/ObservatoryPanel'), { loading: () => null });
+/** The same module, fetched ahead of time (see the prefetch below). */
+const prefetchObservatory = () => import('./stations/ObservatoryPanel').catch(() => {});
+const StudioPanel = dynamic(() => import('./stations/StudioPanel'), { loading: () => null });
+// The generic brief's parts. Every project has its own case-study page today,
+// so these load only for a project added without one (d3 stays out otherwise).
+const ArchitectureGraph = dynamic(() => import('./ArchitectureGraph'), { loading: () => null });
+const BentoPanels = dynamic(() => import('./BentoPanels'), { loading: () => null });
+const DeploymentStatusStrip = dynamic(() => import('./DeploymentStatusStrip'), { loading: () => null });
 
 // Station rooms share the Mission Control shell (nav, backdrop, motion).
 const STATION_ROOMS = { observatory: ObservatoryPanel, studio: StudioPanel, comms: CommsPanel };
@@ -52,7 +63,7 @@ function NavBar({ zone, project, onBack, onExit }) {
       </div>
 
       <button onClick={onExit} className="mc-ghost-btn uppercase">
-        Exit <span className="ml-1 rounded-[3px] border border-line px-1.5 py-0.5 text-[10px] tracking-normal">ESC</span>
+        Exit <span className="ml-1 rounded-[3px] border border-line px-1.5 py-0.5 text-micro tracking-normal">ESC</span>
       </button>
     </nav>
   );
@@ -83,6 +94,7 @@ function ProjectCard({ project, onSelect }) {
     <motion.button
       variants={cardVariant}
       onClick={() => onSelect(project.id)}
+      data-return-key={`wall-${project.id}`}
       aria-label={`Open brief: ${project.label}`}
       className="mc-card group relative flex cursor-pointer flex-col p-6 text-left"
       style={{ '--card-accent': accent }}
@@ -433,30 +445,138 @@ function Brief({ project }) {
 
 /* ──────────────────────────── MISSION CONTROL ─────────────────────────── */
 
+/**
+ * Each view the stage swaps in (a room, the wall, a brief) starts at its top,
+ * or, coming Back, where you left it. Done after the new view commits and
+ * before it paints, so the old one never flashes at the top.
+ *
+ * When a link or card replaced the view (the focused control went with it),
+ * focus moves too: coming Back, to the control you used (data-return-key),
+ * otherwise to the new view's title. A lazily loaded page renders a beat
+ * later, so both are re-tried as it arrives, separately: the scroll stops at
+ * the reader's first scroll of their own, focus once it has landed or the
+ * reader has moved it themselves.
+ */
+const SCROLL_KEYS = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ']);
+
+function Fresh({ children }) {
+  // how this view arrives, read once as it mounts (in development React runs
+  // effects twice, so the store's one-shot flags are copied here first)
+  const [arrival] = useState(() => {
+    const { restoreScroll, focusOnEnter, returnFocus } = useStore.getState();
+    return { top: restoreScroll ?? 0, focus: focusOnEnter, key: returnFocus };
+  });
+
+  useLayoutEffect(() => {
+    const el = document.querySelector(SCROLLER);
+    if (!el) return undefined;
+    useStore.setState({ restoreScroll: null, focusOnEnter: false, returnFocus: null });
+    let scrolling = true;
+    let focusing = arrival.focus;
+    const finish = () => {
+      if (scrolling || focusing) return;
+      mo.disconnect();
+      clearTimeout(timer);
+      el.removeEventListener('wheel', stopScroll);
+      el.removeEventListener('touchstart', stopScroll);
+      el.removeEventListener('pointerdown', stopScroll);
+      window.removeEventListener('keydown', onKey);
+    };
+    const stopScroll = () => {
+      scrolling = false;
+      finish();
+    };
+    const onKey = (e) => {
+      if (SCROLL_KEYS.has(e.key)) stopScroll();
+    };
+    const place = () => {
+      if (scrolling) {
+        jumpTo(el, arrival.top);
+        if (el.scrollTop >= arrival.top - 1) stopScroll();
+      }
+      if (!focusing) return;
+      const active = document.activeElement;
+      if (active && active !== document.body && el.contains(active)) {
+        focusing = false; // the reader got there first
+      } else {
+        const target = (arrival.key && el.querySelector(`[data-return-key="${CSS.escape(arrival.key)}"]`)) || el.querySelector('h1, h2');
+        if (!target) return;
+        if (!target.matches('a, button, input, [tabindex]')) target.setAttribute('tabindex', '-1');
+        target.focus({ preventScroll: true });
+        focusing = false;
+      }
+      finish();
+    };
+    const mo = new MutationObserver(place);
+    mo.observe(el, { childList: true, subtree: true });
+    const timer = setTimeout(() => {
+      scrolling = false;
+      focusing = false;
+      finish();
+    }, 6000);
+    el.addEventListener('wheel', stopScroll, { passive: true });
+    el.addEventListener('touchstart', stopScroll, { passive: true });
+    el.addEventListener('pointerdown', stopScroll);
+    window.addEventListener('keydown', onKey);
+    place();
+    return () => {
+      scrolling = false;
+      focusing = false;
+      finish();
+    };
+  }, [arrival]);
+
+  return children;
+}
+
 export default function MissionControl() {
   const enteredZone = useStore((s) => s.enteredZone);
   const setEnteredZone = useStore((s) => s.setEnteredZone);
   const selected = useStore((s) => s.selectedProject);
-  const setSelected = useStore((s) => s.setSelectedProject);
 
   const open = !!enteredZone;
+  // the stage glides under a wheel (see lib/smoothScroll) while it's open
+  const stageRef = useRef(null);
+  useSmoothScroll(stageRef, open);
   const zone = enteredZone ? zoneById(enteredZone) : null;
   const Room = STATION_ROOMS[enteredZone];
   const projects = ENGINEERING_PROJECTS;
   const project = selected ? projectById(selected) : null;
 
+  // Back: to the room a link came from (About), else from a brief to the
+  // wall, else out of Mission Control
+  const onBack = useCallback(() => {
+    const st = useStore.getState();
+    if (st.returnTo) {
+      const { zone, scrollTop, key } = st.returnTo;
+      useStore.setState({ enteredZone: zone, selectedProject: null, restoreScroll: scrollTop, focusOnEnter: true, returnFocus: key, returnTo: null });
+    } else if (st.selectedProject) {
+      const back = st.wallReturn;
+      useStore.setState({ selectedProject: null, focusOnEnter: true, restoreScroll: back?.scrollTop ?? null, returnFocus: back?.key ?? null, wallReturn: null });
+    } else st.setEnteredZone(null);
+  }, []);
+  // picking a card replaces the wall (and the focused card with it); Back
+  // returns to the same card at the same scroll
+  const onSelect = useCallback((id) => {
+    const scroller = document.querySelector(SCROLLER);
+    useStore.setState({ selectedProject: id, focusOnEnter: true, wallReturn: { scrollTop: scroller?.scrollTop ?? 0, key: `wall-${id}` } });
+  }, []);
+
+  // the About room (the helmet and its portrait) is the heaviest room: fetch
+  // its code a few seconds after the world is up, so it opens without a gap
+  useEffect(() => {
+    const t = setTimeout(prefetchObservatory, 4000);
+    return () => clearTimeout(t);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
-      if (e.key !== 'Escape') return;
-      if (selected) setSelected(null);
-      else setEnteredZone(null);
+      if (e.key === 'Escape') onBack();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, selected, setSelected, setEnteredZone]);
-
-  const onBack = () => (selected ? setSelected(null) : setEnteredZone(null));
+  }, [open, onBack]);
 
   return (
     <AnimatePresence>
@@ -485,16 +605,22 @@ export default function MissionControl() {
           <NavBar zone={zone} project={project} onBack={onBack} onExit={() => setEnteredZone(null)} />
 
           {/* Stage */}
-          <div data-mc-scroll className="relative flex-1 overflow-y-auto">
-            <AnimatePresence mode="wait" initial={false}>
+          <div ref={stageRef} data-mc-scroll className="relative flex-1 overflow-y-auto">
+            <AnimatePresence mode="wait">
               {Room ? (
-                <Room key={enteredZone} />
+                <Fresh key={enteredZone}>
+                  <Room />
+                </Fresh>
               ) : !project ? (
-                <div key="wall" className="flex min-h-full items-center justify-center p-6 sm:p-12">
-                  <Wall projects={projects} onSelect={setSelected} />
-                </div>
+                <Fresh key="wall">
+                  <div className="flex min-h-full items-center justify-center p-6 sm:p-12">
+                    <Wall projects={projects} onSelect={onSelect} />
+                  </div>
+                </Fresh>
               ) : (
-                <Brief key="brief" project={project} />
+                <Fresh key="brief">
+                  <Brief project={project} />
+                </Fresh>
               )}
             </AnimatePresence>
           </div>

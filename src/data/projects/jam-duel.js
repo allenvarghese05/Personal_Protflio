@@ -34,8 +34,8 @@ export const project = {
     { title: 'A model that answers in a renderable shape', body: 'GPT-4 is asked for JSON only: four named categories of three songs, each with a reason.' },
   ],
   timeline: [
-    { week: 'Aug 17', start: '2025-08-17', end: '2025-08-17', title: 'The app + YouTube', desc: 'Allen: the full-stack initial commit, then the YouTube player, thumbnails and video lookups in place of Spotify previews.', done: true },
-    { week: 'Aug 18', start: '2025-08-18', end: '2025-08-18', title: 'Pages + server deps', desc: 'Allen: the GitHub Pages build. Teammates: server dependencies, env example and a regex fix.', done: true },
+    { week: 'Aug 17', start: '2025-08-17', end: '2025-08-17', title: 'The app + YouTube', desc: 'Me: the full-stack initial commit, then the YouTube player, thumbnails and video lookups in place of Spotify previews.', done: true },
+    { week: 'Aug 18', start: '2025-08-18', end: '2025-08-18', title: 'Pages + server deps', desc: 'Me: the GitHub Pages build. Teammates: server dependencies, env example and a regex fix.', done: true },
   ],
   architectureGraph: {
     nodes: [

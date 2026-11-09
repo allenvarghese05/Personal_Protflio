@@ -1,4 +1,5 @@
 import ProjectIndex from '@/components/work/ProjectIndex';
+import { ENGINEERING_PROJECTS } from '@/data/projects';
 import { THEME_SCRIPT } from '@/components/work/themeScript';
 
 // The résumé link: every project without the 3D journey.
@@ -9,7 +10,7 @@ export const metadata = {
   alternates: { canonical: '/projects' },
   openGraph: {
     title: 'Projects | Allen Shaji Varghese',
-    description: 'Ten projects, each written up from its own code.',
+    description: `${ENGINEERING_PROJECTS.length} projects, each written up from its own code.`,
     type: 'website',
     url: '/projects',
   },

@@ -23,7 +23,7 @@ export const project = {
     { value: '38', label: 'Test cases: DSP, detector, closed loop' },
     { value: '11', label: 'Stages per mic, plus 5 on the master' },
     { value: '3 Hz', label: 'Ring frequency accuracy (tested)' },
-    { value: '+3.3 dB', label: 'Added stable gain, simulated (self-reported)' },
+    { value: '+3.3 dB', label: 'More gain before feedback, in simulation' },
   ],
   primaryStack: ['Python 3.12', 'NumPy', 'SciPy', 'Numba', 'sounddevice (PortAudio)'],
   secondaryStack: ['pyroomacoustics', 'soundfile', 'pytest'],

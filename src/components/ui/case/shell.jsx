@@ -24,6 +24,7 @@ import { useStore } from '@/lib/store';
 import { ENGINEERING_PROJECTS } from '@/data/projects';
 import { KIND_ACCENT, P, alpha } from '@/components/ui/case/tokens';
 import { DUR, EASE_OUT, EASE_STD } from '@/lib/motion';
+import { glideTo, jumpTo } from '@/lib/smoothScroll';
 import { GITHUB_MARK } from '@/lib/brandMarks';
 import { SHOWCASE } from '@/data/showcase';
 import NextProject from '@/components/ui/case/NextProject';
@@ -400,7 +401,7 @@ export function SectionIndex({ scope, sections, accent }) {
   const jump = (id) => {
     const el = document.getElementById(`${scope}-${id}`);
     if (!el) return;
-    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    glideTo(el, { reduce });
     if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
     el.focus({ preventScroll: true });
   };
@@ -463,7 +464,7 @@ export function NextSection({ scope, project, title, items, accent }) {
       return;
     }
     const scroller = rootRef.current?.closest(SCROLLER) || document.querySelector(SCROLLER);
-    scroller?.scrollTo({ top: 0 });
+    if (scroller) jumpTo(scroller, 0);
     setSelected(next.id);
     // the swap commits before the next frame; land focus in the new brief
     if (scroller) requestAnimationFrame(() => focusStageHeading(scroller));

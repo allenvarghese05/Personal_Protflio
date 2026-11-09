@@ -18,7 +18,7 @@ export const project = {
   repo: null, // private repository
   live: null, // runs only on the school's own network; not deployed yet
   description:
-    'A self-hosted, LAN-first report card system for Beersheba International School in Pipariya, Madhya Pradesh. Subject teachers enter marks in a keyboard-first grid, by paste or through a pre-filled Excel sheet; class teachers consolidate and submit; division heads approve and lock, or return with a note; cards print as CBSE-format PDFs from one HTML renderer. Card formats are templates stored as JSONB, so a marks-based LKG card and a descriptive Nursery record run on one engine. Sole developer (AI-assisted) for the specs, NestJS API, Next.js app, ops and CI. It is built and tested. The rollout with the school is being discussed; next is installing it on the school’s server and running a Pre-Primary pilot.',
+    'A self-hosted, LAN-first report card system for Beersheba International School in Pipariya, Madhya Pradesh. Subject teachers enter marks in a keyboard-first grid, by paste or through a pre-filled Excel sheet; class teachers consolidate and submit; division heads approve and lock, or return with a note; cards print as CBSE-format PDFs from one HTML renderer. Card formats are templates stored as JSONB, so a marks-based LKG card and a descriptive Nursery record run on one engine. I was the sole developer: the specs, NestJS API, Next.js app, ops and CI. It is built and tested. The rollout with the school is being discussed; next is installing it on the school’s server and running a Pre-Primary pilot.',
   tags: ['NestJS', 'Next.js', 'TypeScript', 'PostgreSQL + Prisma', 'Docker'],
   metrics: [
     { value: '282', label: 'Automated tests, green in CI' },
@@ -45,12 +45,12 @@ export const project = {
   // the git history, chapter by chapter (start / end are commit dates)
   timeline: [
     { week: 'Jul 18', start: '2026-07-18', end: '2026-07-18', title: 'The spec', desc: 'The first commit: the Phase 1 scaffold design spec. (The seven spec documents arrive with the code in October.)', done: true },
-    { week: 'Oct 6', start: '2026-10-06', end: '2026-10-06', title: 'The core system', desc: 'API, shared schemas, template engine, grading, print, Excel and tests; the web app, Docker, ops scripts and CI. These are Phases 1-20 in the README.', done: true },
+    { week: 'Oct 6', start: '2026-10-06', end: '2026-10-06', title: 'The core system', desc: 'API, shared schemas, template engine, grading, print, Excel and tests; the web app, Docker, ops scripts and CI. These are Phases 1–20 in the README.', done: true },
     { week: 'Oct 9', start: '2026-10-09', end: '2026-10-09', title: 'Division-head review', desc: 'A review stage between class teacher and lock, and a full UI redesign.', done: true },
-    { week: 'Oct 14-18', start: '2026-10-14', end: '2026-10-18', title: 'School setup', desc: 'Roster upload, the staffing board, the new-year wizard with undoable promotion, electives, streams and the pass mark (PRs #1 to #5).', done: true },
-    { week: 'Oct 18-19', start: '2026-10-18', end: '2026-10-19', title: 'Browser tests & access', desc: 'The Playwright suite, section-view scope, and the forced password change enforced by the API (PRs #6 to #8).', done: true },
+    { week: 'Oct 14–18', start: '2026-10-14', end: '2026-10-18', title: 'School setup', desc: 'Roster upload, the staffing board, the new-year wizard with undoable promotion, electives, streams and the pass mark (PRs #1 to #5).', done: true },
+    { week: 'Oct 18–19', start: '2026-10-18', end: '2026-10-19', title: 'Browser tests & access', desc: 'The Playwright suite, section-view scope, and the forced password change enforced by the API (PRs #6 to #8).', done: true },
     { week: 'Oct 19', start: '2026-10-19', end: '2026-10-19', title: 'Ops & integrity', desc: 'One HTTPS door, backups drilled in CI, advisory locks and the roll constraint, trusted devices (PRs #9 to #12).', done: true },
-    { week: 'Oct 19-21', start: '2026-10-19', end: '2026-10-21', title: 'Review hardening', desc: 'Authorisation boundaries, data correctness and shared lab computers, each over several review rounds (PRs #13 to #15).', done: true },
+    { week: 'Oct 19–21', start: '2026-10-19', end: '2026-10-21', title: 'Review hardening', desc: 'Authorisation boundaries, data correctness and shared lab computers, each over several review rounds (PRs #13 to #15).', done: true },
     { week: 'From Oct 21', start: '2026-10-21', end: '2026-10-21', title: 'Before the pilot', desc: 'PR #16 covers ops, query counts and ESLint. It is open with CI green, but not merged.', done: false },
   ],
   architectureGraph: {

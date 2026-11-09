@@ -11,7 +11,7 @@ export const LINKS = [{ href: 'https://learnflow-ai.app/', label: 'learnflow-ai.
 export const COPY = {
   outcome:
     'A student planner that sets itself up. Paste your Canvas calendar link and your classes and deadlines appear. Upload a syllabus and the rest of the semester fills in.',
-  status: 'Beta · 150+ testers · not launched yet',
+  status: 'Beta · not launched yet · 150+ testers on v1',
   before: [
     'Classes, deadlines and syllabi live in Canvas, PDFs and your head',
     'Setting up a planner means typing in every class and every due date',
@@ -25,7 +25,7 @@ export const COPY = {
     'Upload the syllabus to add the professor, office hours, lecture times for the whole term and the assignments Canvas didn’t list',
   ],
   built:
-    'Co-founded with Aahil Afraz. Version 1 (2025) was an AI study companion on the desktop that Aahil led and Allen helped ship; it went to beta testers in November 2025. After browsers started building the same help in, Allen rebuilt LearnFlow in October 2026 as a fast web app centred on the planner.',
+    'Co-founded with Aahil Afraz. Version 1 (2025) was an AI study companion on the desktop that Aahil led and I helped ship; it went to beta testers in November 2025. After browsers started building the same help in, I rebuilt LearnFlow in October 2026 as a fast web app centred on the planner.',
   next: [
     'Launch, from beta users to an open release.',
     'Keep the planner at the centre. Every new feature has to save a student setup time and must not repeat what the browser already does.',
@@ -150,7 +150,7 @@ export const TRACES = [
 export const OVERVIEW = [
   { label: 'What it is', text: 'A planner that sets itself up. Paste your Canvas calendar link and your classes and deadlines appear. Upload a syllabus and the term fills in: lectures, office hours and the assignments Canvas didn’t list.' },
   { label: 'Why it exists', text: 'Version 1 was a desktop study companion that could explain your screen, take lecture notes and quiz you. More than 150 beta testers used it, then browsers built the same help in. No tool set up the semester for you, so LearnFlow took on that job.' },
-  { label: 'What Allen did', text: 'Co-founder. Helped ship version 1 (dashboard, onboarding, the desktop builds), then rebuilt the product himself: the Canvas sync and its ownership rules, the syllabus reader, assignment guides, a class assistant and a new web app.' },
+  { label: 'What I did', text: 'Co-founder. Helped ship version 1 (dashboard, onboarding, the desktop builds), then rebuilt the product myself: the Canvas sync and its ownership rules, the syllabus reader, assignment guides, a class assistant and a new web app.' },
   { label: 'Where it stands', text: 'Beta: over 150 testers, not officially launched. The rebuild is a web app instead of a desktop download, with about a tenth of the old code.' },
 ];
 
@@ -160,7 +160,7 @@ export const STORY = [
   {
     when: 'Jun to Nov 2025',
     title: 'Version 1: every study feature at once',
-    body: 'An Electron desktop app that ran beside your work. It could read and explain your screen, capture lecture audio for live notes, recognise speech, read text from images (OCR), and turn material into flashcards, quizzes, mock exams and smart practice. It also had reminders and Canvas imports. Aahil led it; Allen worked on the dashboard, onboarding and the desktop builds.',
+    body: 'An Electron desktop app that ran beside your work. It could read and explain your screen, capture lecture audio for live notes, recognise speech, read text from images (OCR), and turn material into flashcards, quizzes, mock exams and smart practice. It also had reminders and Canvas imports. Aahil led it; I worked on the dashboard, onboarding and the desktop builds.',
     kept: [],
     cut: [],
   },
@@ -178,7 +178,7 @@ export const STORY = [
   {
     when: 'Oct 2026',
     title: 'Version 2: strip it to the planner',
-    body: 'Allen rebuilt LearnFlow as a web app around one job: getting a student’s semester into a planner without typing it in. Canvas sync, syllabus reading, assignment guides and a class assistant stayed; the desktop app and the features browsers now cover went. About 64,000 lines of source became about 5,600.',
+    body: 'I rebuilt LearnFlow as a web app around one job: getting a student’s semester into a planner without typing it in. Canvas sync, syllabus reading, assignment guides and a class assistant stayed; the desktop app and the features browsers now cover went. About 64,000 lines of source became about 5,600.',
     kept: ['Canvas calendar sync', 'Syllabus reading', 'Assignment guides', 'Class assistant'],
     cut: ['Screen capture', 'Live audio notetaker', 'OCR', 'Flashcards & quizzes', 'Mock exams', 'SMS reminders', 'Desktop app'],
   },

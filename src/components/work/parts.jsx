@@ -10,6 +10,9 @@
  *   HowItWorks  the same steps behind a disclosure, for the smaller tiers.
  *   Chip        the status chip, in its tone.
  *   Mark        the round project mark (its thumbnail, or its letter).
+ *   PILL_*      the round buttons (solid ink, or outlined) and ArrowDot, the
+ *               arrow in its own disc on a solid pill. The About room shares
+ *               them.
  */
 import { useEffect, useId, useRef, useState } from 'react';
 import Image from 'next/image';
@@ -22,6 +25,24 @@ export const TONE = {
   side: 'var(--slate)',
 };
 const EASE_OUT = [0.16, 1, 0.3, 1];
+
+/* ── Pills ─────────────────────────────────────────────────────────────── */
+
+export const PILL =
+  'group/btn inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-full text-sm font-medium transition-[background-color,box-shadow,color,transform] duration-200 active:scale-[0.98]';
+export const PILL_SOLID = `${PILL} bg-ink pl-5 pr-1.5 text-void hover:bg-accent`;
+export const PILL_LINE = `${PILL} px-5 text-ink ring-1 ring-inset ring-line-hi hover:bg-surface-2 hover:ring-ink-subtle`;
+
+export function ArrowDot() {
+  return (
+    <span
+      aria-hidden
+      className="flex h-8 w-8 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--void)_14%,transparent)] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/btn:translate-x-0.5 group-hover/btn:scale-105"
+    >
+      →
+    </span>
+  );
+}
 
 /* ── CountUp ───────────────────────────────────────────────────────────── */
 
@@ -108,10 +129,12 @@ export function Steps({ steps, color, dense = false }) {
         <motion.li
           key={s.label}
           className={`relative grid grid-cols-[16px_minmax(0,1fr)] gap-x-4 ${dense ? 'py-1.5' : 'py-2.5'}`}
-          initial={reduce ? false : { opacity: 0, y: 12 }}
+          // the same props on the server and the client, whatever the motion
+          // setting (no hydration mismatch); reduced motion just makes it instant
+          initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.6 }}
-          transition={{ duration: 0.6, ease: EASE_OUT, delay: i * 0.06 }}
+          transition={reduce ? { duration: 0 } : { duration: 0.6, ease: EASE_OUT, delay: i * 0.06 }}
         >
           <span
             aria-hidden
@@ -177,8 +200,8 @@ export function HowItWorks({ steps, color }) {
 
 /* ── Chip, Mark ────────────────────────────────────────────────────────── */
 
-export function Chip({ highlight }) {
-  const color = TONE[highlight.tone] || TONE.side;
+export function Chip({ highlight, color: override }) {
+  const color = override || TONE[highlight.tone] || TONE.side;
   return (
     <span
       className="inline-flex h-7 w-fit items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-label font-medium"

@@ -22,8 +22,8 @@ export const project = {
   metrics: [
     { value: '1 link', label: 'Canvas feed creates your classes and deadlines' },
     { value: '5', label: 'Assignment types, classified on import' },
-    { value: '0.1', label: 'Syllabus model temperature, JSON-only' },
-    { value: '150+', label: 'Beta testers, not launched yet' },
+    { value: '~5,600', label: 'Lines in the web rebuild, from 64,000 in v1' },
+    { value: '150+', label: 'Beta testers on v1; the planner isn’t launched yet' },
   ],
   primaryStack: ['React', 'Vite', 'Tailwind CSS', 'Node.js · Express', 'Supabase (Postgres + Auth)'],
   secondaryStack: ['OpenAI GPT-4o', 'pdf-parse', 'Canvas iCalendar feeds', 'Server-sent events', 'Electron (v1)'],
@@ -34,8 +34,8 @@ export const project = {
   ],
   timeline: [
     { week: 'Jun to Aug 2025', start: '2025-06-05', end: '2025-08-01', title: 'Version 1', desc: 'The first version, an AI study companion, led by Aahil.', done: true },
-    { week: 'Oct to Nov 2025', start: '2025-10-01', end: '2025-11-17', title: 'Toward release', desc: 'Dashboard and onboarding work (Allen), cross-platform builds and release workflow (Aahil, Allen).', done: true },
-    { week: 'Oct 7, 2026', start: '2026-10-07', end: '2026-10-07', title: 'v2, the planner', desc: 'Allen: the Canvas sync pipeline, syllabus parse and apply, assignment guides, the class assistant and a new Vite + React web app.', done: true },
+    { week: 'Oct to Nov 2025', start: '2025-10-01', end: '2025-11-17', title: 'Toward release', desc: 'Dashboard and onboarding work (me), cross-platform builds and release workflow (Aahil and me).', done: true },
+    { week: 'Oct 7, 2026', start: '2026-10-07', end: '2026-10-07', title: 'v2, the planner', desc: 'Me: the Canvas sync pipeline, syllabus parse and apply, assignment guides, the class assistant and a new Vite + React web app.', done: true },
   ],
   architectureGraph: {
     nodes: [

@@ -8,7 +8,7 @@ export const project = {
   badge: 'IN PRODUCTION · CLIENT SYSTEM · SOLE ENGINEER',
   label: 'Church Building Application System',
   subtitle:
-    'Grant workflow for church construction across India, in production since October 2026: 21 statuses in one engine, race-safe phased funding, and a Super Admin console that changes the rules without a deploy',
+    'The grant system for church construction across India, in production since October 2026: one workflow from application to the last fund release, money that can never be paid out twice, and an admin console that changes the rules without a deploy',
   role: 'Software Solutions Architect',
   company: 'Indian Evangelical Team',
   dateRange: 'Jan 2026 to now',
@@ -18,8 +18,8 @@ export const project = {
   tags: ['Next.js 16', 'React 19', 'TypeScript', 'Prisma + PostgreSQL', 'Supabase'],
   metrics: [
     { value: '21', label: 'Workflow statuses, one engine' },
-    { value: '18', label: 'Prisma models' },
-    { value: '1.28s', label: 'All-time analytics, from 146.7 s' },
+    { value: '3,000+', label: 'Pastors in the network it serves' },
+    { value: '1.28 s', label: 'All-time analytics, from 31.4 s' },
     { value: '700+', label: 'Automated checks in CI' },
   ],
   primaryStack: ['Next.js 16', 'React 19', 'TypeScript', 'PostgreSQL', 'Prisma 6', 'Supabase'],
@@ -41,14 +41,14 @@ export const project = {
   // the git history, chapter by chapter (start / end are the commit dates)
   timeline: [
     { week: 'Jan 29 to Feb 14', start: '2026-01-29', end: '2026-02-14', title: 'The prototype', desc: 'A 13-model schema, the 9-page form, the approval flow, phase tracking and reports, in 17 commits.', done: true },
-    { week: 'Oct 3', start: '2026-10-03', end: '2026-10-03', title: 'The restart', desc: '56 TypeScript errors fixed, two security holes closed, and the heaviest report rewritten: from 147 s to 2.8 s on the same connection.', done: true },
+    { week: 'Oct 3', start: '2026-10-03', end: '2026-10-03', title: 'The restart', desc: '56 TypeScript errors fixed, two security holes closed, and the heaviest report rewritten: from 31.4 s to 1.28 s on the same connection.', done: true },
     { week: 'Oct 5', start: '2026-10-05', end: '2026-10-05', title: 'The engine', desc: 'In nine batches: the workflow engine, Finance releases, the daily job, the offline form.', done: true },
-    { week: 'Oct 6-7', start: '2026-10-06', end: '2026-10-07', title: 'Money & scopes', desc: 'Approved amounts with a race-safe cap, multi-division leaders, five-scope analytics and Excel export.', done: true },
+    { week: 'Oct 6–7', start: '2026-10-06', end: '2026-10-07', title: 'Money & scopes', desc: 'Approved amounts with a race-safe cap, multi-division leaders, five-scope analytics and Excel export.', done: true },
     { week: 'Oct 13', start: '2026-10-13', end: '2026-10-13', title: 'Notifications', desc: '24 in-app events, five audiences, and the analytics chart kit.', done: true },
-    { week: 'Oct 14-19', start: '2026-10-14', end: '2026-10-19', title: 'Production readiness', desc: 'CI/CD, clean-up, the security pass, nonce CSP, server-rendered first paint, design tokens.', done: true },
+    { week: 'Oct 14–19', start: '2026-10-14', end: '2026-10-19', title: 'Production readiness', desc: 'CI/CD, clean-up, the security pass, nonce CSP, server-rendered first paint, design tokens.', done: true },
     { week: 'Oct', start: '2026-10-20', end: '2026-10-31', title: 'Live', desc: 'Deployed to production in Mumbai; staff at headquarters and the divisions run every application on it.', done: true },
-    { week: 'Oct 20-22', start: '2026-10-20', end: '2026-10-22', title: 'Mission Control', desc: 'MC-0 to MC-7: the schema-driven console, history and undo, field policy, document types.', done: true },
-    { week: 'Oct 23', start: '2026-10-23', end: '2026-10-23', title: 'The audit', desc: 'CHU-27 to 33: seeds, the last Super Admin, email case, migrations, magic-byte uploads.', done: true },
+    { week: 'Oct 20–22', start: '2026-10-20', end: '2026-10-22', title: 'Mission Control', desc: 'The admin console: generated from the schema, with history and undo, field policy and document types.', done: true },
+    { week: 'Oct 23', start: '2026-10-23', end: '2026-10-23', title: 'The audit', desc: 'Seven security fixes: safe seeds, a protected last admin, case-insensitive emails, real migrations, and uploads checked by their contents.', done: true },
   ],
   architectureGraph: {
     nodes: [
@@ -123,7 +123,7 @@ export const caseStudy = {
     'One workflow engine (14 actions over a 21-value status enum) runs every application from HQ review to completion. Each action is a compare-and-set inside a single transaction, with a history row and an audit row.',
     'The President’s approved amount caps every release, race-tested so two clicks can never pay out twice.',
     'Mission Control generates its settings screens from the zod schema, and each application keeps the rules it was submitted under.',
-    'Analytics went from 31.4 s to 1.28 s on the same connection (from 147 s to 2.8 s on the transaction pooler). About 100 queries that ran one after another now run in one parallel batch, and all 110 compared responses came back unchanged.',
+    'Analytics went from 31.4 s to 1.28 s on the same connection. About 100 queries that ran one after another now run in one parallel batch, and all 110 compared responses came back unchanged.',
   ],
   next: [],
 };

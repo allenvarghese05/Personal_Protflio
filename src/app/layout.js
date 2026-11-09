@@ -22,17 +22,26 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+// The address link previews (Open Graph images, canonical URLs) resolve
+// against. Set NEXT_PUBLIC_SITE_URL once a custom domain is live; on Vercel
+// it otherwise follows the project's production address (its own domain, or
+// the free *.vercel.app one), so previews work from the first deploy.
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "https://allenvarghese.com");
+
 export const metadata = {
-  title: "Allen Shaji Varghese, Mission Control",
+  title: "Allen Shaji Varghese · Software Engineer",
   description:
-    "Software Engineering student at Drexel building products that solve real problems through AI and technology. An immersive journey through the work of Allen Shaji Varghese.",
+    "Software engineering student at Drexel (’27). Giving infrastructure at Overflow, a grant platform in production across India, and a NASA Space Apps 2025 Global Nominee. Projects, case studies and contact.",
   openGraph: {
-    title: "Mission Allen, Allen Shaji Varghese",
+    title: "Allen Shaji Varghese · Software Engineer",
     description:
-      "An immersive space odyssey through the engineering and creative work of Allen Shaji Varghese.",
+      "Giving infrastructure at Overflow, a grant platform in production across India, and a NASA Space Apps 2025 Global Nominee. Walk through the work in 3D, or read the case studies.",
     type: "website",
   },
-  metadataBase: new URL("https://allenvarghese.com"),
+  twitter: { card: "summary_large_image" },
+  metadataBase: new URL(SITE_URL),
 };
 
 export const viewport = {

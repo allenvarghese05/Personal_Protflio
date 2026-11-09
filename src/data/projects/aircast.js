@@ -34,10 +34,10 @@ export const project = {
   ],
   timeline: [
     { week: 'Oct 4 · afternoon', start: '2025-10-04', end: '2025-10-04', title: 'Ground + weather', desc: 'Aahil: the scaffold, OpenWeather client and OpenAQ stations with a sample fallback.', done: true },
-    { week: 'Oct 4 · evening', start: '2025-10-04', end: '2025-10-04', title: 'Satellite + forecast', desc: 'Aahil: the TEMPO NetCDF reader, forecast multipliers and the first map UI. Allen: made the granule portable.', done: true },
-    { week: 'Oct 4 · late', start: '2025-10-04', end: '2025-10-04', title: 'Explanations + safety', desc: 'Allen: weather fallbacks, forecast reasons, health alerts and the per-group safety engine.', done: true },
-    { week: 'Oct 5 · night', start: '2025-10-05', end: '2025-10-05', title: 'AI brief + chat', desc: 'Allen: /api/ai-summary and /api/ai-chat, Azure config and the Gunicorn start script.', done: true },
-    { week: 'Oct 5 · afternoon', start: '2025-10-05', end: '2025-10-05', title: 'Ship to Azure', desc: 'Allen: the granule from Blob, the Actions deploy, optional OpenAI, relative API URLs, the floating chat.', done: true },
+    { week: 'Oct 4 · evening', start: '2025-10-04', end: '2025-10-04', title: 'Satellite + forecast', desc: 'Aahil: the TEMPO NetCDF reader, forecast multipliers and the first map UI. Me: made the granule portable.', done: true },
+    { week: 'Oct 4 · late', start: '2025-10-04', end: '2025-10-04', title: 'Explanations + safety', desc: 'Me: weather fallbacks, forecast reasons, health alerts and the per-group safety engine.', done: true },
+    { week: 'Oct 5 · night', start: '2025-10-05', end: '2025-10-05', title: 'AI brief + chat', desc: 'Me: /api/ai-summary and /api/ai-chat, Azure config and the Gunicorn start script.', done: true },
+    { week: 'Oct 5 · afternoon', start: '2025-10-05', end: '2025-10-05', title: 'Ship to Azure', desc: 'Me: the granule from Blob, the Actions deploy, optional OpenAI, relative API URLs, the floating chat.', done: true },
     { week: '2026', start: '2026-06-26', end: '2026-10-28', title: 'Write-up + recognition', desc: 'The README, the Global Nominee badge and an MIT license.', done: true },
   ],
   architectureGraph: {
@@ -47,7 +47,7 @@ export const project = {
       { id: 'map', label: 'Map UI', description: 'Vanilla JS: a dark Google map with AQI markers, a forecast chart, health alerts, the safety guide and the satellite-vs-ground card.', category: 'ui', importance: 'primary', x: 26, y: 30 },
       { id: 'chat', label: 'AI chat', description: 'A floating chat that asks follow-up questions about the current readings.', category: 'ui', importance: 'secondary', x: 26, y: 62 },
       { id: 'forecast', label: 'Forecast model', description: 'Nine multiplier rules over wind, temperature, rain, humidity and time of day; six steps, each with a reason string.', category: 'workflow', importance: 'primary', x: 50, y: 18 },
-      { id: 'safety', label: 'Safety engine', description: 'Five groups with safe/caution thresholds, judged per forecast step, plus each group’s best window. Written by Allen.', category: 'workflow', importance: 'primary', x: 50, y: 72 },
+      { id: 'safety', label: 'Safety engine', description: 'Five groups with safe/caution thresholds, judged per forecast step, plus each group’s best window. I wrote it.', category: 'workflow', importance: 'primary', x: 50, y: 72 },
       { id: 'ai', label: 'AI brief', description: 'Builds a structured context from every source and asks GPT-4o-mini for a brief of under 180 words with an A-to-F grade; falls back with HTTP 200.', category: 'ai', importance: 'primary', x: 50, y: 90 },
       { id: 'tempo', label: 'TEMPO reader', description: 'Opens the NO₂ granule in memory, finds the nearest pixel, converts the column to an AQI and labels its freshness.', category: 'data', importance: 'secondary', x: 72, y: 22 },
       { id: 'openaq', label: 'OpenAQ client', description: 'Stations within 25 km; PM2.5 converted to AQI with the EPA breakpoints; sample stations if the API fails.', category: 'data', importance: 'secondary', x: 72, y: 48 },

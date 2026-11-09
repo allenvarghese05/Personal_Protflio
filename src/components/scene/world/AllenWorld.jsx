@@ -4,7 +4,7 @@ import { useFrame, useLoader, extend } from '@react-three/fiber';
 import { Html, shaderMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 import { worldState } from '@/lib/worldState';
-import { MESAS, CAUSEWAYS, mesaById } from '@/data/world';
+import { MESAS, CAUSEWAYS, MONOLITHS, mesaById } from '@/data/world';
 import { causewaySegments } from '@/lib/worldNav';
 import { PALETTE } from '@/lib/palette';
 import Monoliths from './Monoliths';
@@ -542,7 +542,7 @@ function EngineeringSign() {
     <Html center position={[eng.center[0], 7.2, eng.center[1] + 2]} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
       <div ref={ref} className="world-label" style={{ opacity: 0 }}>
         <span className="world-label__name">Engineering</span>
-        <span className="world-label__meta">Six projects</span>
+        <span className="world-label__meta">{MONOLITHS.length} projects</span>
         <span className="world-label__tick" />
       </div>
     </Html>

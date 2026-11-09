@@ -1,0 +1,41 @@
+# Checks every pull request and every push to main: the code passes lint
+# and the production build succeeds. Results show on the PR and in the
+# repo's Actions tab. Vercel deploys separately; this only checks.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# a newer push to the same branch cancels the older run
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1

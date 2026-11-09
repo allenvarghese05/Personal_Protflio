@@ -21,7 +21,7 @@ export const project = {
   tags: ['React Native', 'Expo', 'Socket.IO', 'Google Maps', 'Firebase Auth'],
   metrics: [
     { value: '7', label: 'Screens (6 user-facing + loading)' },
-    { value: '10-20', label: 'Points per report, weighted to detail' },
+    { value: '10–20', label: 'Points per report, weighted to detail' },
     { value: '1 km', label: 'Nearby radius, Haversine' },
     { value: '3', label: 'Realtime socket events on the server' },
   ],
