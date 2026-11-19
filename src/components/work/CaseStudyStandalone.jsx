@@ -52,7 +52,7 @@ export default function CaseStudyStandalone({ id }) {
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
-            <Link href="/?intro=1" className="mc-ghost-btn uppercase">
+            <Link href="/" className="mc-ghost-btn uppercase">
               Portfolio ↗
             </Link>
           </div>
