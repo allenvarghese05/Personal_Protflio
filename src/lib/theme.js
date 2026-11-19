@@ -7,7 +7,8 @@
  * the :root palette, Signal Amber). In order:
  *   1. the toggle: a choice someone made is kept (localStorage) and wins
  *   2. the résumé link (?theme=light): light for the rest of that visit
- *   3. otherwise the visitor's device setting (prefers-color-scheme)
+ *   3. otherwise light: the site opens in light mode for everyone, whatever
+ *      their device setting says (dark is one tap on the toggle away)
  *
  * resolveTheme is the one copy of this rule: useTheme calls it, and
  * THEME_SCRIPT is its own source, so everything it needs is written inline.
@@ -25,7 +26,7 @@ export function resolveTheme() {
   } catch {
     if (linked) return 'light'; // storage blocked: the link alone decides
   }
-  return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  return 'light';
 }
 
 export const THEME_SCRIPT = `try{if((${resolveTheme})()==='light')document.documentElement.dataset.theme='light'}catch(e){}`;

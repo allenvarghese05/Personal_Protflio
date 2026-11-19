@@ -527,7 +527,7 @@ export default function ProjectIndex() {
             </span>
             <ThemeToggle />
             <Link
-              href="/"
+              href="/?intro=1"
               className="ml-1 inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium text-ink ring-1 ring-inset ring-line-hi transition-[background-color,box-shadow] hover:bg-surface-2 hover:ring-ink-subtle"
             >
               <span className="hidden sm:inline">Enter the portfolio</span>
@@ -670,7 +670,7 @@ export default function ProjectIndex() {
           <div data-noprint className="flex flex-col gap-4 border-t border-line pt-8 text-sm text-ink-subtle sm:flex-row sm:items-center sm:justify-between">
             <p>
               There’s a more playful version of this page: the same work, inside a walkable 3D world.{' '}
-              <Link href="/" className="font-medium text-ink underline-offset-4 hover:underline">
+              <Link href="/?intro=1" className="font-medium text-ink underline-offset-4 hover:underline">
                 Enter the portfolio →
               </Link>
             </p>
