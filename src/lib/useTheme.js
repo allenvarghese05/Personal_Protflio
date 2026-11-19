@@ -1,7 +1,7 @@
 'use client';
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import { PALETTE, PALETTE_LIGHT } from './palette';
-import { THEME_KEY, resolveTheme } from './theme';
+import { THEME_KEY } from './theme';
 
 /**
  * The site's theme, for React. <html data-theme> is the source of truth (set
@@ -35,25 +35,9 @@ export function usePalette() {
   return useThemeValue() === 'light' ? PALETTE_LIGHT : PALETTE;
 }
 
-/** [theme, toggle]. Also follows the device setting live until someone
- *  makes a choice with the toggle. */
+/** [theme, toggle]. Light by default; the toggle's choice is remembered. */
 export function useTheme() {
   const theme = useThemeValue();
-
-  useEffect(() => {
-    const mq = window.matchMedia?.('(prefers-color-scheme: light)');
-    if (!mq) return undefined;
-    const onChange = () => {
-      try {
-        if (localStorage.getItem(THEME_KEY) || localStorage.getItem('work-theme')) return;
-      } catch {
-        /* no storage: follow the device */
-      }
-      applyTheme(resolveTheme());
-    };
-    mq.addEventListener?.('change', onChange);
-    return () => mq.removeEventListener?.('change', onChange);
-  }, []);
 
   const toggle = useCallback(() => {
     const next = getSnapshot() === 'light' ? 'dark' : 'light';

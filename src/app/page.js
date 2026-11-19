@@ -10,6 +10,7 @@ import WorldExperience from '@/components/scene/world/WorldExperience';
 import MissionControl from '@/components/ui/MissionControl';
 import WorldDock from '@/components/ui/WorldDock';
 import BigBangTransition, { ControlHint } from '@/components/journey/BigBangTransition';
+import DarkModeNote from '@/components/ui/DarkModeNote';
 
 // NOTE: the intro scene is imported statically (not next/dynamic) so it
 // shares the SAME store + entry-clock module instances as the overlays. The
@@ -99,11 +100,18 @@ export default function Home() {
   // by link (/?room=observatory) or from the hero still opens, as a plain
   // page over the void, with motion reduced for those who asked for that.
   if (tier === 'base') {
-    if (!enteredZone) return <StaticHero />;
+    if (!enteredZone)
+      return (
+        <>
+          <StaticHero />
+          <DarkModeNote />
+        </>
+      );
     return (
       <MotionConfig reducedMotion="user">
         <main className="relative h-screen overflow-hidden bg-[var(--void)]">
           <MissionControl />
+          <DarkModeNote />
         </main>
       </MotionConfig>
     );
@@ -114,6 +122,7 @@ export default function Home() {
       <WorldExperience />
       <WorldDock />
       <MissionControl />
+      <DarkModeNote />
     </>
   );
 
@@ -137,6 +146,7 @@ export default function Home() {
       {journeyPhase !== 'world' && <BigBangTransition />}
       <SkipIntro />
       {journeyPhase === 'world' && <ControlHint />}
+      {journeyPhase === 'intro' && <DarkModeNote />}
     </main>
   );
 }
